@@ -119,6 +119,10 @@ export function reduzir(
       return pularVez(estado, ctx, ambiente)
     case 'venceuPrazoTurno':
       return venceuPrazoTurno(estado, ctx, ambiente)
+    case 'declararDescobri':
+      return declararDescobri(estado, ctx, ambiente)
+    case 'responderDeclaracao':
+      return responderDeclaracao(estado, ctx, comando.aceita, ambiente)
     case 'entrouJogador':
       // `ESCR-10` — a rodada corrente não é redistribuída por quem chega.
       return { ok: true, estado, eventos: [], prazos: {} }
@@ -297,6 +301,124 @@ function proximoDaOrdem(ordem: JogadorId[], atual: JogadorId | null): JogadorId 
 }
 
 // ---------------------------------------------------------------------------
+// "Descobri!"
+// ---------------------------------------------------------------------------
+
+/**
+ * `DESC-02`, `DESC-03` — quem confirma é o host; quando o próprio host declara,
+ * é o jogador que está na sala há mais tempo entre os demais **conectados**
+ * (mesmo critério de antiguidade de `HOST-04`).
+ *
+ * Calculado na hora em vez de guardado na declaração: "conectados" muda, e uma
+ * declaração pendente não pode ficar refém de quem caiu.
+ */
+export function confirmadorDe(
+  hostId: JogadorId,
+  jogadores: Jogador[],
+  declaranteId: JogadorId,
+): JogadorId | null {
+  if (declaranteId !== hostId) return hostId
+
+  let escolhido: Jogador | null = null
+  for (const j of jogadores) {
+    if (j.id === declaranteId || !j.conectado) continue
+    if (escolhido === null || j.entrouEm < escolhido.entrouEm) escolhido = j
+  }
+  return escolhido === null ? null : escolhido.id
+}
+
+/** `DESC-01`, `DESC-09` — declara e espera; a carta não é revelada aqui. */
+function declararDescobri(
+  estado: EstadoQuemSouEu,
+  ctx: ContextoDeSala,
+  ambiente: Ambiente,
+): ResultadoReducer<EstadoQuemSouEu> {
+  if (ctx.fase !== 'jogo') return { ok: false, erro: 'FASE_INVALIDA' }
+  if (estado.atribuicoes[ctx.autorId] === undefined) return { ok: false, erro: 'COMANDO_INVALIDO' }
+
+  const jaPendente = estado.declaracaoPendente?.jogadorId === ctx.autorId
+  // `DESC-09` — ignora sem alterar o estado.
+  if (jaPendente || estado.descobriram.includes(ctx.autorId)) {
+    return { ok: true, estado, eventos: [], prazos: {} }
+  }
+  if (estado.declaracaoPendente !== null) return { ok: false, erro: 'COMANDO_INVALIDO' }
+
+  const novo = clonar(estado)
+  novo.declaracaoPendente = { jogadorId: ctx.autorId, declaradaEm: ambiente.agora }
+  return {
+    ok: true,
+    estado: novo,
+    eventos: [{ texto: `${apelidoDe(ctx, ctx.autorId)} declarou que descobriu!` }],
+    prazos: {},
+  }
+}
+
+/** `DESC-04`…`DESC-08` */
+function responderDeclaracao(
+  estado: EstadoQuemSouEu,
+  ctx: ContextoDeSala,
+  aceita: boolean,
+  ambiente: Ambiente,
+): ResultadoReducer<EstadoQuemSouEu> {
+  if (ctx.fase !== 'jogo') return { ok: false, erro: 'FASE_INVALIDA' }
+
+  const pendente = estado.declaracaoPendente
+  if (pendente === null) return { ok: false, erro: 'COMANDO_INVALIDO' }
+  if (ctx.autorId !== confirmadorDe(ctx.hostId, ctx.jogadores, pendente.jogadorId)) {
+    return { ok: false, erro: 'SEM_AUTORIDADE' }
+  }
+
+  const novo = clonar(estado)
+  novo.declaracaoPendente = null
+  const apelido = apelidoDe(ctx, pendente.jogadorId)
+
+  // `DESC-05` — descartada sem revelar; o jogador pode declarar de novo.
+  if (!aceita) {
+    return {
+      ok: true,
+      estado: novo,
+      eventos: [{ texto: `Ainda não: ${apelido} não descobriu.` }],
+      prazos: {},
+    }
+  }
+
+  // `DESC-04` — a partir daqui a carta dele passa a existir na projeção dele.
+  novo.descobriram.push(pendente.jogadorId)
+
+  // `DESC-06` — "sai do rodízio"; `DESC-07` — "continua jogando" não mexe na ordem.
+  if (ctx.config.aoDescobrir === 'sai') {
+    const posicao = novo.ordem.indexOf(pendente.jogadorId)
+    if (posicao !== -1) {
+      novo.ordem.splice(posicao, 1)
+      if (novo.vezDe === pendente.jogadorId) {
+        novo.vezDe = novo.ordem.length === 0 ? null : novo.ordem[posicao % novo.ordem.length]
+      }
+    }
+
+    // `DESC-08` — sem dois jogadores no rodízio não há partida; aplica `FIM-02`.
+    if (novo.ordem.length < 2) {
+      novo.reveladoParaTodos = true
+      novo.vezDe = null
+      return {
+        ok: true,
+        estado: novo,
+        eventos: [{ texto: `${apelido} descobriu! A partida terminou.` }],
+        prazos: { turno: null },
+        faseSeguinte: 'encerrada',
+      }
+    }
+  }
+
+  return {
+    ok: true,
+    estado: novo,
+    eventos: [{ texto: `${apelido} descobriu!` }],
+    prazos:
+      novo.vezDe === estado.vezDe ? {} : { turno: prazoDoTurno(ctx.config, ambiente.agora) },
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Saída de jogador
 // ---------------------------------------------------------------------------
 
@@ -358,6 +480,7 @@ function saiuJogador(
   delete novo.notas[jogadorId]
   novo.prontos = novo.prontos.filter((id) => id !== jogadorId)
   novo.descobriram = novo.descobriram.filter((id) => id !== jogadorId)
+  if (novo.declaracaoPendente?.jogadorId === jogadorId) novo.declaracaoPendente = null
   if (posicao !== -1) novo.ordem.splice(posicao, 1)
 
   if (estado.vezDe !== jogadorId) {

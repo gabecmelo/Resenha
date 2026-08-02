@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   CONFIG_PADRAO,
   type Ambiente,
+  type Config,
   type ContextoDeSala,
   type Jogador,
   type JogadorId,
@@ -729,6 +730,387 @@ describe('saída de jogador durante o jogo (JOGO-10)', () => {
 
     expect(resultado.estado.cartas['a']).toBe(estado.cartas['a'])
     expect(resultado.estado.cartas['b']).toBe(estado.cartas['b'])
+  })
+})
+
+describe('declararDescobri (DESC-01, DESC-09)', () => {
+  it('coloca a declaração em pendente', () => {
+    const { estado, contexto } = emJogo()
+
+    const resultado = reduzirOk(estado, { ...contexto, autorId: 'b' }, { t: 'declararDescobri' })
+
+    expect(resultado.estado.declaracaoPendente).toEqual({
+      jogadorId: 'b',
+      declaradaEm: AMBIENTE.agora,
+    })
+  })
+
+  it('não revela nenhuma carta ao declarar', () => {
+    const { estado, contexto } = emJogo()
+
+    const resultado = reduzirOk(estado, { ...contexto, autorId: 'b' }, { t: 'declararDescobri' })
+
+    expect({
+      cartas: resultado.estado.cartas,
+      descobriram: resultado.estado.descobriram,
+      reveladoParaTodos: resultado.estado.reveladoParaTodos,
+    }).toEqual({ cartas: estado.cartas, descobriram: [], reveladoParaTodos: false })
+  })
+
+  it('anuncia a declaração no chat (CHAT-03)', () => {
+    const { estado, contexto } = emJogo()
+
+    const resultado = reduzirOk(estado, { ...contexto, autorId: 'b' }, { t: 'declararDescobri' })
+
+    expect(resultado.eventos).toEqual([{ texto: 'B declarou que descobriu!' }])
+  })
+
+  it('recusa declarar fora da fase de jogo', () => {
+    const { estado, contexto } = emJogo()
+
+    const resultado = reduzir(
+      estado,
+      { ...contexto, fase: 'escrita', autorId: 'b' },
+      { t: 'declararDescobri' },
+      AMBIENTE,
+    )
+
+    expect(resultado).toEqual({ ok: false, erro: 'FASE_INVALIDA' })
+  })
+
+  it('recusa declaração de quem está apenas aguardando', () => {
+    const jogadores = [...ctx().jogadores, jogador('d', 'aguardando')]
+    const { estado, contexto } = emJogo({ jogadores })
+
+    const resultado = reduzir(
+      estado,
+      { ...contexto, jogadores, autorId: 'd' },
+      { t: 'declararDescobri' },
+      AMBIENTE,
+    )
+
+    expect(resultado).toEqual({ ok: false, erro: 'COMANDO_INVALIDO' })
+  })
+
+  it('ignora a segunda declaração seguida do mesmo jogador, sem alterar o estado', () => {
+    const { estado, contexto } = emJogo()
+    const comoB = { ...contexto, autorId: 'b' }
+    const pendente = reduzirOk(estado, comoB, { t: 'declararDescobri' }).estado
+
+    const resultado = reduzirOk(pendente, comoB, { t: 'declararDescobri' })
+
+    expect(resultado.estado).toEqual(pendente)
+    expect(resultado.eventos).toEqual([])
+  })
+
+  it('ignora a declaração de quem já teve a descoberta confirmada', () => {
+    const { estado, contexto } = emJogo({ config: { ...CONFIG_PADRAO, aoDescobrir: 'continua' } })
+    const comoB = { ...contexto, autorId: 'b' }
+    const pendente = reduzirOk(estado, comoB, { t: 'declararDescobri' }).estado
+    const confirmado = reduzirOk(pendente, { ...contexto, autorId: 'a' }, {
+      t: 'responderDeclaracao',
+      aceita: true,
+    }).estado
+
+    const resultado = reduzirOk(confirmado, comoB, { t: 'declararDescobri' })
+
+    expect(resultado.estado).toEqual(confirmado)
+  })
+})
+
+describe('quem confirma a declaração (DESC-02, DESC-03)', () => {
+  it('encaminha a confirmação ao host quando quem declara não é o host', () => {
+    const { estado, contexto } = emJogo()
+    const pendente = reduzirOk(estado, { ...contexto, autorId: 'b' }, {
+      t: 'declararDescobri',
+    }).estado
+
+    const resultado = reduzirOk(pendente, { ...contexto, autorId: 'a' }, {
+      t: 'responderDeclaracao',
+      aceita: true,
+    })
+
+    expect(resultado.estado.descobriram).toEqual(['b'])
+  })
+
+  it('encaminha ao mais antigo entre os demais conectados quando o host declara', () => {
+    const jogadores = [jogador('a', 'ativo', 1_000), jogador('b', 'ativo', 2_000), jogador('c', 'ativo', 3_000)]
+    const { estado, contexto } = emJogo({ jogadores })
+    const pendente = reduzirOk(estado, { ...contexto, autorId: 'a' }, {
+      t: 'declararDescobri',
+    }).estado
+
+    const resultado = reduzirOk(pendente, { ...contexto, jogadores, autorId: 'b' }, {
+      t: 'responderDeclaracao',
+      aceita: true,
+    })
+
+    expect(resultado.estado.descobriram).toEqual(['a'])
+  })
+
+  it('ignora desconectados ao escolher quem confirma no lugar do host', () => {
+    const jogadores = [
+      jogador('a', 'ativo', 1_000),
+      { ...jogador('b', 'ativo', 2_000), conectado: false },
+      jogador('c', 'ativo', 3_000),
+    ]
+    const { estado, contexto } = emJogo({ jogadores })
+    const pendente = reduzirOk(estado, { ...contexto, autorId: 'a' }, {
+      t: 'declararDescobri',
+    }).estado
+
+    const recusado = reduzir(
+      pendente,
+      { ...contexto, jogadores, autorId: 'b' },
+      { t: 'responderDeclaracao', aceita: true },
+      AMBIENTE,
+    )
+    const aceito = reduzirOk(pendente, { ...contexto, jogadores, autorId: 'c' }, {
+      t: 'responderDeclaracao',
+      aceita: true,
+    })
+
+    expect(recusado).toEqual({ ok: false, erro: 'SEM_AUTORIDADE' })
+    expect(aceito.estado.descobriram).toEqual(['a'])
+  })
+
+  it('rejeita a resposta de quem não é o confirmador', () => {
+    const { estado, contexto } = emJogo()
+    const pendente = reduzirOk(estado, { ...contexto, autorId: 'b' }, {
+      t: 'declararDescobri',
+    }).estado
+
+    const resultado = reduzir(
+      pendente,
+      { ...contexto, autorId: 'c' },
+      { t: 'responderDeclaracao', aceita: true },
+      AMBIENTE,
+    )
+
+    expect(resultado).toEqual({ ok: false, erro: 'SEM_AUTORIDADE' })
+  })
+
+  it('não deixa o host confirmar a própria declaração', () => {
+    const { estado, contexto } = emJogo()
+    const pendente = reduzirOk(estado, { ...contexto, autorId: 'a' }, {
+      t: 'declararDescobri',
+    }).estado
+
+    const resultado = reduzir(
+      pendente,
+      { ...contexto, autorId: 'a' },
+      { t: 'responderDeclaracao', aceita: true },
+      AMBIENTE,
+    )
+
+    expect(resultado).toEqual({ ok: false, erro: 'SEM_AUTORIDADE' })
+  })
+})
+
+describe('confirmar a declaração (DESC-04)', () => {
+  const continua = { ...CONFIG_PADRAO, ordemTurnos: 'entrada' as const, aoDescobrir: 'continua' as const }
+
+  it('marca o declarante como "descobriu" e limpa a pendência', () => {
+    const { estado, contexto } = emJogo({ config: continua })
+    const pendente = reduzirOk(estado, { ...contexto, autorId: 'b' }, {
+      t: 'declararDescobri',
+    }).estado
+
+    const resultado = reduzirOk(pendente, { ...contexto, autorId: 'a' }, {
+      t: 'responderDeclaracao',
+      aceita: true,
+    })
+
+    expect({
+      descobriram: resultado.estado.descobriram,
+      pendente: resultado.estado.declaracaoPendente,
+    }).toEqual({ descobriram: ['b'], pendente: null })
+  })
+
+  it('não revela as cartas dos demais jogadores', () => {
+    const { estado, contexto } = emJogo({ config: continua })
+    const pendente = reduzirOk(estado, { ...contexto, autorId: 'b' }, {
+      t: 'declararDescobri',
+    }).estado
+
+    const resultado = reduzirOk(pendente, { ...contexto, autorId: 'a' }, {
+      t: 'responderDeclaracao',
+      aceita: true,
+    })
+
+    expect(resultado.estado.reveladoParaTodos).toBe(false)
+  })
+
+  it('anuncia a confirmação no chat (CHAT-03)', () => {
+    const { estado, contexto } = emJogo({ config: continua })
+    const pendente = reduzirOk(estado, { ...contexto, autorId: 'b' }, {
+      t: 'declararDescobri',
+    }).estado
+
+    const resultado = reduzirOk(pendente, { ...contexto, autorId: 'a' }, {
+      t: 'responderDeclaracao',
+      aceita: true,
+    })
+
+    expect(resultado.eventos).toEqual([{ texto: 'B descobriu!' }])
+  })
+})
+
+describe('negar a declaração (DESC-05)', () => {
+  it('descarta a declaração sem revelar nem marcar descoberta', () => {
+    const { estado, contexto } = emJogo()
+    const pendente = reduzirOk(estado, { ...contexto, autorId: 'b' }, {
+      t: 'declararDescobri',
+    }).estado
+
+    const resultado = reduzirOk(pendente, { ...contexto, autorId: 'a' }, {
+      t: 'responderDeclaracao',
+      aceita: false,
+    })
+
+    expect({
+      pendente: resultado.estado.declaracaoPendente,
+      descobriram: resultado.estado.descobriram,
+      reveladoParaTodos: resultado.estado.reveladoParaTodos,
+    }).toEqual({ pendente: null, descobriram: [], reveladoParaTodos: false })
+  })
+
+  it('permite ao jogador declarar novamente depois da negativa', () => {
+    const { estado, contexto } = emJogo()
+    const comoB = { ...contexto, autorId: 'b' }
+    const pendente = reduzirOk(estado, comoB, { t: 'declararDescobri' }).estado
+    const negado = reduzirOk(pendente, { ...contexto, autorId: 'a' }, {
+      t: 'responderDeclaracao',
+      aceita: false,
+    }).estado
+
+    const resultado = reduzirOk(negado, comoB, { t: 'declararDescobri' })
+
+    expect(resultado.estado.declaracaoPendente).toEqual({
+      jogadorId: 'b',
+      declaradaEm: AMBIENTE.agora,
+    })
+  })
+
+  it('anuncia a negativa no chat (CHAT-03)', () => {
+    const { estado, contexto } = emJogo()
+    const pendente = reduzirOk(estado, { ...contexto, autorId: 'b' }, {
+      t: 'declararDescobri',
+    }).estado
+
+    const resultado = reduzirOk(pendente, { ...contexto, autorId: 'a' }, {
+      t: 'responderDeclaracao',
+      aceita: false,
+    })
+
+    expect(resultado.eventos).toEqual([{ texto: 'Ainda não: B não descobriu.' }])
+  })
+})
+
+describe('efeito da configuração ao descobrir (DESC-06, DESC-07, DESC-08)', () => {
+  const quatro = [jogador('a'), jogador('b'), jogador('c'), jogador('d')]
+  const sai = { ...CONFIG_PADRAO, ordemTurnos: 'entrada' as const, aoDescobrir: 'sai' as const }
+  const continua = {
+    ...CONFIG_PADRAO,
+    ordemTurnos: 'entrada' as const,
+    aoDescobrir: 'continua' as const,
+  }
+
+  function confirmadoPara(id: string, config: Config = sai, jogadores = quatro) {
+    const { estado, contexto } = emJogo({ jogadores, config })
+    const pendente = reduzirOk(estado, { ...contexto, autorId: id }, {
+      t: 'declararDescobri',
+    }).estado
+    // `DESC-03` — quando quem declara é o host, quem confirma é outro jogador.
+    const confirmador = id === contexto.hostId ? 'b' : 'a'
+    return reduzirOk(pendente, { ...contexto, autorId: confirmador }, {
+      t: 'responderDeclaracao',
+      aceita: true,
+    })
+  }
+
+  it('remove o jogador do rodízio quando a configuração é "sai"', () => {
+    const resultado = confirmadoPara('c')
+
+    expect(resultado.estado.ordem).toEqual(['a', 'b', 'd'])
+  })
+
+  it('mantém o jogador no rodízio quando a configuração é "continua"', () => {
+    const resultado = confirmadoPara('c', continua)
+
+    expect(resultado.estado.ordem).toEqual(['a', 'b', 'c', 'd'])
+  })
+
+  it('avança a vez quando quem sai do rodízio era o jogador da vez', () => {
+    const resultado = confirmadoPara('a')
+
+    expect({ ordem: resultado.estado.ordem, vezDe: resultado.estado.vezDe }).toEqual({
+      ordem: ['b', 'c', 'd'],
+      vezDe: 'b',
+    })
+  })
+
+  it('encerra a partida quando o rodízio fica com menos de 2 jogadores', () => {
+    const { estado, contexto } = emJogo({ config: sai })
+    let atual = estado
+    for (const id of ['b', 'c']) {
+      const pendente = reduzirOk(atual, { ...contexto, autorId: id }, {
+        t: 'declararDescobri',
+      }).estado
+      const resposta = reduzirOk(pendente, { ...contexto, autorId: 'a' }, {
+        t: 'responderDeclaracao',
+        aceita: true,
+      })
+      atual = resposta.estado
+      if (id === 'c') {
+        expect({
+          fase: resposta.faseSeguinte,
+          revelado: atual.reveladoParaTodos,
+          ordem: atual.ordem,
+          vezDe: atual.vezDe,
+        }).toEqual({ fase: 'encerrada', revelado: true, ordem: ['a'], vezDe: null })
+      } else {
+        expect(resposta.faseSeguinte).toBeUndefined()
+      }
+    }
+  })
+
+  it('não encerra a partida com a configuração "continua", por mais que todos descubram', () => {
+    const { estado, contexto } = emJogo({ config: continua })
+    let atual = estado
+    let ultima = null as ReturnType<typeof reduzirOk> | null
+    for (const id of ['b', 'c']) {
+      const pendente = reduzirOk(atual, { ...contexto, autorId: id }, {
+        t: 'declararDescobri',
+      }).estado
+      ultima = reduzirOk(pendente, { ...contexto, autorId: 'a' }, {
+        t: 'responderDeclaracao',
+        aceita: true,
+      })
+      atual = ultima.estado
+    }
+
+    expect({ fase: ultima?.faseSeguinte, revelado: atual.reveladoParaTodos }).toEqual({
+      fase: undefined,
+      revelado: false,
+    })
+  })
+})
+
+describe('saída de jogador com declaração pendente (DESC-01)', () => {
+  it('descarta a declaração de quem sai da sala', () => {
+    const { estado, contexto } = emJogo()
+    const pendente = reduzirOk(estado, { ...contexto, autorId: 'b' }, {
+      t: 'declararDescobri',
+    }).estado
+    const restantes = [jogador('a'), jogador('c')]
+
+    const resultado = reduzirOk(pendente, ctx({ ...contexto, jogadores: restantes }), {
+      t: 'saiuJogador',
+      jogadorId: 'b',
+    })
+
+    expect(resultado.estado.declaracaoPendente).toBeNull()
   })
 })
 
