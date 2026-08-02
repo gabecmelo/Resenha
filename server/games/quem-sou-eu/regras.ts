@@ -326,6 +326,9 @@ export function confirmadorDe(
   let escolhido: Jogador | null = null
   for (const j of jogadores) {
     if (j.id === declaranteId || !j.conectado) continue
+    // Confirmar é ação de partida: quem está apenas aguardando a próxima
+    // rodada não confirma (`DESC-03` + edge case do jogador aguardando).
+    if (j.situacao !== 'ativo') continue
     if (escolhido === null || j.entrouEm < escolhido.entrouEm) escolhido = j
   }
   return escolhido === null ? null : escolhido.id

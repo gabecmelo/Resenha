@@ -848,6 +848,33 @@ describe('quem confirma a declaração (DESC-02, DESC-03)', () => {
     expect(resultado.estado.descobriram).toEqual(['a'])
   })
 
+  it('ignora quem está aguardando ao escolher quem confirma no lugar do host', () => {
+    const jogadores = [
+      jogador('a', 'ativo', 1_000),
+      jogador('b', 'aguardando', 2_000),
+      jogador('c', 'ativo', 3_000),
+      jogador('d', 'ativo', 4_000),
+    ]
+    const { estado, contexto } = emJogo({ jogadores })
+    const pendente = reduzirOk(estado, { ...contexto, autorId: 'a' }, {
+      t: 'declararDescobri',
+    }).estado
+
+    const recusado = reduzir(
+      pendente,
+      { ...contexto, jogadores, autorId: 'b' },
+      { t: 'responderDeclaracao', aceita: true },
+      AMBIENTE,
+    )
+    const aceito = reduzirOk(pendente, { ...contexto, jogadores, autorId: 'c' }, {
+      t: 'responderDeclaracao',
+      aceita: true,
+    })
+
+    expect(recusado).toEqual({ ok: false, erro: 'SEM_AUTORIDADE' })
+    expect(aceito.estado.descobriram).toEqual(['a'])
+  })
+
   it('ignora desconectados ao escolher quem confirma no lugar do host', () => {
     const jogadores = [
       jogador('a', 'ativo', 1_000),
