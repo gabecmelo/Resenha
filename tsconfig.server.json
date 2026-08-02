@@ -1,10 +1,14 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["ES2022"],
+    "lib": [
+      "ES2022"
+    ],
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "types": ["@cloudflare/workers-types"],
+    "types": [
+      "@cloudflare/vitest-pool-workers/types"
+    ],
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
@@ -15,5 +19,11 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["server", "shared"]
+  "include": [
+    "server",
+    "shared",
+    "worker-configuration.d.ts",
+    "vitest.config.ts",
+    "vitest.integration.config.ts"
+  ]
 }
