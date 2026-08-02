@@ -54,7 +54,7 @@ Toda ambiguidade está resolvida ou registrada aqui — nada fica silenciosament
 | Tamanho máximo da mensagem de chat | 300 caracteres | Chat é auxiliar, não é o canal principal | y |
 | Tamanho máximo do bloco de notas | 2.000 caracteres | Suficiente para uma partida inteira de anotações | y |
 | Limite de envio de mensagens de chat | 5 mensagens por 5 segundos por jogador | Evita que um flood trave a sala; generoso o bastante para nunca incomodar uso normal | y |
-| Formato do código de sala | 5 letras maiúsculas, alfabeto sem caracteres ambíguos (sem I, O, 0, 1) | Fácil de ditar em voz alta, ~5,9 milhões de combinações — suficiente contra colisão e contra varredura casual | y |
+| Formato do código de sala | 5 letras maiúsculas, alfabeto sem caracteres ambíguos (A–Z sem I e O = 24 letras) | Fácil de ditar em voz alta. 24⁵ = **7.962.624** combinações — suficiente contra colisão e contra varredura casual | y |
 | Observabilidade | Logs de erro no Worker via dashboard da Cloudflare; sem métricas, tracing ou alertas | Projeto pessoal, sem SLA. Adicionar telemetria agora é custo sem retorno | y |
 | Dependências externas | N/A — o sistema não chama nenhum serviço de terceiros | Todo o estado é local ao Durable Object | y |
 | Autenticação / autorização | N/A — não há contas. Autoridade = token de sessão (AD-006) + flag de host | Decorre de AD-006 | y |
@@ -101,7 +101,7 @@ Referência normativa para os requisitos abaixo.
 1. `SALA-01` — WHEN um visitante cria uma sala THEN o sistema SHALL gerar um código de 5 letras maiúsculas (alfabeto sem I, O, 0, 1), criar a sala no estado LOBBY e tornar o criador o host
 2. `SALA-02` — WHEN um visitante abre o link de uma sala existente THEN o sistema SHALL pedir apenas um apelido antes de entrar
 3. `SALA-03` — WHEN um visitante informa um apelido com menos de 2 ou mais de 16 caracteres THEN o sistema SHALL recusar a entrada e exibir o motivo
-4. `SALA-04` — WHEN um visitante informa um apelido já usado por um jogador presente na sala THEN o sistema SHALL recusar a entrada e exibir "esse apelido já está na sala"
+4. `SALA-04` — WHEN um visitante informa um apelido já usado por um jogador presente na sala, comparando **sem distinguir maiúsculas de minúsculas** e ignorando espaços nas pontas, THEN o sistema SHALL recusar a entrada e exibir "esse apelido já está na sala"
 5. `SALA-05` — WHEN um visitante tenta entrar em uma sala que já tem 20 jogadores THEN o sistema SHALL recusar a entrada e exibir que a sala está cheia
 6. `SALA-06` — WHEN um visitante tenta entrar com um código que não corresponde a nenhuma sala viva THEN o sistema SHALL exibir "sala não encontrada" e oferecer criar uma nova
 7. `SALA-07` — WHEN um jogador entra na sala THEN o sistema SHALL atribuir a ele uma cor ainda não usada na sala e exibir essa cor consistentemente na lista de jogadores, nas cartas e no chat
@@ -124,7 +124,7 @@ Referência normativa para os requisitos abaixo.
 1. `HOST-01` — WHEN a sala está em LOBBY com no mínimo 3 jogadores ativos THEN o sistema SHALL habilitar ao host a ação "Iniciar"; com menos de 3, SHALL manter a ação desabilitada e informar o mínimo
 2. `HOST-02` — WHEN o host aciona "Expulsar" sobre um jogador THEN o sistema SHALL removê-lo da sala imediatamente e SHALL impedir que ele entre novamente na mesma sala com o mesmo token de sessão
 3. `HOST-03` — WHEN o host transfere o comando a outro jogador THEN o sistema SHALL torná-lo host e remover os poderes do anterior, sem interromper a partida
-4. `HOST-04` — WHEN o host está desconectado há 30 segundos ininterruptos THEN o sistema SHALL transferir o comando automaticamente ao jogador conectado há mais tempo e SHALL anunciar a troca a todos
+4. `HOST-04` — WHEN o host está desconectado há 30 segundos ininterruptos THEN o sistema SHALL transferir o comando automaticamente ao jogador que está **na sala** há mais tempo entre os conectados (antiguidade de entrada, preservada por quem caiu e voltou) e SHALL anunciar a troca a todos
 5. `HOST-05` — WHEN o ex-host reconecta após uma migração automática THEN o sistema SHALL mantê-lo como jogador comum
 6. `HOST-06` — WHEN qualquer jogador que não é host tenta executar uma ação de host THEN o sistema SHALL rejeitar a ação e não alterar o estado da sala
 7. `HOST-07` — WHEN o host aciona "Encerrar partida" THEN o sistema SHALL pedir confirmação antes de executar
@@ -190,7 +190,7 @@ Referência normativa para os requisitos abaixo.
 
 1. `DESC-01` — WHEN um jogador ativo aciona "Descobri!" THEN o sistema SHALL anunciar a todos que ele declarou ter descoberto e SHALL colocar a declaração em estado pendente, sem revelar a carta
 2. `DESC-02` — WHEN existe uma declaração pendente THEN o sistema SHALL apresentar ao host as ações "Confirmar" e "Negar" identificando o jogador
-3. `DESC-03` — WHEN quem declarou é o próprio host THEN o sistema SHALL direcionar a confirmação ao jogador conectado há mais tempo entre os demais
+3. `DESC-03` — WHEN quem declarou é o próprio host THEN o sistema SHALL direcionar a confirmação ao jogador que está **na sala** há mais tempo entre os demais conectados (mesmo critério de antiguidade de `HOST-04`)
 4. `DESC-04` — WHEN a declaração é confirmada THEN o sistema SHALL revelar a carta ao jogador que declarou, marcá-lo como "descobriu" para todos e anunciar a confirmação
 5. `DESC-05` — WHEN a declaração é negada THEN o sistema SHALL descartá-la sem revelar a carta, anunciar a negativa, e SHALL permitir que o jogador declare novamente
 6. `DESC-06` — WHEN a declaração é confirmada e a configuração é "sai do rodízio" THEN o sistema SHALL remover o jogador da ordem de turnos, mantendo o acesso dele à lista de cartas, ao chat e às notas
@@ -268,7 +268,7 @@ Referência normativa para os requisitos abaixo.
 
 **Acceptance Criteria**:
 
-1. `CHAT-01` — WHEN um jogador envia uma mensagem de até 300 caracteres THEN o sistema SHALL entregá-la a todos na sala com o apelido e a cor do autor
+1. `CHAT-01` — WHEN um jogador envia uma mensagem de 1 a 300 caracteres, desconsiderados os espaços nas pontas, THEN o sistema SHALL entregá-la a todos na sala com o apelido e a cor do autor; WHEN a mensagem é vazia ou formada apenas por espaços THEN o sistema SHALL recusá-la sem registrá-la
 2. `CHAT-02` — WHEN um jogador envia mais de 5 mensagens em 5 segundos THEN o sistema SHALL descartar as excedentes e avisar apenas o autor
 3. `CHAT-03` — WHEN um evento de partida ocorre (início, PRONTO de todos, troca de vez, declaração de "Descobri!", confirmação ou negativa, migração de host, encerramento) THEN o sistema SHALL registrá-lo no chat como mensagem de sistema, visualmente distinta das mensagens de jogador
 4. `CHAT-04` — WHEN um jogador reconecta THEN o sistema SHALL entregar o histórico de chat da sala
