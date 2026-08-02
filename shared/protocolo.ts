@@ -93,8 +93,8 @@ export type TipoPrazo = keyof Prazos
 
 /** `CHAT-03` — mensagem de sistema é um tipo distinto, não uma flag opcional. */
 export type MensagemChat =
-  | { id: string; em: number; texto: string; tipo: 'jogador'; autorId: JogadorId }
-  | { id: string; em: number; texto: string; tipo: 'sistema' }
+  | { em: number; texto: string; tipo: 'jogador'; autorId: JogadorId }
+  | { em: number; texto: string; tipo: 'sistema' }
 
 /**
  * Documento da sala, persistido no storage do Durable Object a cada mutação
