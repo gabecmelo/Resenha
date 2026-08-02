@@ -60,6 +60,7 @@ type TipoDeComandoDeJogo =
   | 'responderDeclaracao'
   | 'encerrar'
   | 'novaPartida'
+  | 'notas'
 
 export type ComandoQuemSouEu = Extract<Comando, { t: TipoDeComandoDeJogo }> | EventoDeSala
 
@@ -123,6 +124,8 @@ export function reduzir(
       return declararDescobri(estado, ctx, ambiente)
     case 'responderDeclaracao':
       return responderDeclaracao(estado, ctx, comando.aceita, ambiente)
+    case 'notas':
+      return escreverNotas(estado, ctx, comando.texto)
     case 'encerrar':
       return encerrar(estado, ctx)
     case 'novaPartida':
@@ -468,6 +471,25 @@ function novaPartida(ctx: ContextoDeSala): ResultadoReducer<EstadoQuemSouEu> {
     faseSeguinte: 'lobby',
     promoverAguardando: true,
   }
+}
+
+// ---------------------------------------------------------------------------
+// Bloco de notas
+// ---------------------------------------------------------------------------
+
+/**
+ * `NOTA-01`, `NOTA-02` — a nota é privada e vive no estado do jogo, então quem
+ * a grava é o jogo (AD-002). Tamanho e fase são validados antes, no `core`:
+ * são política da sala, não regra de "Quem Sou Eu?".
+ */
+function escreverNotas(
+  estado: EstadoQuemSouEu,
+  ctx: ContextoDeSala,
+  texto: string,
+): ResultadoReducer<EstadoQuemSouEu> {
+  const novo = clonar(estado)
+  novo.notas[ctx.autorId] = texto
+  return { ok: true, estado: novo, eventos: [], prazos: {} }
 }
 
 // ---------------------------------------------------------------------------
