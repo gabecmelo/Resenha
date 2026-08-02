@@ -70,6 +70,14 @@ function todosEscrevemEProntos(estado: EstadoQuemSouEu, base: ContextoDeSala): E
   return atual
 }
 
+/** Sala já em JOGO. Ordem "entrada" por padrão, para o rodízio ser previsível. */
+function emJogo(over: Partial<ContextoDeSala> = {}) {
+  const base = ctx({ config: { ...CONFIG_PADRAO, ordemTurnos: 'entrada' }, ...over })
+  const pronto = todosEscrevemEProntos(rodadaDe(base.jogadores), base)
+  const { estado } = reduzirOk(pronto, base, { t: 'comecar' })
+  return { estado, contexto: ctx({ ...base, fase: 'jogo' }) }
+}
+
 // ---------------------------------------------------------------------------
 
 describe('iniciarRodada (ESCR-01, HOST-01)', () => {
@@ -470,5 +478,277 @@ describe('entrada de jogador durante a escrita (ESCR-10)', () => {
     })
 
     expect(resultado.estado).toEqual(pronto)
+  })
+})
+
+describe('ordem do rodízio (JOGO-03, CFG-01)', () => {
+  it('respeita a ordem de entrada quando a configuração é "entrada"', () => {
+    const { estado } = emJogo()
+
+    expect(estado.ordem).toEqual(['a', 'b', 'c'])
+  })
+
+  it('deixa fora do rodízio quem está aguardando', () => {
+    const jogadores = [...ctx().jogadores, jogador('d', 'aguardando')]
+
+    const { estado } = emJogo({ jogadores })
+
+    expect(estado.ordem).toEqual(['a', 'b', 'c'])
+  })
+
+  it('inclui exatamente os ativos quando a configuração é "sorteada"', () => {
+    const base = ctx({ config: { ...CONFIG_PADRAO, ordemTurnos: 'sorteada' } })
+    const pronto = todosEscrevemEProntos(rodadaDe(base.jogadores), base)
+
+    const { estado } = reduzirOk(pronto, base, { t: 'comecar' })
+
+    expect([...estado.ordem].sort()).toEqual(['a', 'b', 'c'])
+  })
+
+  it('sorteia de fato a ordem quando a configuração é "sorteada"', () => {
+    const base = ctx({ config: { ...CONFIG_PADRAO, ordemTurnos: 'sorteada' } })
+    const jogadores = [jogador('a'), jogador('b'), jogador('c'), jogador('d'), jogador('e')]
+    const contexto = ctx({ ...base, jogadores })
+    const pronto = todosEscrevemEProntos(rodadaDe(jogadores), contexto)
+
+    const ordens = new Set<string>()
+    for (let i = 0; i < 200; i += 1) {
+      ordens.add(JSON.stringify(reduzirOk(pronto, contexto, { t: 'comecar' }).estado.ordem))
+    }
+
+    expect(ordens.size).toBeGreaterThan(1)
+  })
+
+  it('começa a partida com a vez do primeiro da ordem', () => {
+    const { estado } = emJogo()
+
+    expect(estado.vezDe).toBe('a')
+  })
+})
+
+describe('passarVez e pularVez (JOGO-04, JOGO-05, JOGO-06)', () => {
+  it('avança para o próximo da ordem quando o jogador da vez passa', () => {
+    const { estado, contexto } = emJogo()
+
+    const resultado = reduzirOk(estado, { ...contexto, autorId: 'a' }, { t: 'passarVez' })
+
+    expect(resultado.estado.vezDe).toBe('b')
+  })
+
+  it('deixa o host avançar a vez mesmo sem ser o jogador da vez', () => {
+    const { estado, contexto } = emJogo()
+
+    const resultado = reduzirOk(estado, { ...contexto, autorId: 'a' }, { t: 'passarVez' })
+    const daVezB = resultado.estado
+
+    expect(reduzirOk(daVezB, { ...contexto, autorId: 'a' }, { t: 'passarVez' }).estado.vezDe).toBe(
+      'c',
+    )
+  })
+
+  it('rejeita quem não é o jogador da vez nem o host', () => {
+    const { estado, contexto } = emJogo()
+
+    const resultado = reduzir(
+      estado,
+      { ...contexto, autorId: 'c' },
+      { t: 'passarVez' },
+      AMBIENTE,
+    )
+
+    expect(resultado).toEqual({ ok: false, erro: 'SEM_AUTORIDADE' })
+  })
+
+  it('rejeita passar a vez fora da fase de jogo', () => {
+    const { estado, contexto } = emJogo()
+
+    const resultado = reduzir(
+      estado,
+      { ...contexto, fase: 'escrita' },
+      { t: 'passarVez' },
+      AMBIENTE,
+    )
+
+    expect(resultado).toEqual({ ok: false, erro: 'FASE_INVALIDA' })
+  })
+
+  it('deixa o host pular a vez de qualquer jogador', () => {
+    const { estado, contexto } = emJogo()
+
+    const resultado = reduzirOk(estado, { ...contexto, autorId: 'a' }, { t: 'pularVez' })
+
+    expect(resultado.estado.vezDe).toBe('b')
+  })
+
+  it('rejeita pular a vez quando quem aciona não é o host', () => {
+    const { estado, contexto } = emJogo()
+
+    const resultado = reduzir(estado, { ...contexto, autorId: 'a' }, { t: 'passarVez' }, AMBIENTE)
+    const daVezB = resultado.ok ? resultado.estado : estado
+
+    expect(reduzir(daVezB, { ...contexto, autorId: 'b' }, { t: 'pularVez' }, AMBIENTE)).toEqual({
+      ok: false,
+      erro: 'SEM_AUTORIDADE',
+    })
+  })
+
+  it('anuncia a troca de vez no chat (CHAT-03)', () => {
+    const { estado, contexto } = emJogo()
+
+    const resultado = reduzirOk(estado, { ...contexto, autorId: 'a' }, { t: 'passarVez' })
+
+    expect(resultado.eventos).toEqual([{ texto: 'É a vez de B.' }])
+  })
+})
+
+describe('volta ao início da ordem (JOGO-09)', () => {
+  it('devolve a vez ao primeiro do rodízio quando o último passa', () => {
+    const { estado, contexto } = emJogo()
+    const daVezB = reduzirOk(estado, { ...contexto, autorId: 'a' }, { t: 'passarVez' }).estado
+    const daVezC = reduzirOk(daVezB, { ...contexto, autorId: 'b' }, { t: 'passarVez' }).estado
+
+    const resultado = reduzirOk(daVezC, { ...contexto, autorId: 'c' }, { t: 'passarVez' })
+
+    expect(resultado.estado.vezDe).toBe('a')
+  })
+})
+
+describe('tempo por turno (JOGO-07, JOGO-08, CFG-03)', () => {
+  const comTempo = { ...CONFIG_PADRAO, ordemTurnos: 'entrada' as const, tempoTurnoSeg: 30 }
+
+  it('agenda o prazo do turno ao começar a partida', () => {
+    const base = ctx({ config: comTempo })
+    const pronto = todosEscrevemEProntos(rodadaDe(base.jogadores), base)
+
+    const resultado = reduzirOk(pronto, base, { t: 'comecar' })
+
+    expect(resultado.prazos).toEqual({ turno: AMBIENTE.agora + 30_000 })
+  })
+
+  it('reagenda o prazo do turno a cada troca de vez', () => {
+    const { estado, contexto } = emJogo({ config: comTempo })
+
+    const resultado = reduzir(
+      estado,
+      { ...contexto, autorId: 'a' },
+      { t: 'passarVez' },
+      { ...AMBIENTE, agora: 50_000 },
+    )
+
+    expect(resultado.ok && resultado.prazos).toEqual({ turno: 80_000 })
+  })
+
+  it('avança a vez quando o prazo do turno vence', () => {
+    const { estado, contexto } = emJogo({ config: comTempo })
+
+    const resultado = reduzirOk(estado, contexto, { t: 'venceuPrazoTurno' })
+
+    expect(resultado.estado.vezDe).toBe('b')
+  })
+
+  it('não agenda prazo de turno quando a configuração é "sem limite"', () => {
+    const base = ctx({ config: { ...CONFIG_PADRAO, ordemTurnos: 'entrada' } })
+    const pronto = todosEscrevemEProntos(rodadaDe(base.jogadores), base)
+
+    const resultado = reduzirOk(pronto, base, { t: 'comecar' })
+
+    expect(resultado.prazos).toEqual({ turno: null })
+  })
+
+  it('nunca avança a vez por tempo quando a configuração é "sem limite"', () => {
+    const { estado, contexto } = emJogo()
+
+    const resultado = reduzirOk(estado, contexto, { t: 'venceuPrazoTurno' })
+
+    expect(resultado.estado.vezDe).toBe('a')
+  })
+})
+
+describe('saída de jogador durante o jogo (JOGO-10)', () => {
+  it('avança a vez quando quem sai é o jogador da vez', () => {
+    const { estado, contexto } = emJogo()
+    const restantes = [jogador('b'), jogador('c')]
+
+    const resultado = reduzirOk(estado, ctx({ ...contexto, jogadores: restantes }), {
+      t: 'saiuJogador',
+      jogadorId: 'a',
+    })
+
+    expect(resultado.estado.vezDe).toBe('b')
+  })
+
+  it('devolve a vez ao primeiro do rodízio quando quem sai é o último da ordem', () => {
+    const { estado, contexto } = emJogo()
+    const daVezC = reduzirOk(estado, { ...contexto, autorId: 'a' }, { t: 'pularVez' }).estado
+    const daVezCDeFato = reduzirOk(daVezC, { ...contexto, autorId: 'a' }, { t: 'pularVez' }).estado
+    const restantes = [jogador('a'), jogador('b')]
+
+    const resultado = reduzirOk(daVezCDeFato, ctx({ ...contexto, jogadores: restantes }), {
+      t: 'saiuJogador',
+      jogadorId: 'c',
+    })
+
+    expect(resultado.estado.vezDe).toBe('a')
+  })
+
+  it('mantém a vez quando quem sai não é o jogador da vez', () => {
+    const { estado, contexto } = emJogo()
+    const restantes = [jogador('a'), jogador('b')]
+
+    const resultado = reduzirOk(estado, ctx({ ...contexto, jogadores: restantes }), {
+      t: 'saiuJogador',
+      jogadorId: 'c',
+    })
+
+    expect(resultado.estado.vezDe).toBe('a')
+  })
+
+  it('tira o jogador do rodízio e some com a carta dele', () => {
+    const { estado, contexto } = emJogo()
+    const restantes = [jogador('a'), jogador('b')]
+
+    const resultado = reduzirOk(estado, ctx({ ...contexto, jogadores: restantes }), {
+      t: 'saiuJogador',
+      jogadorId: 'c',
+    })
+
+    expect(resultado.estado.ordem).toEqual(['a', 'b'])
+    expect(Object.keys(resultado.estado.cartas).sort()).toEqual(['a', 'b'])
+    expect(Object.keys(resultado.estado.atribuicoes)).not.toContain('c')
+    expect(Object.values(resultado.estado.atribuicoes)).not.toContain('c')
+  })
+
+  it('não redistribui as cartas dos que ficaram', () => {
+    const { estado, contexto } = emJogo()
+    const restantes = [jogador('a'), jogador('b')]
+
+    const resultado = reduzirOk(estado, ctx({ ...contexto, jogadores: restantes }), {
+      t: 'saiuJogador',
+      jogadorId: 'c',
+    })
+
+    expect(resultado.estado.cartas['a']).toBe(estado.cartas['a'])
+    expect(resultado.estado.cartas['b']).toBe(estado.cartas['b'])
+  })
+})
+
+describe('jogador desconectado (JOGO-11)', () => {
+  it('mantém a vez com o jogador desconectado, sem pulá-lo', () => {
+    const jogadores = [jogador('a'), { ...jogador('b'), conectado: false }, jogador('c')]
+    const { estado, contexto } = emJogo({ jogadores })
+
+    const resultado = reduzirOk(estado, { ...contexto, autorId: 'a' }, { t: 'passarVez' })
+
+    expect(resultado.estado.vezDe).toBe('b')
+  })
+
+  it('permite ao host pular a vez de um jogador desconectado', () => {
+    const jogadores = [jogador('a'), { ...jogador('b'), conectado: false }, jogador('c')]
+    const { estado, contexto } = emJogo({ jogadores })
+    const daVezB = reduzirOk(estado, { ...contexto, autorId: 'a' }, { t: 'passarVez' }).estado
+
+    const resultado = reduzirOk(daVezB, { ...contexto, autorId: 'a' }, { t: 'pularVez' })
+
+    expect(resultado.estado.vezDe).toBe('c')
   })
 })

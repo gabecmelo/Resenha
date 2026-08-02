@@ -113,6 +113,12 @@ export function reduzir(
       return comecar(estado, ctx, ambiente)
     case 'cancelar':
       return cancelar(ctx)
+    case 'passarVez':
+      return passarVez(estado, ctx, ambiente)
+    case 'pularVez':
+      return pularVez(estado, ctx, ambiente)
+    case 'venceuPrazoTurno':
+      return venceuPrazoTurno(estado, ctx, ambiente)
     case 'entrouJogador':
       // `ESCR-10` — a rodada corrente não é redistribuída por quem chega.
       return { ok: true, estado, eventos: [], prazos: {} }
@@ -221,6 +227,76 @@ function cancelar(ctx: ContextoDeSala): ResultadoReducer<EstadoQuemSouEu> {
 }
 
 // ---------------------------------------------------------------------------
+// Rodízio de turnos
+// ---------------------------------------------------------------------------
+
+/** `JOGO-04`, `JOGO-06` — o jogador da vez passa; o host também pode avançar. */
+function passarVez(
+  estado: EstadoQuemSouEu,
+  ctx: ContextoDeSala,
+  ambiente: Ambiente,
+): ResultadoReducer<EstadoQuemSouEu> {
+  if (ctx.fase !== 'jogo') return { ok: false, erro: 'FASE_INVALIDA' }
+  if (ctx.autorId !== estado.vezDe && ctx.autorId !== ctx.hostId) {
+    return { ok: false, erro: 'SEM_AUTORIDADE' }
+  }
+  return comVezAvancada(estado, ctx, ambiente)
+}
+
+/** `JOGO-05` — o host avança a vez independentemente de quem é o jogador atual. */
+function pularVez(
+  estado: EstadoQuemSouEu,
+  ctx: ContextoDeSala,
+  ambiente: Ambiente,
+): ResultadoReducer<EstadoQuemSouEu> {
+  if (ctx.fase !== 'jogo') return { ok: false, erro: 'FASE_INVALIDA' }
+  if (ctx.autorId !== ctx.hostId) return { ok: false, erro: 'SEM_AUTORIDADE' }
+  return comVezAvancada(estado, ctx, ambiente)
+}
+
+/**
+ * `JOGO-07`, `JOGO-08`. Com "sem limite" o prazo nunca chega a ser agendado;
+ * o aviso é ignorado sem alterar a vez, caso chegue mesmo assim.
+ */
+function venceuPrazoTurno(
+  estado: EstadoQuemSouEu,
+  ctx: ContextoDeSala,
+  ambiente: Ambiente,
+): ResultadoReducer<EstadoQuemSouEu> {
+  if (ctx.fase !== 'jogo') return { ok: false, erro: 'FASE_INVALIDA' }
+  if (ctx.config.tempoTurnoSeg === null) {
+    return { ok: true, estado, eventos: [], prazos: { turno: null } }
+  }
+  return comVezAvancada(estado, ctx, ambiente)
+}
+
+/**
+ * `JOGO-09` — ao chegar ao fim da ordem, volta ao primeiro que ainda está no
+ * rodízio. `JOGO-11` — estar desconectado não faz o jogador ser pulado.
+ */
+function comVezAvancada(
+  estado: EstadoQuemSouEu,
+  ctx: ContextoDeSala,
+  ambiente: Ambiente,
+): ResultadoReducer<EstadoQuemSouEu> {
+  const novo = clonar(estado)
+  novo.vezDe = proximoDaOrdem(novo.ordem, novo.vezDe)
+
+  return {
+    ok: true,
+    estado: novo,
+    eventos: [{ texto: `É a vez de ${apelidoDe(ctx, novo.vezDe)}.` }],
+    prazos: { turno: prazoDoTurno(ctx.config, ambiente.agora) },
+  }
+}
+
+function proximoDaOrdem(ordem: JogadorId[], atual: JogadorId | null): JogadorId | null {
+  if (ordem.length === 0) return null
+  const posicao = atual === null ? -1 : ordem.indexOf(atual)
+  return ordem[(posicao + 1) % ordem.length]
+}
+
+// ---------------------------------------------------------------------------
 // Saída de jogador
 // ---------------------------------------------------------------------------
 
@@ -270,7 +346,31 @@ function saiuJogador(
     }
   }
 
-  return { ok: false, erro: 'COMANDO_INVALIDO' }
+  // `JOGO-10` — no jogo não há redistribuição: a carta some e o rodízio segue.
+  const novo = clonar(estado)
+  const posicao = novo.ordem.indexOf(jogadorId)
+
+  delete novo.atribuicoes[jogadorId]
+  for (const escritor of Object.keys(novo.atribuicoes)) {
+    if (novo.atribuicoes[escritor] === jogadorId) delete novo.atribuicoes[escritor]
+  }
+  delete novo.cartas[jogadorId]
+  delete novo.notas[jogadorId]
+  novo.prontos = novo.prontos.filter((id) => id !== jogadorId)
+  novo.descobriram = novo.descobriram.filter((id) => id !== jogadorId)
+  if (posicao !== -1) novo.ordem.splice(posicao, 1)
+
+  if (estado.vezDe !== jogadorId) {
+    return { ok: true, estado: novo, eventos: [], prazos: {} }
+  }
+
+  novo.vezDe = novo.ordem.length === 0 ? null : novo.ordem[posicao % novo.ordem.length]
+  return {
+    ok: true,
+    estado: novo,
+    eventos: [{ texto: `É a vez de ${apelidoDe(ctx, novo.vezDe)}.` }],
+    prazos: { turno: prazoDoTurno(ctx.config, ambiente.agora) },
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -279,6 +379,11 @@ function saiuJogador(
 
 function jogadoresAtivos(ctx: ContextoDeSala): Jogador[] {
   return ctx.jogadores.filter((j) => j.situacao === 'ativo')
+}
+
+function apelidoDe(ctx: ContextoDeSala, id: JogadorId | null): string {
+  if (id === null) return 'ninguém'
+  return ctx.jogadores.find((j) => j.id === id)?.apelido ?? 'um jogador'
 }
 
 /** `ESCR-06` — só os ativos contam; quem está aguardando não trava o Começar. */
