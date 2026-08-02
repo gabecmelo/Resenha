@@ -85,11 +85,11 @@
 ## Handoff
 
 - **Feature**: `quem-sou-eu` — `.specs/features/quem-sou-eu/`
-- **Phase / Task**: Execute — lote 1 (T1–T8) completo; lote 2 (T9–T14, regras do jogo) despachado
-- **Completed**: Specify, Design, Tasks. T1–T8 com 8 commits atômicos. Duas correções pós-lote: apelido sem distinção de caixa (`fdafd2b`) e recusa de chat vazio (`85d9fb6`)
-- **In-progress** (file:line): `server/games/quem-sou-eu/` — lote 2 em execução por sub-agente
-- **Next step**: Receber o resumo do lote 2, atualizar `tasks.md`, despachar o lote 3 (T15–T20). Lotes 4–5 dependem do handoff de design em `design/handoff/`
+- **Phase / Task**: Execute — lotes 1 e 2 completos (T1–T14); lote 3 (T15–T20, plataforma) despachado
+- **Completed**: Specify, Design, Tasks. T1–T14 com 14 commits atômicos, 217 testes unit + 2 de integração. Três correções pós-lote: apelido sem distinção de caixa (`fdafd2b`), recusa de chat vazio (`85d9fb6`), jogador aguardando não confirma declaração (`3beb637`). Spec ganhou `DESC-10` e `DESC-11` a partir de lacunas achadas pelos testes — 81 requisitos
+- **In-progress** (file:line): `server/core/` — lote 3 em execução por sub-agente
+- **Next step**: Receber o resumo do lote 3, atualizar `tasks.md`, despachar o lote 4 (T21–T28). Os lotes 4–5 dependem do handoff de design em `design/handoff/`
 - **Blockers**: none. O usuário está gerando o design no Claude Design em paralelo
 - **Uncommitted files**: none
 - **Branch**: main
-- **Dívida conhecida**: `design.md` está desatualizado em dois pontos — `EstadoSala` virou genérico e `ResultadoReducer` ganhou variante de falha. Reconciliar antes da validação final
+- **Dívida conhecida**: `design.md` está desatualizado em cinco pontos — `EstadoSala` genérico, `ResultadoReducer` com variante de falha e `promoverAguardando`, assinatura do `ModuloDeJogo` com `Ambiente`, `Carta` virou `string`, `Declaracao` sem `confirmadorId`. Reconciliar antes da validação final

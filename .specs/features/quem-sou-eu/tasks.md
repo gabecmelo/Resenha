@@ -16,12 +16,17 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 | Lote | Tasks | Estado | Commits |
 | ---- | ----- | ------ | ------- |
 | 1 | T1–T8 (fases 1–2) | ✅ Completo | `a6913cd` … `3252ef2` + correções `fdafd2b`, `85d9fb6` |
-| 2 | T9–T14 (fase 3) | ⏳ Em execução | — |
-| 3 | T15–T20 (fase 4) | Pendente | — |
+| 2 | T9–T14 (fase 3) | ✅ Completo | `35e399a` … `05324b8` + correção `3beb637` |
+| 3 | T15–T20 (fase 4) | ⏳ Em execução | — |
 | 4 | T21–T28 (fases 5–6) | Pendente | — |
 | 5 | T29–T30 (fase 7) | Pendente | — |
 
-**Testes acumulados:** 77 unit + 2 integração, 0 falhas.
+**Testes acumulados:** 217 unit + 2 integração, 0 falhas.
+
+**Pendências abertas pelo lote 2, a resolver no lote 3:**
+- O comando `{t:'notas'}` precisa ser roteado ao reducer do jogo — `notas` vive no estado do jogo e o `core` não pode escrever lá. T17 valida o limite de 2.000 caracteres, mas a escrita é do jogo.
+- Ninguém monta ainda o objeto `ModuloDeJogo`; T17 conecta `iniciarRodada`, `reduzir` e `projetar`.
+- `ResultadoReducer.promoverAguardando` precisa ser aplicado pelo `core` (o jogo não toca no roster).
 
 **Desvios registrados no lote 1** (aceitos pelo orquestrador):
 - `@cloudflare/vitest-pool-workers` v0.20 removeu `defineWorkersConfig` e o subpath `/config`; a configuração passou a ser o plugin Vite `cloudflareTest()`. Confirmado no `.d.ts` publicado.
