@@ -28,6 +28,23 @@ export function vencidos(estado: EstadoSala, agora: number): TipoPrazo[] {
   })
 }
 
+/**
+ * AD-010 — **único ponto do sistema autorizado a chamar `setAlarm`**. O alarme
+ * aponta sempre para o menor prazo pendente, então agendar o turno não pode
+ * cancelar a expiração da sala.
+ */
+export async function reagendar(
+  storage: DurableObjectStorage,
+  estado: EstadoSala,
+): Promise<void> {
+  const proximo = menorPrazo(estado)
+  if (proximo === null) {
+    await storage.deleteAlarm()
+    return
+  }
+  await storage.setAlarm(proximo)
+}
+
 /** Próximo vencimento entre os prazos ativos, ou `null` quando não há nenhum. */
 export function menorPrazo(estado: EstadoSala): number | null {
   let menor: number | null = null

@@ -30,6 +30,15 @@ export function vincular(ws: WebSocket, jogadorId: JogadorId): void {
   ws.serializeAttachment(vinculo)
 }
 
+/**
+ * Desfaz o vínculo. Usado quando o jogador deixa a sala: o socket ainda pode
+ * aparecer em `getWebSockets()` até fechar de fato, e a partir daqui ele não
+ * representa mais ninguém — logo, não entra na difusão.
+ */
+export function desvincular(ws: WebSocket): void {
+  ws.serializeAttachment(null)
+}
+
 /** `null` enquanto o socket não se identificou (`ola` ou `entrar`). */
 export function jogadorDe(ws: WebSocket): JogadorId | null {
   const vinculo = ws.deserializeAttachment() as Vinculo | null

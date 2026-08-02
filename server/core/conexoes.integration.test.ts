@@ -25,8 +25,12 @@ interface Cliente {
   recebidas: Mensagem[]
 }
 
-function sala(nome: string) {
-  return env.SALA.get(env.SALA.idFromName(nome))
+/** O upgrade só é aceito em sala viva, então a sala é criada antes. */
+async function sala(nome: string): Promise<DurableObjectStub> {
+  const stub = env.SALA.get(env.SALA.idFromName(nome))
+  const criada = await stub.fetch('http://sala/criar?codigo=ABCDE', { method: 'POST' })
+  if (criada.status !== 201) throw new Error(`criar devolveu ${criada.status}`)
+  return stub
 }
 
 /** Upgrade de verdade: só um socket aceito por `acceptWebSocket` é hibernável. */
@@ -66,7 +70,7 @@ function projecoesDe(cliente: Cliente): Projecao[] {
 
 describe('vínculo socket → jogador', () => {
   it('devolve o jogador gravado no socket', async () => {
-    const stub = sala('CONN-VINCULO')
+    const stub = await sala('CONN-VINCULO')
     await conectarComo(stub, 'j1')
 
     const ids = await runInDurableObject(stub, (_i, state) =>
@@ -77,7 +81,7 @@ describe('vínculo socket → jogador', () => {
   })
 
   it('devolve null enquanto o socket não se identificou', async () => {
-    const stub = sala('CONN-SEM-VINCULO')
+    const stub = await sala('CONN-SEM-VINCULO')
     await conectar(stub)
 
     const ids = await runInDurableObject(stub, (_i, state) =>
@@ -88,7 +92,7 @@ describe('vínculo socket → jogador', () => {
   })
 
   it('sobrevive à hibernação do Durable Object (`CONN-05`)', async () => {
-    const stub = sala('CONN-HIBERNA')
+    const stub = await sala('CONN-HIBERNA')
     await conectarComo(stub, 'j1')
 
     await evictDurableObject(stub)
@@ -102,7 +106,7 @@ describe('vínculo socket → jogador', () => {
 
 describe('socketsDe', () => {
   it('devolve apenas os sockets do jogador pedido', async () => {
-    const stub = sala('CONN-SOCKETS-DE')
+    const stub = await sala('CONN-SOCKETS-DE')
     await conectarComo(stub, 'j1')
     await conectarComo(stub, 'j2')
 
@@ -116,7 +120,7 @@ describe('socketsDe', () => {
   })
 
   it('devolve os dois sockets do mesmo jogador', async () => {
-    const stub = sala('CONN-DOIS-SOCKETS')
+    const stub = await sala('CONN-DOIS-SOCKETS')
     await conectarComo(stub, 'j1')
     await conectarComo(stub, 'j1')
 
@@ -128,7 +132,7 @@ describe('socketsDe', () => {
 
 describe('difundir', () => {
   it('envia a cada socket a projeção montada para o jogador dele', async () => {
-    const stub = sala('CONN-DIFUNDE')
+    const stub = await sala('CONN-DIFUNDE')
     const ana = await conectarComo(stub, 'j1')
     const bruno = await conectarComo(stub, 'j2')
 
@@ -140,7 +144,7 @@ describe('difundir', () => {
   })
 
   it('a projeção chega embrulhada na mensagem `projecao`', async () => {
-    const stub = sala('CONN-ENVELOPE')
+    const stub = await sala('CONN-ENVELOPE')
     const ana = await conectarComo(stub, 'j1')
 
     await runInDurableObject(stub, (_i, state) => difundir(state, projecaoDe))
@@ -150,7 +154,7 @@ describe('difundir', () => {
   })
 
   it('ignora socket sem vínculo sem interromper a difusão aos demais', async () => {
-    const stub = sala('CONN-IGNORA')
+    const stub = await sala('CONN-IGNORA')
     const anonimo = await conectar(stub)
     const ana = await conectarComo(stub, 'j1')
 
@@ -162,7 +166,7 @@ describe('difundir', () => {
   })
 
   it('entrega a mesma projeção aos dois sockets do mesmo jogador', async () => {
-    const stub = sala('CONN-MESMO-JOGADOR')
+    const stub = await sala('CONN-MESMO-JOGADOR')
     const aba1 = await conectarComo(stub, 'j1')
     const aba2 = await conectarComo(stub, 'j1')
 
