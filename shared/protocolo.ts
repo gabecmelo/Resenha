@@ -244,6 +244,15 @@ export interface EventoDeJogo {
 }
 
 /**
+ * Capacidades que o `core` injeta no jogo. O módulo de jogo é puro: nunca
+ * alcança o relógio nem a aleatoriedade por conta própria (AD-002, AD-009).
+ */
+export interface Ambiente {
+  agora: number
+  aleatorio: () => number
+}
+
+/**
  * O jogo descreve o que mudou; quem executa efeito é sempre o `core` (AD-009).
  * `prazos` traz apenas os prazos a redefinir — `null` limpa o prazo.
  */
@@ -254,12 +263,18 @@ export type ResultadoReducer<E> =
       eventos: EventoDeJogo[]
       prazos: Partial<Prazos>
       faseSeguinte?: Fase
+      /**
+       * `FIM-03`, `ESCR-10` — o jogo não toca no roster; pede ao `core` que
+       * promova os jogadores `aguardando` a `ativo` ao voltar para o lobby.
+       */
+      promoverAguardando?: boolean
     }
   | { ok: false; erro: CodigoErro }
 
 /** Contrato de três funções puras entre o `core` e um jogo (AD-009). */
 export interface ModuloDeJogo<E, C> {
-  iniciarRodada(jogadores: Jogador[], config: Config, agora: number): E
-  reduzir(estado: E, ctx: ContextoDeSala, comando: C, agora: number): ResultadoReducer<E>
-  projetar(estado: E, sala: EstadoSala<E>, paraJogador: JogadorId): unknown
+  iniciarRodada(jogadores: Jogador[], ambiente: Ambiente): Resultado<E>
+  reduzir(estado: E, ctx: ContextoDeSala, comando: C, ambiente: Ambiente): ResultadoReducer<E>
+  /** `estado` é `null` no lobby, quando ainda não há partida. */
+  projetar(estado: E | null, sala: EstadoSala<E>, paraJogador: JogadorId): Projecao
 }

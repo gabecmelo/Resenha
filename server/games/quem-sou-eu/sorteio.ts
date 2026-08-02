@@ -27,8 +27,11 @@ export function sortearAlvos(
   return atribuicoes
 }
 
-/** Fisher-Yates sobre uma cópia — a lista recebida não é alterada. */
-function embaralhar(ids: readonly JogadorId[], aleatorio: () => number): JogadorId[] {
+/**
+ * Fisher-Yates sobre uma cópia — a lista recebida não é alterada.
+ * Também é o sorteio da ordem de turnos (`JOGO-03`, `CFG-01`).
+ */
+export function embaralhar(ids: readonly JogadorId[], aleatorio: () => number): JogadorId[] {
   const copia = [...ids]
   for (let i = copia.length - 1; i > 0; i -= 1) {
     const j = Math.floor(aleatorio() * (i + 1))
