@@ -145,11 +145,11 @@ Referência normativa para os requisitos abaixo.
 2. `ESCR-02` — WHEN a sala entra em ESCRITA THEN o sistema SHALL exibir a cada jogador o apelido do seu alvo e um campo para escrever a carta dele
 3. `ESCR-03` — WHEN um jogador escreve uma carta com mais de 60 caracteres ou apenas espaços em branco THEN o sistema SHALL recusar e exibir o motivo
 4. `ESCR-04` — WHEN um jogador marca PRONTO THEN o sistema SHALL registrar sua carta e refletir o progresso "N de M prontos" para todos, sem revelar o conteúdo de nenhuma carta
-5. `ESCR-05` — WHEN um jogador que já marcou PRONTO desmarca THEN o sistema SHALL permitir editar a carta e marcar PRONTO novamente, enquanto a sala estiver em ESCRITA
+5. `ESCR-05` — WHEN um jogador que já marcou PRONTO desmarca THEN o sistema SHALL permitir editar a carta e marcar PRONTO novamente, enquanto a sala estiver em ESCRITA; WHEN ele tenta editar a carta **sem** desmarcar THEN o sistema SHALL recusar a edição
 6. `ESCR-06` — WHEN todos os jogadores ativos estão PRONTO THEN o sistema SHALL habilitar ao host a ação "Começar"; enquanto houver qualquer pendente, SHALL mantê-la desabilitada
 7. `ESCR-07` — WHEN um jogador ativo sai ou é expulso durante a ESCRITA THEN o sistema SHALL descartar todas as cartas escritas, sortear novos alvos entre os jogadores ativos restantes e zerar todos os PRONTO
 8. `ESCR-08` — WHEN a redistribuição de `ESCR-07` deixaria menos de 3 jogadores ativos THEN o sistema SHALL cancelar a partida e devolver a sala ao LOBBY, informando o motivo
-9. `ESCR-09` — WHEN o host aciona "Cancelar" durante a ESCRITA THEN o sistema SHALL descartar as cartas e devolver a sala ao LOBBY
+9. `ESCR-09` — WHEN o host aciona "Cancelar" durante a ESCRITA THEN o sistema SHALL descartar as cartas, devolver a sala ao LOBBY e promover a **ativo** todo jogador que estava aguardando — no LOBBY não existe jogador aguardando (`SALA-09`)
 10. `ESCR-10` — WHEN um jogador entra na sala durante a ESCRITA THEN o sistema SHALL NOT redistribuir os alvos, e SHALL informar ao host que há jogador aguardando e que "Cancelar" devolve a sala ao LOBBY para incluí-lo
 
 **Independent Test**: Com 3 jogadores, iniciar e verificar que cada um vê um alvo diferente e nenhum vê a si mesmo; um sai e os outros dois recebem novos alvos com os PRONTO zerados.
@@ -190,13 +190,15 @@ Referência normativa para os requisitos abaixo.
 
 1. `DESC-01` — WHEN um jogador ativo aciona "Descobri!" THEN o sistema SHALL anunciar a todos que ele declarou ter descoberto e SHALL colocar a declaração em estado pendente, sem revelar a carta
 2. `DESC-02` — WHEN existe uma declaração pendente THEN o sistema SHALL apresentar ao host as ações "Confirmar" e "Negar" identificando o jogador
-3. `DESC-03` — WHEN quem declarou é o próprio host THEN o sistema SHALL direcionar a confirmação ao jogador que está **na sala** há mais tempo entre os demais conectados (mesmo critério de antiguidade de `HOST-04`)
+3. `DESC-03` — WHEN quem declarou é o próprio host THEN o sistema SHALL direcionar a confirmação ao jogador que está **na sala** há mais tempo entre os demais que estão conectados **e ativos na rodada** — quem apenas aguarda a próxima partida não confirma (mesmo critério de antiguidade de `HOST-04`)
 4. `DESC-04` — WHEN a declaração é confirmada THEN o sistema SHALL revelar a carta ao jogador que declarou, marcá-lo como "descobriu" para todos e anunciar a confirmação
 5. `DESC-05` — WHEN a declaração é negada THEN o sistema SHALL descartá-la sem revelar a carta, anunciar a negativa, e SHALL permitir que o jogador declare novamente
 6. `DESC-06` — WHEN a declaração é confirmada e a configuração é "sai do rodízio" THEN o sistema SHALL remover o jogador da ordem de turnos, mantendo o acesso dele à lista de cartas, ao chat e às notas
 7. `DESC-07` — WHEN a declaração é confirmada e a configuração é "continua jogando" THEN o sistema SHALL manter o jogador na ordem de turnos
 8. `DESC-08` — WHEN a configuração é "sai do rodízio" e a confirmação deixa a partida com menos de 2 jogadores no rodízio THEN o sistema SHALL encerrar a partida automaticamente, aplicando `FIM-02`
 9. `DESC-09` — WHEN um jogador com declaração pendente ou já confirmada aciona "Descobri!" novamente THEN o sistema SHALL ignorar a ação sem alterar o estado
+10. `DESC-10` — WHEN já existe uma declaração pendente e **outro** jogador aciona "Descobri!" THEN o sistema SHALL recusar a segunda declaração — só uma fica pendente por vez
+11. `DESC-11` — WHEN o jogador que declarou sai da sala com a declaração ainda pendente THEN o sistema SHALL descartar a declaração sem revelar a carta
 
 **Independent Test**: Jogador B clica "Descobri!", os três veem o anúncio, só o host vê Confirmar/Negar; ao confirmar, só B passa a ver a própria carta.
 
@@ -214,7 +216,7 @@ Referência normativa para os requisitos abaixo.
 2. `FIM-02` — WHEN a sala entra em ENCERRADA THEN o sistema SHALL revelar a carta de todos os jogadores ativos a todos os presentes, incluindo os aguardando
 3. `FIM-03` — WHEN a sala está em ENCERRADA e o host aciona "Nova partida" THEN o sistema SHALL devolver a sala ao LOBBY, promover todos os jogadores aguardando a ativos, limpar cartas, alvos, marcações de "descobriu" e notas privadas
 4. `FIM-04` — WHEN a sala volta ao LOBBY por "Nova partida" THEN o sistema SHALL preservar os jogadores, seus apelidos, suas cores, o histórico do chat e as configurações da partida anterior
-5. `FIM-05` — WHEN todos os jogadores ativos saem durante o JOGO THEN o sistema SHALL encerrar a partida automaticamente e devolver a sala ao LOBBY
+5. `FIM-05` — WHEN todos os jogadores ativos saem durante o JOGO, ou com a partida já ENCERRADA, THEN o sistema SHALL encerrar a partida automaticamente e devolver a sala ao LOBBY, promovendo a ativo quem estava aguardando
 
 **Independent Test**: Encerrar com 3 jogadores e ver as 3 cartas em todas as telas; acionar "Nova partida" e verificar que o quarto jogador que estava aguardando aparece como ativo no LOBBY.
 
@@ -322,7 +324,9 @@ Referência normativa para os requisitos abaixo.
 - WHEN o apelido contém apenas espaços THEN o sistema SHALL recusá-lo (`SALA-03`)
 - WHEN um jogador tenta entrar duas vezes na mesma sala pelo mesmo navegador THEN o sistema SHALL tratar a segunda aba como a mesma sessão, não como um novo jogador
 - WHEN a carta escrita contém quebras de linha THEN o sistema SHALL normalizá-la para uma única linha
-- WHEN um jogador aguardando aciona qualquer ação de partida THEN o sistema SHALL rejeitá-la
+- WHEN um jogador aguardando aciona qualquer ação de partida THEN o sistema SHALL rejeitá-la — inclusive confirmar ou negar uma declaração (`DESC-03`)
+- WHEN o alvo de um jogador sai da sala durante o JOGO THEN o sistema SHALL descartar também a atribuição órfã, de modo que quem escrevia para ele deixe de ver "a carta que escrevi"
+- WHEN o host aciona "Passei a vez" sem ser o jogador da vez THEN o sistema SHALL aceitar, com o mesmo efeito de "Pular a vez" (`JOGO-05`, `JOGO-06`)
 
 ---
 
@@ -334,7 +338,7 @@ Referência normativa para os requisitos abaixo.
 | HOST-01 … HOST-07 | P1: Comandar a sala como host | Design | Pending |
 | ESCR-01 … ESCR-10 | P1: Sortear alvos e escrever as cartas | Design | Pending |
 | JOGO-01 … JOGO-11 | P1: Jogar a partida | Design | Pending |
-| DESC-01 … DESC-09 | P1: Declarar "Descobri!" | Design | Pending |
+| DESC-01 … DESC-11 | P1: Declarar "Descobri!" | Design | Pending |
 | FIM-01 … FIM-05 | P1: Encerrar, revelar e jogar de novo | Design | Pending |
 | CFG-01 … CFG-06 | P1: Configurar a partida | Design | Pending |
 | CONN-01 … CONN-08 | P1: Nunca perder a vaga por conexão | Design | Pending |
@@ -345,7 +349,7 @@ Referência normativa para os requisitos abaixo.
 **ID format:** `[CATEGORIA]-[NÚMERO]`
 **Status values:** Pending → In Design → In Tasks → Implementing → Verified
 
-**Coverage:** 79 requisitos totais, 0 mapeados para tasks, 79 não mapeados ⚠️ (esperado — Design e Tasks ainda não rodaram)
+**Coverage:** 81 requisitos totais (`DESC-10` e `DESC-11` acrescentados durante o Execute, a partir de lacunas achadas pelos testes), todos mapeados para tasks — ver `tasks.md`
 
 ---
 
