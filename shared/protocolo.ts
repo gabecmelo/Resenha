@@ -139,6 +139,7 @@ export type CodigoErro =
   | 'CARTA_INVALIDA'
   | 'NOTAS_MUITO_LONGAS'
   | 'CHAT_MUITO_LONGO'
+  | 'CHAT_VAZIO'
   | 'CHAT_LIMITE_DE_TAXA'
   | 'COMANDO_INVALIDO'
 

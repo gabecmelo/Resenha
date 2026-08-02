@@ -41,6 +41,41 @@ describe('enviar — tamanho da mensagem (CHAT-01)', () => {
     expect(resultado).toEqual({ ok: false, erro: 'CHAT_MUITO_LONGO' })
   })
 
+  it('recusa mensagem vazia', () => {
+    const estado = sala()
+
+    const resultado = enviar(estado, 'ana', '', 1_000)
+
+    expect(resultado).toEqual({ ok: false, erro: 'CHAT_VAZIO' })
+    expect(estado.chat).toHaveLength(0)
+  })
+
+  it('recusa mensagem formada apenas por espaços', () => {
+    const estado = sala()
+
+    const resultado = enviar(estado, 'ana', '    \n  ', 1_000)
+
+    expect(resultado).toEqual({ ok: false, erro: 'CHAT_VAZIO' })
+    expect(estado.chat).toHaveLength(0)
+  })
+
+  it('registra a mensagem sem os espaços das pontas', () => {
+    const estado = sala()
+
+    enviar(estado, 'ana', '  oi gente  ', 1_000)
+
+    expect(estado.chat[0]).toMatchObject({ texto: 'oi gente' })
+  })
+
+  it('mensagem recusada por ser vazia não consome o limite de taxa', () => {
+    const estado = sala()
+
+    for (let i = 0; i < 10; i += 1) enviar(estado, 'ana', '   ', 1_000)
+    const resultado = enviar(estado, 'ana', 'valendo', 1_000)
+
+    expect(resultado.ok).toBe(true)
+  })
+
   it('não registra no chat a mensagem recusada por tamanho', () => {
     const estado = sala()
 

@@ -20,12 +20,15 @@ export function enviar(
 ): Resultado {
   if (texto.length > CHAT_MAX_CARACTERES) return { ok: false, erro: 'CHAT_MUITO_LONGO' }
 
+  const conteudo = texto.trim()
+  if (conteudo.length === 0) return { ok: false, erro: 'CHAT_VAZIO' }
+
   const naJanela = estado.chat.filter(
     (m) => m.tipo === 'jogador' && m.autorId === autorId && m.em > agora - CHAT_JANELA_MS,
   ).length
   if (naJanela >= CHAT_MAX_POR_JANELA) return { ok: false, erro: 'CHAT_LIMITE_DE_TAXA' }
 
-  acrescentar(estado, { tipo: 'jogador', autorId, texto, em: agora })
+  acrescentar(estado, { tipo: 'jogador', autorId, texto: conteudo, em: agora })
   return { ok: true, valor: undefined }
 }
 
