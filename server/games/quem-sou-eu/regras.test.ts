@@ -1114,6 +1114,207 @@ describe('saída de jogador com declaração pendente (DESC-01)', () => {
   })
 })
 
+describe('encerrar a partida (FIM-01, FIM-02, HOST-06)', () => {
+  it('move a sala para encerrada', () => {
+    const { estado, contexto } = emJogo()
+
+    const resultado = reduzirOk(estado, contexto, { t: 'encerrar' })
+
+    expect(resultado.faseSeguinte).toBe('encerrada')
+  })
+
+  it('marca todas as cartas como reveladas', () => {
+    const { estado, contexto } = emJogo()
+
+    const resultado = reduzirOk(estado, contexto, { t: 'encerrar' })
+
+    expect(resultado.estado.reveladoParaTodos).toBe(true)
+  })
+
+  it('preserva o texto das cartas para a revelação', () => {
+    const { estado, contexto } = emJogo()
+
+    const resultado = reduzirOk(estado, contexto, { t: 'encerrar' })
+
+    expect(resultado.estado.cartas).toEqual(estado.cartas)
+  })
+
+  it('encerra o rodízio e o prazo do turno', () => {
+    const { estado, contexto } = emJogo({
+      config: { ...CONFIG_PADRAO, ordemTurnos: 'entrada', tempoTurnoSeg: 60 },
+    })
+
+    const resultado = reduzirOk(estado, contexto, { t: 'encerrar' })
+
+    expect({ vezDe: resultado.estado.vezDe, prazos: resultado.prazos }).toEqual({
+      vezDe: null,
+      prazos: { turno: null },
+    })
+  })
+
+  it('descarta a declaração pendente ao encerrar', () => {
+    const { estado, contexto } = emJogo()
+    const pendente = reduzirOk(estado, { ...contexto, autorId: 'b' }, {
+      t: 'declararDescobri',
+    }).estado
+
+    const resultado = reduzirOk(pendente, contexto, { t: 'encerrar' })
+
+    expect(resultado.estado.declaracaoPendente).toBeNull()
+  })
+
+  it('recusa encerrar quando quem aciona não é o host', () => {
+    const { estado, contexto } = emJogo()
+
+    const resultado = reduzir(estado, { ...contexto, autorId: 'b' }, { t: 'encerrar' }, AMBIENTE)
+
+    expect(resultado).toEqual({ ok: false, erro: 'SEM_AUTORIDADE' })
+  })
+
+  it('recusa encerrar fora da fase de jogo', () => {
+    const { estado, contexto } = emJogo()
+
+    const resultado = reduzir(estado, { ...contexto, fase: 'escrita' }, { t: 'encerrar' }, AMBIENTE)
+
+    expect(resultado).toEqual({ ok: false, erro: 'FASE_INVALIDA' })
+  })
+})
+
+describe('nova partida (FIM-03, FIM-04, NOTA-04)', () => {
+  function encerrada(over: Partial<ContextoDeSala> = {}) {
+    const { estado, contexto } = emJogo(over)
+    const fim = reduzirOk(estado, contexto, { t: 'encerrar' }).estado
+    return { estado: fim, contexto: ctx({ ...contexto, fase: 'encerrada' }) }
+  }
+
+  it('devolve a sala ao lobby', () => {
+    const { estado, contexto } = encerrada()
+
+    const resultado = reduzirOk(estado, contexto, { t: 'novaPartida' })
+
+    expect(resultado.faseSeguinte).toBe('lobby')
+  })
+
+  it('limpa cartas, alvos, "descobriu" e rodízio', () => {
+    const { estado, contexto } = encerrada()
+
+    const resultado = reduzirOk(estado, contexto, { t: 'novaPartida' })
+
+    expect({
+      cartas: resultado.estado.cartas,
+      atribuicoes: resultado.estado.atribuicoes,
+      descobriram: resultado.estado.descobriram,
+      ordem: resultado.estado.ordem,
+      prontos: resultado.estado.prontos,
+      reveladoParaTodos: resultado.estado.reveladoParaTodos,
+    }).toEqual({
+      cartas: {},
+      atribuicoes: {},
+      descobriram: [],
+      ordem: [],
+      prontos: [],
+      reveladoParaTodos: false,
+    })
+  })
+
+  it('limpa o bloco de notas de todos os jogadores (NOTA-04)', () => {
+    const { estado, contexto } = encerrada()
+    const comNotas = { ...estado, notas: { a: 'perguntei sobre filmes', b: 'não sou animal' } }
+
+    const resultado = reduzirOk(comNotas, contexto, { t: 'novaPartida' })
+
+    expect(resultado.estado.notas).toEqual({})
+  })
+
+  it('pede ao core a promoção de quem estava aguardando', () => {
+    const { estado, contexto } = encerrada()
+
+    const resultado = reduzirOk(estado, contexto, { t: 'novaPartida' })
+
+    expect(resultado.promoverAguardando).toBe(true)
+  })
+
+  it('não altera jogadores, apelidos, cores nem configurações (FIM-04)', () => {
+    const { estado, contexto } = encerrada()
+    const antes = structuredClone(contexto)
+
+    reduzirOk(estado, contexto, { t: 'novaPartida' })
+
+    expect(contexto).toEqual(antes)
+  })
+
+  it('recusa nova partida de quem não é o host', () => {
+    const { estado, contexto } = encerrada()
+
+    const resultado = reduzir(
+      estado,
+      { ...contexto, autorId: 'b' },
+      { t: 'novaPartida' },
+      AMBIENTE,
+    )
+
+    expect(resultado).toEqual({ ok: false, erro: 'SEM_AUTORIDADE' })
+  })
+
+  it('recusa nova partida enquanto a partida não foi encerrada', () => {
+    const { estado, contexto } = emJogo()
+
+    const resultado = reduzir(estado, contexto, { t: 'novaPartida' }, AMBIENTE)
+
+    expect(resultado).toEqual({ ok: false, erro: 'FASE_INVALIDA' })
+  })
+})
+
+describe('saída de todos os ativos durante o jogo (FIM-05)', () => {
+  it('encerra a partida e devolve a sala ao lobby', () => {
+    const { estado, contexto } = emJogo()
+    let atual = estado
+    let ultimo = null as ReturnType<typeof reduzirOk> | null
+
+    for (const [indice, id] of ['a', 'b', 'c'].entries()) {
+      const restantes = ['a', 'b', 'c'].slice(indice + 1).map((x) => jogador(x))
+      ultimo = reduzirOk(atual, ctx({ ...contexto, jogadores: restantes }), {
+        t: 'saiuJogador',
+        jogadorId: id,
+      })
+      atual = ultimo.estado
+    }
+
+    expect(ultimo?.faseSeguinte).toBe('lobby')
+  })
+
+  it('zera o estado da partida quando o último ativo sai', () => {
+    const { estado, contexto } = emJogo()
+
+    const resultado = reduzirOk(estado, ctx({ ...contexto, jogadores: [] }), {
+      t: 'saiuJogador',
+      jogadorId: 'a',
+    })
+
+    expect({
+      cartas: resultado.estado.cartas,
+      atribuicoes: resultado.estado.atribuicoes,
+      ordem: resultado.estado.ordem,
+      vezDe: resultado.estado.vezDe,
+    }).toEqual({ cartas: {}, atribuicoes: {}, ordem: [], vezDe: null })
+  })
+
+  it('pede a promoção de quem estava aguardando quando todos os ativos saem', () => {
+    const { estado, contexto } = emJogo()
+    const restantes = [jogador('d', 'aguardando')]
+
+    const resultado = reduzirOk(estado, ctx({ ...contexto, jogadores: restantes }), {
+      t: 'saiuJogador',
+      jogadorId: 'a',
+    })
+
+    expect({ fase: resultado.faseSeguinte, promover: resultado.promoverAguardando }).toEqual({
+      fase: 'lobby',
+      promover: true,
+    })
+  })
+})
+
 describe('jogador desconectado (JOGO-11)', () => {
   it('mantém a vez com o jogador desconectado, sem pulá-lo', () => {
     const jogadores = [jogador('a'), { ...jogador('b'), conectado: false }, jogador('c')]

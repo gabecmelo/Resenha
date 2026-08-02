@@ -123,6 +123,10 @@ export function reduzir(
       return declararDescobri(estado, ctx, ambiente)
     case 'responderDeclaracao':
       return responderDeclaracao(estado, ctx, comando.aceita, ambiente)
+    case 'encerrar':
+      return encerrar(estado, ctx)
+    case 'novaPartida':
+      return novaPartida(ctx)
     case 'entrouJogador':
       // `ESCR-10` — a rodada corrente não é redistribuída por quem chega.
       return { ok: true, estado, eventos: [], prazos: {} }
@@ -419,13 +423,57 @@ function responderDeclaracao(
 }
 
 // ---------------------------------------------------------------------------
+// Encerramento e nova partida
+// ---------------------------------------------------------------------------
+
+/** `FIM-01`, `FIM-02` — encerra e revela a carta de todos a todos. */
+function encerrar(
+  estado: EstadoQuemSouEu,
+  ctx: ContextoDeSala,
+): ResultadoReducer<EstadoQuemSouEu> {
+  if (ctx.fase !== 'jogo') return { ok: false, erro: 'FASE_INVALIDA' }
+  if (ctx.autorId !== ctx.hostId) return { ok: false, erro: 'SEM_AUTORIDADE' }
+
+  const novo = clonar(estado)
+  novo.reveladoParaTodos = true
+  novo.declaracaoPendente = null
+  novo.vezDe = null
+
+  return {
+    ok: true,
+    estado: novo,
+    eventos: [{ texto: 'A partida foi encerrada. Todas as cartas foram reveladas.' }],
+    prazos: { turno: null },
+    faseSeguinte: 'encerrada',
+  }
+}
+
+/**
+ * `FIM-03`, `NOTA-04` — devolve a sala ao lobby com a partida zerada: cartas,
+ * alvos, "descobriu" e notas somem juntos. `FIM-04` é consequência: o jogo não
+ * toca em jogador, apelido, cor, chat nem configuração.
+ */
+function novaPartida(ctx: ContextoDeSala): ResultadoReducer<EstadoQuemSouEu> {
+  if (ctx.fase !== 'encerrada') return { ok: false, erro: 'FASE_INVALIDA' }
+  if (ctx.autorId !== ctx.hostId) return { ok: false, erro: 'SEM_AUTORIDADE' }
+
+  return {
+    ok: true,
+    estado: estadoVazio(),
+    eventos: [{ texto: 'Nova partida! A sala voltou ao lobby.' }],
+    prazos: { turno: null },
+    faseSeguinte: 'lobby',
+    promoverAguardando: true,
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Saída de jogador
 // ---------------------------------------------------------------------------
 
 /**
- * `ESCR-07`, `ESCR-08`. O `core` já retirou o jogador do roster antes de avisar,
- * então `ctx.jogadores` traz apenas quem ficou. Quem estava `aguardando` nunca
- * teve alvo — a saída dele não redistribui nada.
+ * `ESCR-07`, `ESCR-08`, `JOGO-10`, `FIM-05`. O `core` já retirou o jogador do
+ * roster antes de avisar, então `ctx.jogadores` traz apenas quem ficou.
  */
 function saiuJogador(
   estado: EstadoQuemSouEu,
@@ -433,11 +481,12 @@ function saiuJogador(
   jogadorId: JogadorId,
   ambiente: Ambiente,
 ): ResultadoReducer<EstadoQuemSouEu> {
-  if (estado.atribuicoes[jogadorId] === undefined) {
-    return { ok: true, estado, eventos: [], prazos: {} }
-  }
-
   if (ctx.fase === 'escrita') {
+    // Quem estava `aguardando` nunca teve alvo — a saída dele não redistribui nada.
+    if (estado.atribuicoes[jogadorId] === undefined) {
+      return { ok: true, estado, eventos: [], prazos: {} }
+    }
+
     const restantes = jogadoresAtivos(ctx)
     if (restantes.length < MIN_JOGADORES) {
       return {
@@ -465,6 +514,18 @@ function saiuJogador(
       estado: novo,
       eventos: [{ texto: 'Um jogador saiu. Novos alvos foram sorteados e as cartas, descartadas.' }],
       prazos: {},
+    }
+  }
+
+  // `FIM-05` — não existe partida sem jogador ativo.
+  if (jogadoresAtivos(ctx).length === 0) {
+    return {
+      ok: true,
+      estado: estadoVazio(),
+      eventos: [{ texto: 'Todos os jogadores saíram. A partida foi encerrada.' }],
+      prazos: { turno: null },
+      faseSeguinte: 'lobby',
+      promoverAguardando: true,
     }
   }
 
