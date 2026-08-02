@@ -1,0 +1,38 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "resenha",
+  "main": "server/index.ts",
+  "compatibility_date": "2026-08-01",
+
+  // No build o plugin Vite da Cloudflare sobrescreve `directory` com o caminho
+  // real do bundle do ambiente `client`. O valor abaixo existe para que este
+  // arquivo seja válido sozinho (`wrangler deploy --dry-run`, `wrangler types`).
+  "assets": {
+    "directory": "./dist/client",
+    "not_found_handling": "single-page-application"
+  },
+
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "SALA",
+        "class_name": "SalaDurableObject"
+      }
+    ]
+  },
+
+  // ATENÇÃO: `new_sqlite_classes` é obrigatório e imutável. Trocar por
+  // `new_classes` cria o namespace com o storage legado de chave-valor, que é
+  // irreversível e indisponível no plano free — exigiria recriar o namespace
+  // com outro nome de classe.
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["SalaDurableObject"]
+    }
+  ],
+
+  "observability": {
+    "enabled": true
+  }
+}
