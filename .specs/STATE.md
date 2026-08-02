@@ -58,13 +58,37 @@
 - **Date**: 2026-08-02
 - **Status**: active
 
+### AD-008
+- **Decision**: O servidor é autoritativo e envia **projeções por jogador** — um objeto de estado montado especificamente para cada destinatário. O cliente não contém regra de jogo; ele renderiza a projeção recebida.
+- **Reason**: Torna estrutural a regra de que informação secreta não trafega para quem não pode vê-la: o segredo não é filtrado do payload, ele nunca é construído nele. Também elimina a duplicação da máquina de estados entre cliente e servidor e torna a reconexão trivial (basta enviar a projeção).
+- **Trade-off**: Mais bytes por evento (uma serialização por jogador conectado) e custo de CPU linear no número de jogadores. Irrelevante na ordem de grandeza do produto (salas de até 20, estado de poucos KB).
+- **Scope**: Protocolo cliente-servidor de todos os jogos do hub.
+- **Date**: 2026-08-02
+- **Status**: active
+
+### AD-009
+- **Decision**: O contrato entre `core` e um jogo é uma interface de **três funções puras** (`iniciarRodada`, `reduzir`, `projetar`). O jogo devolve estado e efeitos descritos; quem executa efeito é sempre o `core`.
+- **Reason**: É a fronteira mínima que cumpre AD-002 sem virar framework de jogos. Funções puras também tornam todos os critérios de aceite testáveis sem rede, storage ou plataforma.
+- **Trade-off**: Um jogo futuro com necessidade genuína de efeito próprio (chamada externa, temporizador exótico) exigirá estender o contrato. Aceito — estender sob demanda é melhor que generalizar por antecipação.
+- **Scope**: `core` e todo módulo em `games/`.
+- **Date**: 2026-08-02
+- **Status**: active
+
+### AD-010
+- **Decision**: Todos os prazos da sala são multiplexados por um **agendador próprio** sobre o alarme único do Durable Object. Um único componente tem permissão de chamar `setAlarm()`.
+- **Reason**: Um Durable Object admite apenas um alarme por vez e `setAlarm()` preserva somente a chamada mais recente. Agendar prazos direto da regra de negócio cancelaria outros prazos silenciosamente — falha invisível e difícil de reproduzir.
+- **Trade-off**: Uma indireção a mais entre a regra e a plataforma.
+- **Scope**: Servidor, camada `core`; vale para qualquer jogo do hub que precise de tempo.
+- **Date**: 2026-08-02
+- **Status**: active
+
 ## Handoff
 
 - **Feature**: `quem-sou-eu` — `.specs/features/quem-sou-eu/`
-- **Phase / Task**: Specify — spec.md e context.md escritos, aguardando aprovação do usuário
-- **Completed**: levantamento de requisitos (2 rodadas), sweep de dimensões implícitas, discussão de 5 áreas cinzentas
+- **Phase / Task**: Design — design.md, design-brief.md e design-prompts.md escritos, aguardando aprovação do usuário
+- **Completed**: Specify (spec.md, context.md); Design (pesquisa da plataforma, abordagem confirmada com o usuário, AD-008..AD-010 registradas)
 - **In-progress** (file:line): none
-- **Next step**: Usuário aprova `spec.md`; em seguida entrar na fase Design (arquitetura, design-brief.md e design-prompts.md para o Claude Design)
+- **Next step**: Usuário aprova `design.md`; em paralelo pode levar `design-prompts.md` ao Claude Design e devolver o resultado em `design/handoff/`. Depois, fase Tasks
 - **Blockers**: none
-- **Uncommitted files**: `.specs/STATE.md`, `.specs/features/quem-sou-eu/spec.md`, `.specs/features/quem-sou-eu/context.md`
+- **Uncommitted files**: `.specs/STATE.md`, `.specs/features/quem-sou-eu/design.md`, `design-brief.md`, `design-prompts.md`
 - **Branch**: main
