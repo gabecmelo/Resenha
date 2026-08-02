@@ -85,10 +85,11 @@
 ## Handoff
 
 - **Feature**: `quem-sou-eu` — `.specs/features/quem-sou-eu/`
-- **Phase / Task**: Design — design.md, design-brief.md e design-prompts.md escritos, aguardando aprovação do usuário
-- **Completed**: Specify (spec.md, context.md); Design (pesquisa da plataforma, abordagem confirmada com o usuário, AD-008..AD-010 registradas)
-- **In-progress** (file:line): none
-- **Next step**: Usuário aprova `design.md`; em paralelo pode levar `design-prompts.md` ao Claude Design e devolver o resultado em `design/handoff/`. Depois, fase Tasks
-- **Blockers**: none
-- **Uncommitted files**: `.specs/STATE.md`, `.specs/features/quem-sou-eu/design.md`, `design-brief.md`, `design-prompts.md`
+- **Phase / Task**: Execute — lote 1 (T1–T8) completo; lote 2 (T9–T14, regras do jogo) despachado
+- **Completed**: Specify, Design, Tasks. T1–T8 com 8 commits atômicos. Duas correções pós-lote: apelido sem distinção de caixa (`fdafd2b`) e recusa de chat vazio (`85d9fb6`)
+- **In-progress** (file:line): `server/games/quem-sou-eu/` — lote 2 em execução por sub-agente
+- **Next step**: Receber o resumo do lote 2, atualizar `tasks.md`, despachar o lote 3 (T15–T20). Lotes 4–5 dependem do handoff de design em `design/handoff/`
+- **Blockers**: none. O usuário está gerando o design no Claude Design em paralelo
+- **Uncommitted files**: none
 - **Branch**: main
+- **Dívida conhecida**: `design.md` está desatualizado em dois pontos — `EstadoSala` virou genérico e `ResultadoReducer` ganhou variante de falha. Reconciliar antes da validação final

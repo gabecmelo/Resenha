@@ -9,7 +9,25 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 ---
 
 **Design**: `.specs/features/quem-sou-eu/design.md`
-**Status**: Draft
+**Status**: In Progress
+
+## Progresso
+
+| Lote | Tasks | Estado | Commits |
+| ---- | ----- | ------ | ------- |
+| 1 | T1–T8 (fases 1–2) | ✅ Completo | `a6913cd` … `3252ef2` + correções `fdafd2b`, `85d9fb6` |
+| 2 | T9–T14 (fase 3) | ⏳ Em execução | — |
+| 3 | T15–T20 (fase 4) | Pendente | — |
+| 4 | T21–T28 (fases 5–6) | Pendente | — |
+| 5 | T29–T30 (fase 7) | Pendente | — |
+
+**Testes acumulados:** 77 unit + 2 integração, 0 falhas.
+
+**Desvios registrados no lote 1** (aceitos pelo orquestrador):
+- `@cloudflare/vitest-pool-workers` v0.20 removeu `defineWorkersConfig` e o subpath `/config`; a configuração passou a ser o plugin Vite `cloudflareTest()`. Confirmado no `.d.ts` publicado.
+- `EstadoSala<E>` ficou genérico no jogo — o tipo do `design.md` acoplava `core` a `EstadoQuemSouEu`, violando AD-002. **O design.md está desatualizado nesse ponto.**
+- `ResultadoReducer` ganhou variante de falha (`ESCR-03` exige que o jogo recuse carta inválida).
+- `reconectar` devolve `Resultado` em vez de `Jogador | null`, para distinguir token banido de token desconhecido (`CONN-04`).
 
 ---
 
