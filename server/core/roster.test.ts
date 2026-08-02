@@ -107,7 +107,44 @@ describe('entrar — apelido repetido (SALA-04)', () => {
     const resultado = entrar(estado, { id: 'j9', apelido: 'Ana', tokenHash: 'h9' }, 2_000)
 
     expect(resultado).toEqual({ ok: false, erro: 'APELIDO_EM_USO' })
+  })
+
+  it('recusa apelido repetido com caixa diferente', () => {
+    const estado = sala()
+    entrarOk(estado, 'Ana')
+
+    const resultado = entrar(estado, { id: 'j99', apelido: 'ana', tokenHash: 'h99' }, 2_000)
+
+    expect(resultado).toEqual({ ok: false, erro: 'APELIDO_EM_USO' })
     expect(estado.jogadores).toHaveLength(1)
+  })
+
+  it('recusa apelido repetido com caixa diferente em letra acentuada', () => {
+    const estado = sala()
+    entrarOk(estado, 'ÂNGELA')
+
+    const resultado = entrar(estado, { id: 'j99', apelido: 'ângela', tokenHash: 'h99' }, 2_000)
+
+    expect(resultado).toEqual({ ok: false, erro: 'APELIDO_EM_USO' })
+  })
+
+  it('recusa apelido repetido que difere apenas por espaços nas pontas', () => {
+    const estado = sala()
+    entrarOk(estado, 'Ana')
+
+    const resultado = entrar(estado, { id: 'j99', apelido: '  Ana  ', tokenHash: 'h99' }, 2_000)
+
+    expect(resultado).toEqual({ ok: false, erro: 'APELIDO_EM_USO' })
+  })
+
+  it('aceita apelidos que diferem por acento, e não só por caixa', () => {
+    const estado = sala()
+    entrarOk(estado, 'Ana')
+
+    const resultado = entrar(estado, { id: 'j99', apelido: 'Anã', tokenHash: 'h99' }, 2_000)
+
+    expect(resultado.ok).toBe(true)
+    expect(estado.jogadores).toHaveLength(2)
   })
 })
 

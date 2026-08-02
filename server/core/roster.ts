@@ -44,7 +44,8 @@ export function entrar(
   if (apelido.length < APELIDO_MIN || apelido.length > APELIDO_MAX) {
     return { ok: false, erro: 'APELIDO_INVALIDO' }
   }
-  if (estado.jogadores.some((j) => j.apelido === apelido)) {
+  const comparavel = apelido.toLocaleLowerCase('pt-BR')
+  if (estado.jogadores.some((j) => j.apelido.toLocaleLowerCase('pt-BR') === comparavel)) {
     return { ok: false, erro: 'APELIDO_EM_USO' }
   }
 
