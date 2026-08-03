@@ -1,3 +1,4 @@
+import { gerarCodigo, normalizarCodigo } from './core/codigo'
 import { SalaDeJogo } from './core/sala-do'
 import { quemSouEu } from './games/quem-sou-eu'
 import type { EstadoQuemSouEu } from './games/quem-sou-eu/regras'
@@ -13,8 +14,59 @@ export class SalaDurableObject extends SalaDeJogo<EstadoQuemSouEu> {
   }
 }
 
+/** Edge case do spec: código sorteado que colide com sala viva vira outro. */
+const TENTATIVAS_DE_CODIGO = 10
+
+const ROTA_WS = /^\/api\/salas\/([^/]+)\/ws$/
+
+/**
+ * Os assets estáticos não passam por aqui: com `not_found_handling` em
+ * `single-page-application` e a compatibility date do projeto, a plataforma
+ * serve o asset (ou o `index.html`) antes de invocar o Worker, e só o que não
+ * é navegação — as chamadas de API e o upgrade de WebSocket — chega até este
+ * handler.
+ */
 export default {
-  async fetch(_request: Request): Promise<Response> {
-    return new Response('não implementado', { status: 501 })
+  async fetch(request: Request, env: Env): Promise<Response> {
+    const url = new URL(request.url)
+
+    if (url.pathname === '/api/salas' && request.method === 'POST') {
+      return criarSala(env)
+    }
+
+    const rota = ROTA_WS.exec(url.pathname)
+    if (rota !== null) return conectarSala(env, request, rota[1])
+
+    return new Response('não encontrado', { status: 404 })
   },
+}
+
+/** `SALA-01` — sorteia um código livre e inicializa o Durable Object dele. */
+export async function criarSala(env: Env, aleatorio: () => number = Math.random): Promise<Response> {
+  for (let tentativa = 0; tentativa < TENTATIVAS_DE_CODIGO; tentativa += 1) {
+    const codigo = gerarCodigo(aleatorio)
+    const stub = env.SALA.get(env.SALA.idFromName(codigo))
+    const criada = await stub.fetch(`http://sala/criar?codigo=${codigo}`, { method: 'POST' })
+
+    if (criada.status === 201) return Response.json({ codigo }, { status: 201 })
+    // 409: o código já é de uma sala viva. Sorteia outro.
+  }
+
+  return Response.json({ erro: 'CODIGO_INVALIDO' }, { status: 503 })
+}
+
+/**
+ * `SALA-02`, `SALA-06` — o código da sala é a identidade do Durable Object.
+ * Quem decide se a conexão entra é o próprio DO: só ele sabe se a sala existe,
+ * se está cheia e se o token está banido.
+ */
+function conectarSala(env: Env, request: Request, bruto: string): Promise<Response> | Response {
+  if (request.headers.get('Upgrade') !== 'websocket') {
+    return new Response('esperado upgrade para websocket', { status: 426 })
+  }
+
+  const codigo = normalizarCodigo(decodeURIComponent(bruto))
+  if (!codigo.ok) return new Response('não encontrado', { status: 404 })
+
+  return env.SALA.get(env.SALA.idFromName(codigo.valor)).fetch(request)
 }
