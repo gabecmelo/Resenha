@@ -22,26 +22,26 @@ export type Situacao = 'ativo' | 'aguardando'
  * mapeia cada nome para o valor visual.
  */
 export const CORES = [
-  'carmim',
-  'coral',
-  'tangerina',
+  'vermelho',
+  'laranja',
   'ambar',
-  'ouro',
-  'limao',
+  'mostarda',
   'oliva',
+  'folha',
   'esmeralda',
-  'jade',
   'turquesa',
-  'ciano',
-  'celeste',
-  'anil',
-  'cobalto',
+  'azul',
+  'indigo',
   'violeta',
-  'lavanda',
+  'purpura',
   'magenta',
-  'rosa',
+  'framboesa',
   'terracota',
+  'taupe',
+  'salvia',
   'ardosia',
+  'ameixa',
+  'grafite',
 ] as const
 
 export type Cor = (typeof CORES)[number]

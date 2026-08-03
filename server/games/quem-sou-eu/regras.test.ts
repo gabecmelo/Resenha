@@ -24,7 +24,7 @@ function jogador(id: JogadorId, situacao: Situacao = 'ativo', entrouEm = 1_000):
     id,
     tokenHash: `hash-${id}`,
     apelido: id.toUpperCase(),
-    cor: 'carmim',
+    cor: 'vermelho',
     entrouEm,
     conectado: true,
     desconectadoEm: null,
