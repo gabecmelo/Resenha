@@ -17,16 +17,15 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 | ---- | ----- | ------ | ------- |
 | 1 | T1–T8 (fases 1–2) | ✅ Completo | `a6913cd` … `3252ef2` + correções `fdafd2b`, `85d9fb6` |
 | 2 | T9–T14 (fase 3) | ✅ Completo | `35e399a` … `05324b8` + correção `3beb637` |
-| 3 | T15–T20 (fase 4) | ⏳ Em execução | — |
-| 4 | T21–T28 (fases 5–6) | Pendente | — |
+| 3 | T15–T20 (fase 4) | ✅ Completo | `25fd1e9` … `d528e5c` |
+| 4 | T21–T28 (fases 5–6) | Bloqueado — aguarda `design/handoff/` a partir do T23 | — |
 | 5 | T29–T30 (fase 7) | Pendente | — |
 
-**Testes acumulados:** 217 unit + 2 integração, 0 falhas.
+**Servidor completo.** Todos os requisitos de servidor (SALA, HOST, ESCR, JOGO, DESC, FIM, CFG, CONN, CHAT, NOTA) estão implementados e verdes. O que falta é cliente.
 
-**Pendências abertas pelo lote 2, a resolver no lote 3:**
-- O comando `{t:'notas'}` precisa ser roteado ao reducer do jogo — `notas` vive no estado do jogo e o `core` não pode escrever lá. T17 valida o limite de 2.000 caracteres, mas a escrita é do jogo.
-- Ninguém monta ainda o objeto `ModuloDeJogo`; T17 conecta `iniciarRodada`, `reduzir` e `projetar`.
-- `ResultadoReducer.promoverAguardando` precisa ser aplicado pelo `core` (o jogo não toca no roster).
+**Testes acumulados:** 251 unit + 64 integração, 0 falhas.
+
+**Pendências do lote 2 — todas resolvidas no lote 3:** roteamento de `{t:'notas'}` ao reducer do jogo, montagem do `ModuloDeJogo` (injetado em `server/index.ts`, único ponto onde `core` encontra `games`) e aplicação de `promoverAguardando` pelo `core`.
 
 **Desvios registrados no lote 1** (aceitos pelo orquestrador):
 - `@cloudflare/vitest-pool-workers` v0.20 removeu `defineWorkersConfig` e o subpath `/config`; a configuração passou a ser o plugin Vite `cloudflareTest()`. Confirmado no `.d.ts` publicado.

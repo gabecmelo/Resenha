@@ -85,11 +85,11 @@
 ## Handoff
 
 - **Feature**: `quem-sou-eu` — `.specs/features/quem-sou-eu/`
-- **Phase / Task**: Execute — lotes 1 e 2 completos (T1–T14); lote 3 (T15–T20, plataforma) despachado
-- **Completed**: Specify, Design, Tasks. T1–T14 com 14 commits atômicos, 217 testes unit + 2 de integração. Três correções pós-lote: apelido sem distinção de caixa (`fdafd2b`), recusa de chat vazio (`85d9fb6`), jogador aguardando não confirma declaração (`3beb637`). Spec ganhou `DESC-10` e `DESC-11` a partir de lacunas achadas pelos testes — 81 requisitos
-- **In-progress** (file:line): `server/core/` — lote 3 em execução por sub-agente
-- **Next step**: Receber o resumo do lote 3, atualizar `tasks.md`, despachar o lote 4 (T21–T28). Os lotes 4–5 dependem do handoff de design em `design/handoff/`
-- **Blockers**: none. O usuário está gerando o design no Claude Design em paralelo
+- **Phase / Task**: Execute — lotes 1, 2 e 3 completos (T1–T20). **Servidor inteiro pronto e verde.**
+- **Completed**: Specify, Design, Tasks. T1–T20 com 20 commits atômicos, 251 testes unit + 64 de integração. O lote 3 foi interrompido no T19 por limite de gasto da conta e concluído inline pelo orquestrador (T19 e T20). Três correções pós-lote: `fdafd2b`, `85d9fb6`, `3beb637`. Spec em 81 requisitos (`DESC-10`, `DESC-11` nasceram de lacunas achadas pelos testes)
+- **In-progress** (file:line): none
+- **Next step**: Lote 4 (T21–T28). T21 e T22 (sessão e provider de conexão) **não** dependem de design e podem rodar já; T23 em diante precisa do handoff
+- **Blockers**: `design/handoff/` ainda não existe — o usuário está gerando o design no Claude Design em paralelo. Bloqueia T23–T29
 - **Uncommitted files**: none
 - **Branch**: main
 - **Dívida conhecida**: `design.md` está desatualizado em cinco pontos — `EstadoSala` genérico, `ResultadoReducer` com variante de falha e `promoverAguardando`, assinatura do `ModuloDeJogo` com `Ambiente`, `Carta` virou `string`, `Declaracao` sem `confirmadorId`. Reconciliar antes da validação final
