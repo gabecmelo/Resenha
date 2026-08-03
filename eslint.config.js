@@ -4,8 +4,17 @@ import globals from 'globals'
 import tseslint from 'typescript-eslint'
 
 export default tseslint.config(
-  // `worker-configuration.d.ts` é gerado por `wrangler types`.
-  { ignores: ['dist/**', 'node_modules/**', '.wrangler/**', 'worker-configuration.d.ts'] },
+  // `worker-configuration.d.ts` é gerado por `wrangler types`; `design/` é o
+  // handoff exportado pela ferramenta de design — artefato, não código do app.
+  {
+    ignores: [
+      'dist/**',
+      'node_modules/**',
+      '.wrangler/**',
+      'design/**',
+      'worker-configuration.d.ts',
+    ],
+  },
   js.configs.recommended,
   tseslint.configs.recommended,
   {
