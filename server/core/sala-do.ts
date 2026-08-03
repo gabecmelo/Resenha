@@ -8,12 +8,18 @@ import {
 import * as chat from './chat'
 import { aceitar, desvincular, difundir, enviar, jogadorDe, socketsDe, vincular } from './conexoes'
 import { type JogoDaSala, avisar, despachar } from './despacho'
-import { carregar, salvar } from './estado'
+import { carregar, destruir, salvar } from './estado'
 import { definir, reagendar, vencidos } from './prazos'
 import { MAX_JOGADORES, entrar, migrarHost, reconectar } from './roster'
 
 /** `HOST-04` — tempo de desconexão do host antes da migração automática. */
 export const MIGRACAO_HOST_MS = 30_000
+
+/** `CONN-07` — sala sem nenhuma conexão viva. */
+export const SALA_VAZIA_MS = 30 * 60_000
+
+/** `CONN-08` — sala sem nenhuma ação de jogador, mesmo com sockets abertos. */
+export const SALA_OCIOSA_MS = 6 * 60 * 60_000
 
 const MENSAGENS_DE_ERRO: Record<CodigoErro, string> = {
   SALA_NAO_ENCONTRADA: 'Sala não encontrada.',
@@ -139,6 +145,9 @@ export class SalaDeJogo<E> {
     }
 
     for (const id of resultado.valor.removidos) this.encerrarSockets(id)
+    // `CONN-08` — comando de jogador é o que conta como atividade. Reconectar
+    // não conta: aba esquecida aberta é exatamente a sala que deve expirar.
+    sala.ultimaAcaoEm = Date.now()
     await this.confirmar(sala)
   }
 
@@ -177,7 +186,15 @@ export class SalaDeJogo<E> {
     if (sala === null) return
 
     const agora = Date.now()
-    for (const tipo of vencidos(sala, agora)) {
+    const devidos = vencidos(sala, agora)
+
+    // `CONN-07`, `CONN-08` — expirar encerra a sala; nada mais importa depois.
+    if (devidos.includes('salaVazia') || devidos.includes('salaOciosa')) {
+      await this.expirar()
+      return
+    }
+
+    for (const tipo of devidos) {
       if (tipo === 'turno') {
         // `JOGO-07` — o alarme acorda o Durable Object hibernado.
         definir(sala, 'turno', null)
@@ -260,8 +277,36 @@ export class SalaDeJogo<E> {
 
   /** AD-005 — grava, reagenda o alarme e difunde, nesta ordem. */
   private async confirmar(sala: EstadoSala<E>): Promise<void> {
+    this.atualizarCicloDeVida(sala)
     await this.persistir(sala)
     difundir(this.ctx, (paraJogador) => this.jogo.projetar(sala.jogo, sala, paraJogador))
+  }
+
+  /**
+   * `CONN-07`, `CONN-08` — os dois prazos de vida da sala são recalculados a
+   * cada mutação, num lugar só. Passam pelo agendador como qualquer outro
+   * prazo (AD-010): agendar o turno não pode cancelar a expiração.
+   */
+  private atualizarCicloDeVida(sala: EstadoSala<E>): void {
+    const agora = Date.now()
+    const vazia = this.conexoesVivas() === 0
+    definir(sala, 'salaVazia', vazia ? agora + SALA_VAZIA_MS : null)
+    definir(sala, 'salaOciosa', sala.ultimaAcaoEm + SALA_OCIOSA_MS)
+  }
+
+  /** Sockets que já pertencem a um jogador — o socket em fechamento já saiu. */
+  private conexoesVivas(): number {
+    return this.ctx.getWebSockets().filter((ws) => jogadorDe(ws) !== null).length
+  }
+
+  /** Destrói a sala e derruba quem estiver conectado. O código volta a ser livre. */
+  private async expirar(): Promise<void> {
+    for (const socket of this.ctx.getWebSockets()) {
+      enviar(socket, erro('SALA_EXPIRADA'))
+      socket.close(1000, 'SALA_EXPIRADA')
+    }
+    await destruir(this.ctx.storage)
+    await this.ctx.storage.deleteAlarm()
   }
 
   private async persistir(sala: EstadoSala<E>): Promise<void> {
