@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { ProvedorDeConexao, useConexao } from './estado/conexao'
 import { codigoDaUrl } from './estado/entrada'
+import { Escrita } from './telas/Escrita'
 import { Inicio } from './telas/Inicio'
 import { Lobby } from './telas/Lobby'
 
@@ -88,6 +89,8 @@ function Sala({
   switch (projecao.sala.fase) {
     case 'lobby':
       return <Lobby projecao={projecao} enviar={enviar} aoSair={deixarSala} />
+    case 'escrita':
+      return <Escrita projecao={projecao} enviar={enviar} aoSair={deixarSala} />
     default:
       return null
   }
