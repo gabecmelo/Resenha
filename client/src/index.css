@@ -1,1 +1,167 @@
 @import 'tailwindcss';
+
+/*
+ * Tokens do sistema de design (`design/handoff/project/Resenha - Sistema de
+ * Design.dc.html`).
+ *
+ * Claro e escuro são dois temas de primeira classe: cada token traz os dois
+ * valores num `light-dark()` só, e quem escolhe entre eles é o `color-scheme`
+ * em vigor. Por padrão o tema segue o dispositivo; o alternador do shell
+ * escreve `data-tema` na raiz e vence a preferência. Nenhum componente carrega
+ * variante de tema — eles pintam com o token semântico.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  --fundo: light-dark(#f7f5f2, #121312);
+  --superficie: light-dark(#ffffff, #1a1b19);
+  --superficie-2: light-dark(#efece7, #232522);
+  --flutuante: light-dark(#ffffff, #1f211e);
+  --linha: light-dark(#e6e1da, #333630);
+  --linha-suave: light-dark(#efece7, #2a2c28);
+  --controle-linha: light-dark(#d8d2c9, #3d403a);
+  --texto: light-dark(#1b1917, #f2f1ee);
+  --texto-2: light-dark(#5f584f, #a5a69f);
+  --texto-3: light-dark(#8a8177, #74766f);
+  --texto-apagado: light-dark(#a39a90, #6a6c65);
+  --acento: light-dark(#2a7a5e, #6fd3a8);
+  --acento-forte: light-dark(#22664e, #85deb7);
+  --acento-suave: light-dark(#e8f1ec, #1b2a24);
+  --acento-linha: light-dark(#cfe2d8, #2b4239);
+  --acento-contraste: light-dark(#ffffff, #0f1a15);
+  --risco: light-dark(#b23a2b, #f58175);
+  --risco-suave: light-dark(#fbece9, #2c1e1b);
+  --risco-linha: light-dark(#f0d5cf, #46302b);
+  --risco-contraste: light-dark(#ffffff, #2a100c);
+
+  /* `light-dark()` só resolve cor — a sombra monta o valor a partir dela. */
+  --sombra-cor: light-dark(rgb(27 25 23 / 0.1), rgb(0 0 0 / 0.5));
+  --sombra-flutuante: 0 12px 32px var(--sombra-cor);
+
+  /*
+   * Paleta de jogadores — separada da paleta da interface (`SALA-07`). Nenhuma
+   * destas cores aparece em botão, link ou fundo de tela. A cor nunca é o único
+   * diferenciador: o marcador leva a inicial e o apelido acompanha sempre.
+   */
+  --jogador-contraste: light-dark(#ffffff, #1b1917);
+  --jogador-vermelho: light-dark(#c0453b, #f08a80);
+  --jogador-laranja: light-dark(#be5a22, #f09c5c);
+  --jogador-ambar: light-dark(#9e6e12, #ddaf4c);
+  --jogador-mostarda: light-dark(#7e7a1b, #c6be56);
+  --jogador-oliva: light-dark(#5f8322, #a4cd62);
+  --jogador-folha: light-dark(#2f8a3c, #7bd180);
+  --jogador-esmeralda: light-dark(#0f8c77, #4fd3ac);
+  --jogador-turquesa: light-dark(#12839a, #4ccbd8);
+  --jogador-azul: light-dark(#2073b4, #6fbef2);
+  --jogador-indigo: light-dark(#4a62c4, #96aef7);
+  --jogador-violeta: light-dark(#7154c6, #b2a2f5);
+  --jogador-purpura: light-dark(#9448b2, #c999ea);
+  --jogador-magenta: light-dark(#b0428e, #e191d6);
+  --jogador-framboesa: light-dark(#bb4166, #f28eac);
+  --jogador-terracota: light-dark(#8b5a45, #d89e88);
+  --jogador-taupe: light-dark(#6e6551, #c3b698);
+  --jogador-salvia: light-dark(#4f7a72, #8fc4b8);
+  --jogador-ardosia: light-dark(#556383, #9fb0d0);
+  --jogador-ameixa: light-dark(#8c4f7a, #d296c0);
+  --jogador-grafite: light-dark(#3f4a52, #9ba6ae);
+}
+
+:root[data-tema='claro'] {
+  color-scheme: light;
+}
+
+:root[data-tema='escuro'] {
+  color-scheme: dark;
+}
+
+@theme inline {
+  --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* Hierarquia por tamanho e peso — nunca por caixa, borda ou sombra. */
+  --text-display: 40px;
+  --text-display--line-height: 1.05;
+  --text-display--letter-spacing: -0.03em;
+  --text-display--font-weight: 600;
+  --text-titulo: 28px;
+  --text-titulo--line-height: 1.1;
+  --text-titulo--letter-spacing: -0.02em;
+  --text-titulo--font-weight: 600;
+  --text-secao: 22px;
+  --text-secao--line-height: 1.2;
+  --text-secao--letter-spacing: -0.02em;
+  --text-secao--font-weight: 600;
+  --text-carta: 22px;
+  --text-carta--line-height: 1.2;
+  --text-carta--letter-spacing: -0.01em;
+  --text-carta--font-weight: 500;
+  --text-corpo: 16px;
+  --text-corpo--line-height: 1.55;
+  --text-apoio: 14px;
+  --text-apoio--line-height: 1.5;
+  --text-miudo: 13px;
+  --text-miudo--line-height: 1.45;
+  --text-rotulo: 12px;
+  --text-rotulo--line-height: 1.4;
+  --text-rotulo--letter-spacing: 0.12em;
+
+  --color-fundo: var(--fundo);
+  --color-superficie: var(--superficie);
+  --color-superficie-2: var(--superficie-2);
+  --color-flutuante: var(--flutuante);
+  --color-linha: var(--linha);
+  --color-linha-suave: var(--linha-suave);
+  --color-controle-linha: var(--controle-linha);
+  --color-texto: var(--texto);
+  --color-texto-2: var(--texto-2);
+  --color-texto-3: var(--texto-3);
+  --color-texto-apagado: var(--texto-apagado);
+  --color-acento: var(--acento);
+  --color-acento-forte: var(--acento-forte);
+  --color-acento-suave: var(--acento-suave);
+  --color-acento-linha: var(--acento-linha);
+  --color-acento-contraste: var(--acento-contraste);
+  --color-risco: var(--risco);
+  --color-risco-suave: var(--risco-suave);
+  --color-risco-linha: var(--risco-linha);
+  --color-risco-contraste: var(--risco-contraste);
+
+  --radius-controle: 8px;
+  --radius-painel: 12px;
+  --radius-bloco: 14px;
+  --radius-carta: 16px;
+  --radius-pilula: 999px;
+
+  /* Sombra existe só para o que flutua: modal e menu. */
+  --shadow-flutuante: var(--sombra-flutuante);
+}
+
+@layer base {
+  html {
+    background-color: var(--fundo);
+    color: var(--texto);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+@keyframes pulso {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.animacao-pulso {
+  animation: pulso 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animacao-pulso {
+    animation: none;
+  }
+}
