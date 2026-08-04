@@ -14,7 +14,7 @@ export interface PropsDoBotao extends Omit<ButtonHTMLAttributes<HTMLButtonElemen
    * motivo aparece ao lado. Não existe desabilitar sem dizer por quê
    * (`HOST-01`, `ESCR-06`): "Iniciar" apagado e mudo trava o grupo.
    */
-  motivo?: string
+  motivo?: string | undefined
   /** Ocupa a linha inteira — a forma das ações principais no mobile. */
   larguraTotal?: boolean
 }

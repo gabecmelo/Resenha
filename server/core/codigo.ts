@@ -1,11 +1,7 @@
-import type { Resultado } from '../../shared/protocolo'
+import { ALFABETO_CODIGO, TAMANHO_CODIGO, type Resultado } from '../../shared/protocolo'
 
-/**
- * `SALA-01` — alfabeto sem os caracteres ambíguos ao ditar em voz alta
- * (`I`, `O`, e por consequência os dígitos `0` e `1`, que não entram).
- */
-export const ALFABETO_CODIGO = 'ABCDEFGHJKLMNPQRSTUVWXYZ'
-export const TAMANHO_CODIGO = 5
+/** `SALA-01` — o formato do código é do protocolo; aqui ficam gerar e validar. */
+export { ALFABETO_CODIGO, TAMANHO_CODIGO }
 
 /** `SALA-01` — código de 5 letras maiúsculas. */
 export function gerarCodigo(aleatorio: () => number = Math.random): string {

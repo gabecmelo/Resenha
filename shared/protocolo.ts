@@ -11,6 +11,15 @@
 
 export type Fase = 'lobby' | 'escrita' | 'jogo' | 'encerrada'
 
+/**
+ * `SALA-01` — formato do código da sala. Alfabeto sem os caracteres ambíguos ao
+ * ditar em voz alta (`I`, `O`, e por consequência os dígitos `0` e `1`, que não
+ * entram). Vive aqui porque cliente e servidor precisam do mesmo formato: o
+ * servidor para gerar e validar, o cliente para guiar quem digita.
+ */
+export const ALFABETO_CODIGO = 'ABCDEFGHJKLMNPQRSTUVWXYZ'
+export const TAMANHO_CODIGO = 5
+
 /** Identificador público e curto do jogador. Nunca é a credencial. */
 export type JogadorId = string
 

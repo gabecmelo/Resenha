@@ -4,15 +4,19 @@ export interface PropsDoCampo {
   rotulo: string
   valor: string
   aoMudar(valor: string): void
-  placeholder?: string
+  placeholder?: string | undefined
   /** Texto de apoio abaixo do campo, quando não há erro. */
-  dica?: string
+  dica?: string | undefined
   /** Limite de caracteres. Presente = mostra contador. */
-  limite?: number
+  limite?: number | undefined
   /** Campo travado — usado quando o jogador já marcou PRONTO (`ESCR-05`). */
   travado?: boolean
   /** Erro vindo do servidor, que vence a contagem local. */
-  erro?: string
+  erro?: string | undefined
+  /** Código de sala: mono e espaçado, do jeito que se dita em voz alta. */
+  mono?: boolean
+  /** `SALA-02` — quem chega por link já cai com o cursor no apelido. */
+  autoFoco?: boolean
   aoTeclarEnter?(): void
 }
 
@@ -31,6 +35,8 @@ export function CampoDeTexto({
   limite,
   travado = false,
   erro,
+  mono = false,
+  autoFoco = false,
   aoTeclarEnter,
 }: PropsDoCampo) {
   const id = useId()
@@ -49,13 +55,16 @@ export function CampoDeTexto({
         value={valor}
         placeholder={placeholder}
         disabled={travado}
+        autoFocus={autoFoco}
         aria-invalid={aviso !== undefined}
         aria-describedby={`${id}-apoio`}
         onChange={(evento) => aoMudar(evento.target.value)}
         onKeyDown={(evento) => {
           if (evento.key === 'Enter') aoTeclarEnter?.()
         }}
-        className={`min-h-12 w-full rounded-controle border bg-superficie px-3.5 text-corpo text-texto placeholder:text-texto-apagado disabled:cursor-not-allowed disabled:bg-superficie-2 disabled:text-texto-2 ${
+        className={`min-h-12 w-full rounded-controle border bg-superficie px-3.5 text-texto placeholder:text-texto-apagado disabled:cursor-not-allowed disabled:bg-superficie-2 disabled:text-texto-2 ${
+          mono ? 'font-mono text-[20px] tracking-[0.28em] uppercase' : 'text-corpo'
+        } ${
           aviso === undefined ? 'border-controle-linha focus:border-acento' : 'border-risco'
         } focus:outline-none`}
       />
