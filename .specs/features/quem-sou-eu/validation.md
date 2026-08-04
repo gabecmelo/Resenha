@@ -1,33 +1,83 @@
 # Quem Sou Eu? — Validation
 
-**Data**: 2026-08-04
+**Data**: 2026-08-04 (iteração 1) · 2026-08-04 (iteração 2 — re-verificação)
 **Spec**: `.specs/features/quem-sou-eu/spec.md` (81 critérios de aceite)
-**Intervalo de diff**: `104a976`..`e949223` (44 commits, T1–T30)
+**Intervalo de diff**: `104a976`..`496903c` (48 commits, T1–T30 + 3 correções do Verifier)
 **Verifier**: sub-agente independente (autor ≠ verificador), evidência-ou-zero
 
-**Veredito**: ❌ **FAIL** — 1 mutante sobrevivente e 1 AC sem evidência (`DESC-10`). Todos os gates verdes; nenhum defeito de comportamento encontrado no código de produção.
+**Veredito**: ✅ **PASS** — 81/81 ACs resolvidos, 10/10 mutações mortas, 5/5 gates verdes.
+
+> **Iteração 1** (`104a976`..`e949223`) fechou em ❌ FAIL: 1 mutante sobrevivente (`DESC-10`) e 2 cláusulas parciais (`FIM-04`, `CHAT-02`). O histórico está preservado abaixo.
+> **Iteração 2** (`e949223`..`496903c`) auditou as três correções: todas fecham as lacunas, nenhuma altera comportamento de produção.
+
+---
+
+## Iteração 2 — auditoria das correções
+
+**Escopo**: os commits `04c1faf` (FIX-1, `DESC-10`), `c5d3b6b` (FIX-2, `FIM-04`), `8710507` (FIX-3, `CHAT-02`) e `496903c` (só rastreamento). As afirmações do implementador foram verificadas, não aceitas.
+
+### 1. Nenhum código de produção foi alterado — confirmado
+
+```
+git diff --name-only e949223..HEAD -- . ':(exclude).specs/*'
+  server/core/despacho.test.ts
+  server/core/sala-do.integration.test.ts
+  server/games/quem-sou-eu/regras.test.ts
+```
+
+`git diff --stat e949223..HEAD -- server client shared ':(exclude)*.test.ts' ':(exclude)*.integration.test.ts'` sai **vazio**. Nenhum arquivo de produção, config, `package.json` ou config de teste foi tocado. A hipótese pior — mexer no comportamento para o teste passar — está descartada por diff, não por confiança.
+
+### 2. Nenhum teste foi enfraquecido ou removido — confirmado
+
+O diff dos três arquivos é aditivo: `+18/-1`, `+37/-0`, `+16/-0`. A única remoção é a linha do título do `describe`, trocada de `declararDescobri (DESC-01, DESC-09)` para `declararDescobri (DESC-01, DESC-09, DESC-10)`. Nenhuma asserção existente foi afrouxada.
+
+A contagem fecha exatamente: 312 → **314** unit (+1 do FIX-1, +1 do FIX-2) e 64 → **65** integração (+1 do FIX-3). Não há teste desaparecido escondido atrás de um teste novo.
+
+### 3. Cada teste novo mata seu mutante — confirmado por reinjeção
+
+As três mutações foram reinjetadas em estado descartável e revertidas com `git checkout --`.
+
+| Mutação | Arquivo:linha | Falhas | Qual teste falhou |
+| ------- | ------------- | ------ | ----------------- |
+| Remover a guarda de declaração concorrente | `server/games/quem-sou-eu/regras.ts:354` | 1 de 104 | `regras.test.ts` › `recusa a declaração de outro jogador enquanto há uma pendente (DESC-10)` |
+| Zerar o chat na volta ao lobby (`sala.chat = []` em `aplicar`) | `server/core/despacho.ts:312` | 1 de 35 | `despacho.test.ts` › `preserva jogadores, apelidos, cores, chat e configurações ao voltar ao lobby` |
+| Difundir o erro a todos os sockets em vez de só ao autor | `server/core/sala-do.ts:143` | 1 de 22 | `sala-do.integration.test.ts` › `avisa apenas o autor quando descarta a mensagem excedente` |
+
+Em cada caso **exatamente um** teste falhou, e foi o teste novo. Isso é o resultado mais forte possível: prova que o teste discrimina o comportamento visado e que nenhum outro teste estava acidentalmente cobrindo aquela guarda.
+
+### 4. Os testes novos não são vacuidade — confirmado
+
+- **FIX-1** (`regras.test.ts:820-834`): asserta o `Resultado` inteiro — `toEqual({ ok: false, erro: 'COMANDO_INVALIDO' })` — **e**, em conjunção, que a pendência continua sendo a de `b` com o valor exato: `expect(pendente.declaracaoPendente).toEqual({ jogadorId: 'b', declaradaEm: AMBIENTE.agora })`. Cobre a recusa e o "estado intocado" que o spec exige.
+- **FIX-2** (`despacho.test.ts:528-563`): monta uma partida real até a ENCERRADA com mensagem de jogador no chat, e inclui uma **asserção de controle antes da ação** — `expect(textosDoChat(sala)).toContain('boa partida')` — com o comentário explicando que sem histórico anterior preservar o chat seria trivialmente verdade. Depois asserta prefixo do chat, jogadores e config por valor contra cópias `structuredClone`. É o mesmo padrão anti-vacuidade do controle de detector do `JOGO-02` (`projecao.test.ts:141-149`).
+- **FIX-3** (`sala-do.integration.test.ts:428-440`): asserta a lista exata de erros do autor — `toEqual(['CHAT_LIMITE_DE_TAXA'])`, o que também prova que não houve erro espúrio — **e** `expect(erros(bruno)).toEqual([])`. A conjunção "o autor recebeu **e** o outro não recebeu" é exatamente a cláusula do spec.
+
+**A regra do payload/conjunção continua valendo em toda a superfície**: nenhuma asserção do tipo "a função foi chamada" foi introduzida.
+
+### 5. Nada regrediu — confirmado
+
+Os 5 gates seguem verdes com a contagem nova. Como controle de regressão do sensor, a mutação mais crítica do produto foi reinjetada: remover a checagem de revelação em `podeVerCarta` (`projecao.ts:113`, `JOGO-02`) continua matando **6 testes** — idêntico à iteração 1. A defesa do requisito central não foi afetada pelas correções.
+
+**Bloqueador do `STATE.md`**: já resolvido pelo coordenador em `e949223` e removido do handoff. O teste `sala-do.integration.test.ts` usa a referência presa ao instante da desconexão e passou em todas as execuções desta iteração.
 
 ---
 
 ## Gates
 
-| Gate | Comando | Resultado |
-| ---- | ------- | --------- |
-| Unit | `npm run test:unit` | ✅ 312 passaram, 0 falharam, 0 pulados (12 arquivos) |
-| Integração | `npm run test:integration` | ✅ 64 passaram, 0 falharam, 0 pulados (6 arquivos) |
-| Typecheck | `npm run typecheck` | ✅ exit 0 (`tsconfig.json` + `tsconfig.server.json`) |
-| Lint | `npm run lint` | ✅ exit 0 |
-| Build | `npm run build` | ✅ exit 0 — worker 48,09 kB, cliente 247,85 kB |
+| Gate | Comando | Iteração 1 | Iteração 2 |
+| ---- | ------- | ---------- | ---------- |
+| Unit | `npm run test:unit` | ✅ 312 | ✅ **314** passaram, 0 falharam, 0 pulados (12 arquivos) |
+| Integração | `npm run test:integration` | ✅ 64 | ✅ **65** passaram, 0 falharam, 0 pulados (6 arquivos) |
+| Typecheck | `npm run typecheck` | ✅ exit 0 | ✅ exit 0 (`tsconfig.json` + `tsconfig.server.json`) |
+| Lint | `npm run lint` | ✅ exit 0 | ✅ exit 0 |
+| Build | `npm run build` | ✅ exit 0 | ✅ exit 0 — worker 48,09 kB, cliente 247,85 kB |
 
-**Contagem de testes**: 376 no total (312 + 64), batendo exatamente o registrado no `STATE.md`. Nenhum teste pulado, nenhum `.skip`, nenhum `.only`.
-
-**Nota sobre o bloqueador registrado no `STATE.md`**: o handoff aponta `server/core/sala-do.integration.test.ts:275` como falha reproduzível (`HOST-04`). **O bloqueador está desatualizado.** O teste já usa uma referência presa ao instante da desconexão (`const desconectouEm = Date.now()`, linha 271) em vez de reler o relógio na asserção, e passa nesta máquina — inclusive na suíte completa rodada duas vezes. As asserções atuais (linhas 279–280) são mais fortes que a versão descrita no bloqueador: verificam o limite inferior **e** um teto de 5 s. Recomenda-se remover o item de "Bloqueadores" do `STATE.md`.
+**Contagem de testes**: 379 no total (314 + 65), delta de +3 sobre a iteração 1, batendo exatamente os três testes novos. Nenhum teste pulado, nenhum `.skip`, nenhum `.only`.
 
 ---
 
 ## Sensor de discriminação
 
-**Profundidade**: expandida (produto com requisito crítico de sigilo — `JOGO-02`). 8 mutações de comportamento, todas injetadas em estado descartável e revertidas com `git checkout --`; a árvore real nunca ficou suja (`git status --porcelain` vazio após cada rodada).
+**Profundidade**: expandida (produto com requisito crítico de sigilo — `JOGO-02`). 10 mutações de comportamento ao longo das duas iterações (8 na primeira, 2 novas na segunda), todas injetadas em estado descartável e revertidas com `git checkout --`; a árvore real nunca ficou suja (`git status --porcelain` vazio após cada rodada). Na iteração 2 a mutação nº 1 foi ainda reinjetada como controle de regressão, e segue matando 6 testes.
 
 | # | Arquivo:linha | Mutação | Testes rodados | Morto? |
 | - | ------------- | ------- | -------------- | ------ |
@@ -36,13 +86,18 @@
 | 3 | `server/core/prazos.ts:19` | `definir` zera todos os outros prazos antes de gravar — simula exatamente a falha que AD-010 existe para impedir | `prazos.test.ts`, `despacho.test.ts` | ✅ Morto — 5 falhas |
 | 4 | `server/core/despacho.ts:177` | Removida a verificação `autor.id !== sala.hostId` em `iniciar` — qualquer jogador comanda a sala (`HOST-06`) | `despacho.test.ts` | ✅ Morto — 2 falhas |
 | 5 | `server/games/quem-sou-eu/regras.ts:377` | Removida a verificação de confirmador em `responderDeclaracao` — qualquer um confirma o "Descobri!" de qualquer um (`DESC-02`, `DESC-03`) | `regras.test.ts` | ✅ Morto — 4 falhas |
-| 6 | `server/games/quem-sou-eu/regras.ts:354` | Removido `if (estado.declaracaoPendente !== null) return { ok: false, erro: 'COMANDO_INVALIDO' }` — duas declarações podem ficar pendentes ao mesmo tempo (`DESC-10`) | `npm run test:unit` **e** `npm run test:integration` | ❌ **Sobreviveu** — 312 + 64 continuaram verdes |
+| 6 | `server/games/quem-sou-eu/regras.ts:354` | Removido `if (estado.declaracaoPendente !== null) return { ok: false, erro: 'COMANDO_INVALIDO' }` — duas declarações podem ficar pendentes ao mesmo tempo (`DESC-10`) | `npm run test:unit` **e** `npm run test:integration` | It. 1: ❌ **Sobreviveu** (312 + 64 verdes) · It. 2: ✅ **Morto** — 1 falha, o teste novo de `DESC-10` |
 | 7 | `server/core/chat.ts:29` | `naJanela >= CHAT_MAX_POR_JANELA` → `>` — off-by-one libera a 6ª mensagem na janela (`CHAT-02`) | `chat.test.ts` | ✅ Morto — 2 falhas |
 | 8 | `server/core/sala-do.ts:174` | Removido o agendamento de `migracaoHost` na queda do host (`HOST-04`) | `sala-do.integration.test.ts`, `expiracao.integration.test.ts` | ✅ Morto — 2 falhas |
 
-**Resultado**: 7/8 mortos — ❌ FAIL.
+**Mutações adicionais da iteração 2** (as duas cláusulas parciais, que na iteração 1 não tinham teste para sequer serem testadas):
 
-O sobrevivente é o único ponto do sistema onde o comportamento pode regredir em silêncio: o código de `DESC-10` está correto, mas nenhuma asserção o segura.
+| # | Arquivo:linha | Mutação | Testes rodados | Morto? |
+| - | ------------- | ------- | -------------- | ------ |
+| 9 | `server/core/despacho.ts:312` | `aplicar` zera `sala.chat` quando a fase seguinte é `lobby` — o histórico não sobrevive à nova partida (`FIM-04`) | `despacho.test.ts` | ✅ Morto — 1 falha, o teste novo de `FIM-04` |
+| 10 | `server/core/sala-do.ts:143` | A recusa de comando é difundida a **todos** os sockets em vez de só ao autor (`CHAT-02`) | `sala-do.integration.test.ts` | ✅ Morto — 1 falha, o teste novo de `CHAT-02` |
+
+**Resultado acumulado**: 10 mutações injetadas, **10 mortas** — ✅ PASS. Todas revertidas; `git status --porcelain` vazio ao fim de cada rodada.
 
 ---
 
@@ -134,7 +189,7 @@ Legenda: ✅ coberto com valor batendo o spec · ❌ sem evidência · ⚠️ la
 | `DESC-07` "continua jogando" mantém na ordem | ordem inalterada com os 4 | `server/games/quem-sou-eu/regras.test.ts:1068` — `expect(resultado.estado.ordem).toEqual(['a','b','c','d'])` | ✅ |
 | `DESC-08` "sai" e rodízio < 2 → encerra aplicando `FIM-02` | `{fase:'encerrada', revelado:true, ordem:['a'], vezDe:null}` | `server/games/quem-sou-eu/regras.test.ts:1093-1098` — `toEqual({ fase: 'encerrada', revelado: true, ordem: ['a'], vezDe: null })`; `:1100` — não encerra antes disso; `:1120-1123` — nunca encerra com "continua" | ✅ |
 | `DESC-09` declarar de novo com pendência ou já confirmado é ignorado sem alterar estado | estado idêntico, `eventos: []` | `server/games/quem-sou-eu/regras.test.ts:802-803` — `expect(resultado.estado).toEqual(pendente)` **e** `expect(resultado.eventos).toEqual([])`; `:817` — já confirmado | ✅ |
-| `DESC-10` outro jogador declara com pendência aberta → **recusar** | `{ ok: false, erro: 'COMANDO_INVALIDO' }`; a pendência do primeiro permanece intacta | — **nenhuma citação** | ❌ **Sem evidência** |
+| `DESC-10` outro jogador declara com pendência aberta → **recusar** | `{ ok: false, erro: 'COMANDO_INVALIDO' }`; a pendência do primeiro permanece intacta | `server/games/quem-sou-eu/regras.test.ts:833` — `expect(resultado).toEqual({ ok: false, erro: 'COMANDO_INVALIDO' })` **e** `:834` — `expect(pendente.declaracaoPendente).toEqual({ jogadorId: 'b', declaradaEm: AMBIENTE.agora })` | ✅ (fechado na it. 2, `04c1faf`) |
 | `DESC-11` declarante sai com pendência → descarta sem revelar | `declaracaoPendente === null` | `server/games/quem-sou-eu/regras.test.ts:1140` — `expect(resultado.estado.declaracaoPendente).toBeNull()` (a carta do que saiu também é apagada em `regras.ts:565`) | ✅ |
 
 ### P1 — Encerrar, revelar e jogar de novo
@@ -144,7 +199,7 @@ Legenda: ✅ coberto com valor batendo o spec · ❌ sem evidência · ⚠️ la
 | `FIM-01` confirma "Encerrar" → ENCERRADA | `faseSeguinte === 'encerrada'` | `server/games/quem-sou-eu/regras.test.ts:1150` — `expect(resultado.faseSeguinte).toBe('encerrada')` | ✅ |
 | `FIM-02` ENCERRADA revela a carta de todos os ativos a todos, inclusive aguardando | `reveladoParaTodos: true`; `eu.minhaCarta` para os 3; lista completa; aguardando também vê | `server/games/quem-sou-eu/regras.test.ts:1158` — `.toBe(true)` + `:1166` — textos preservados; `projecao.test.ts:218` — `expect(minhas).toEqual(CARTAS)`; `:224` — lista completa; `:237` — a projeção de `d` (aguardando) traz as 3 cartas | ✅ |
 | `FIM-03` "Nova partida" volta ao LOBBY, promove aguardando, limpa cartas/alvos/descobriu/notas | `faseSeguinte: 'lobby'`; tudo zerado; `promoverAguardando: true`; `notas: {}` | `server/games/quem-sou-eu/regras.test.ts:1222` — `.toBe('lobby')`; `:1237-1244` — `{cartas:{}, atribuicoes:{}, descobriram:[], ordem:[], prontos:[], reveladoParaTodos:false}`; `:1253` — `expect(resultado.estado.notas).toEqual({})`; `:1261` — `promoverAguardando`; aplicação em `despacho.test.ts:479` | ✅ |
-| `FIM-04` preserva jogadores, apelidos, cores, chat e configurações | contexto (jogadores + config) idêntico antes/depois | `server/games/quem-sou-eu/regras.test.ts:1270` — `expect(contexto).toEqual(antes)` (cobre jogadores, apelidos, cores e config) | ⚠️ **Parcial** — a cláusula "**o histórico do chat**" não tem asserção: `ContextoDeSala` (`despacho.ts:279-285`) não carrega `chat`, e nenhum teste verifica que `sala.chat` sobrevive ao `novaPartida` |
+| `FIM-04` preserva jogadores, apelidos, cores, chat e configurações | jogadores, cores, config e **histórico do chat** intactos após a volta ao lobby | `server/games/quem-sou-eu/regras.test.ts:1270` — `expect(contexto).toEqual(antes)` (jogadores, apelidos, cores, config); cláusula do chat em `server/core/despacho.test.ts:559` — `expect(sala.chat.slice(0, chatAntes.length)).toEqual(chatAntes)`, com controle prévio em `:553` — `expect(textosDoChat(sala)).toContain('boa partida')`, mais `:560` jogadores e `:561` config por valor | ✅ (fechado na it. 2, `c5d3b6b`) |
 | `FIM-05` todos os ativos saem no JOGO ou na ENCERRADA → encerra e volta ao LOBBY promovendo aguardando | `faseSeguinte: 'lobby'`; estado zerado; `promoverAguardando: true` | `server/games/quem-sou-eu/regras.test.ts:1310` — `.toBe('lobby')`; `:1321-1326` — `{cartas:{}, atribuicoes:{}, ordem:[], vezDe:null}`; `:1338-1341` — `{fase:'lobby', promover:true}` | ✅ |
 
 ### P1 — Configurar a partida
@@ -176,7 +231,7 @@ Legenda: ✅ coberto com valor batendo o spec · ❌ sem evidência · ⚠️ la
 | Critério | Resultado esperado pelo spec | `file:line` + asserção | Resultado |
 | -------- | ---------------------------- | ---------------------- | --------- |
 | `CHAT-01` 1–300 caracteres (sem contar espaços das pontas) entregue com apelido e cor do autor | 300 aceito, 301 `CHAT_MUITO_LONGO` sem registrar; vazio/só espaços `CHAT_VAZIO`; mensagem gravada com `autorId` e `em` | `server/core/chat.test.ts:32-33` — `toEqual({ ok: true, valor: undefined })` + 1 mensagem; `:41` — `CHAT_MUITO_LONGO`; `:84` — `expect(estado.chat).toEqual([])`; `:49`/`:58` — `CHAT_VAZIO` + chat vazio; `:92-97` — `toEqual({ tipo:'jogador', autorId:'ana', texto:'oi gente', em:1_234 })`; apelido/cor resolvidos pela ficha em `projecao.ts:84-91` | ✅ |
-| `CHAT-02` >5 mensagens em 5 s: descarta as excedentes **e avisa apenas o autor** | 5 aceitas, a 6ª `CHAT_LIMITE_DE_TAXA` e ausente do chat; libera após 5 s; limite por jogador | `server/core/chat.test.ts:107` — `expect(estado.chat).toHaveLength(5)`; `:116` — `toEqual({ ok: false, erro: 'CHAT_LIMITE_DE_TAXA' })`; `:125` — `expect(estado.chat.map((m) => m.texto)).toEqual(['m0'..'m4'])`; `:134` — libera em 6 000; `:144` — por jogador | ⚠️ **Parcial** — a cláusula "avisar **apenas** o autor" não tem asserção. O mecanismo existe (`sala-do.ts:143` responde só ao socket que enviou) e está asserido para o caso irmão de `SALA-04` (`sala-do.integration.test.ts:155-157`), mas não para o limite de taxa |
+| `CHAT-02` >5 mensagens em 5 s: descarta as excedentes **e avisa apenas o autor** | 5 aceitas, a 6ª `CHAT_LIMITE_DE_TAXA` e ausente do chat; libera após 5 s; limite por jogador | `server/core/chat.test.ts:107` — `expect(estado.chat).toHaveLength(5)`; `:116` — `toEqual({ ok: false, erro: 'CHAT_LIMITE_DE_TAXA' })`; `:125` — `expect(estado.chat.map((m) => m.texto)).toEqual(['m0'..'m4'])`; `:134` — libera em 6 000; `:144` — por jogador; cláusula "apenas o autor" em `server/core/sala-do.integration.test.ts:438` — `expect(erros(ana).map((e) => e.codigo)).toEqual(['CHAT_LIMITE_DE_TAXA'])` **e** `:439` — `expect(erros(bruno)).toEqual([])` | ✅ (fechado na it. 2, `8710507`) |
 | `CHAT-03` eventos de partida viram mensagem de sistema visualmente distinta | `{tipo:'sistema', texto, em}`; eventos do jogo convertidos pelo core | `server/core/chat.test.ts:154` — `toEqual({ tipo: 'sistema', texto: 'a partida começou', em: 2_000 })`; `server/core/despacho.test.ts:439-441` — `toEqual([{ tipo: 'sistema', texto: 'É a vez de Jogador 2.', em: ... }])`; eventos por transição em `regras.test.ts:300` (todos PRONTO), `:601` (troca de vez), `:765` (declaração), `:982` (confirmação), `:1033` (negativa), `:458` (redistribuição); migração de host em `sala-do.integration.test.ts:294` | ✅ (a distinção visual é 🖥️ — `client/src/componentes/Chat.tsx`) |
 | `CHAT-04` reconexão entrega o histórico | `projecao.chat` igual ao chat da sala; round-trip preserva as duas variantes | `server/games/quem-sou-eu/projecao.test.ts:367` — `expect(projetar(jogo, sala, 'a').chat).toEqual(sala.chat)`; `server/core/estado.integration.test.ts:108-111` — as duas variantes sobrevivem ao storage | ✅ |
 | `CHAT-05` acima de 200 mensagens descarta as mais antigas | comprimento fica em 200; a primeira passa a ser `m1` e a última `m200` | `server/core/chat.test.ts:181` — `toHaveLength(CHAT_MAX_MENSAGENS)`; `:188` — `toEqual(['m1','m200'])` | ✅ |
@@ -240,8 +295,8 @@ Verificada em toda a superfície do diff: **nenhuma asserção do tipo "a funç�
 | Sem "flexibilidade" desnecessária | ✅ |
 | Só arquivos necessários tocados | ✅ |
 | Segue os padrões existentes | ✅ — comentários citam o AC que justificam; nomes em PT-BR consistentes |
-| Checagem ancorada no spec (valor afirmado bate o spec) | ✅ — 2 lacunas parciais registradas (`FIM-04`, `CHAT-02`) |
-| Expectativa de cobertura por camada atendida | ⚠️ — L1/L2 quase 1:1 com os ACs, exceto `DESC-10`; L3 cobre rotas, handlers, hibernação, alarme e persistência; L4 cobre sessão e reconexão; L5 é `none` por decisão declarada |
+| Checagem ancorada no spec (valor afirmado bate o spec) | ✅ — as 2 lacunas parciais da it. 1 (`FIM-04`, `CHAT-02`) foram fechadas |
+| Expectativa de cobertura por camada atendida | ✅ — L1/L2 agora 1:1 com os ACs; L3 cobre rotas, handlers, hibernação, alarme e persistência; L4 cobre sessão e reconexão; L5 é `none` por decisão declarada |
 | Todo teste no escopo mapeia um AC, edge case ou "Done when" | ✅ — nenhum teste órfão encontrado |
 | Guidelines documentadas seguidas | ✅ — nenhuma no repositório (greenfield); defaults fortes da matriz aplicados |
 
@@ -268,24 +323,25 @@ As três dívidas anotadas no handoff foram checadas contra o texto do spec:
 
 ---
 
-## Planos de correção
+## Planos de correção — todos fechados na iteração 2
 
-### Fix 1 — `DESC-10` sem teste (mutante sobrevivente) · **Blocker**
+### Fix 1 — `DESC-10` sem teste (mutante sobrevivente) · Blocker · ✅ **Resolvido** em `04c1faf`
 
-- **Causa raiz**: a suíte cobre `DESC-09` (o **mesmo** jogador declarando de novo) mas nunca exercita **outro** jogador declarando com uma pendência aberta. A guarda em `server/games/quem-sou-eu/regras.ts:354` fica sem asserção que a segure, e removê-la mantém 376 testes verdes.
-- **Correção**: acrescentar em `server/games/quem-sou-eu/regras.test.ts`, no describe `declararDescobri`, um teste que declare por `b`, depois declare por `c`, e asserte o par conjunto — `expect(resultado).toEqual({ ok: false, erro: 'COMANDO_INVALIDO' })` **e** que a pendência continue sendo a de `b`.
-- **Como provar**: com o teste no lugar, reinjetar a mutação 6 (remover a linha 354) e confirmar que ele falha.
-- **Done when**: `DESC-10` tem citação `file:line` e a mutação 6 é morta.
+- **Causa raiz**: a suíte cobria `DESC-09` (o **mesmo** jogador declarando de novo) mas nunca exercitava **outro** jogador declarando com uma pendência aberta. A guarda em `server/games/quem-sou-eu/regras.ts:354` ficava sem asserção que a segurasse, e removê-la mantinha 376 testes verdes.
+- **Correção aplicada**: teste `recusa a declaração de outro jogador enquanto há uma pendente (DESC-10)` em `server/games/quem-sou-eu/regras.test.ts:819-835`, asserindo o `Resultado` inteiro e a pendência preservada.
+- **Verificação independente**: mutação reinjetada; **1 falha em 104**, e é o teste novo. Guarda restaurada, árvore limpa.
 
-### Fix 2 — `FIM-04`: preservação do chat sem asserção · **Minor**
+### Fix 2 — `FIM-04`: preservação do chat sem asserção · Minor · ✅ **Resolvido** em `c5d3b6b`
 
-- **Causa raiz**: `ContextoDeSala` (`server/core/despacho.ts:279-285`) não carrega `chat`, então o teste de nível de regra (`regras.test.ts:1270`) não consegue cobrir essa cláusula. Falta um teste no nível do `core`.
-- **Correção**: em `server/core/despacho.test.ts`, despachar `novaPartida` numa sala com mensagens no chat e asserir que o histórico anterior continua presente depois da volta ao lobby.
+- **Causa raiz**: `ContextoDeSala` (`server/core/despacho.ts:279-285`) não carrega `chat`, então o teste de nível de regra (`regras.test.ts:1270`) não alcançava essa cláusula.
+- **Correção aplicada**: teste no nível do `core` em `server/core/despacho.test.ts:528-563`, com asserção de controle prévia contra o caso vacuamente verdadeiro.
+- **Verificação independente**: mutação `sala.chat = []` na volta ao lobby; **1 falha em 35**, e é o teste novo.
 
-### Fix 3 — `CHAT-02`: "avisar apenas o autor" sem asserção · **Minor**
+### Fix 3 — `CHAT-02`: "avisar apenas o autor" sem asserção · Minor · ✅ **Resolvido** em `8710507`
 
-- **Causa raiz**: o teste unitário prova o descarte, mas não que a notificação de limite de taxa fique restrita ao socket que enviou.
-- **Correção**: em `server/core/sala-do.integration.test.ts`, estourar o limite com um jogador e asserir que só ele recebe `CHAT_LIMITE_DE_TAXA` e que o outro jogador não recebeu erro algum — espelhando o teste de `SALA-04` das linhas 147-157.
+- **Causa raiz**: o teste unitário provava o descarte, mas não que a notificação de limite de taxa ficasse restrita ao socket que enviou.
+- **Correção aplicada**: teste de integração em `server/core/sala-do.integration.test.ts:428-440`, asserindo a lista exata de erros do autor e a lista vazia do outro jogador.
+- **Verificação independente**: mutação difundindo a recusa a todos os sockets; **1 falha em 22**, e é o teste novo.
 
 ---
 
@@ -298,13 +354,13 @@ As três dívidas anotadas no handoff foram checadas contra o texto do spec:
 | `ESCR-01` … `ESCR-10` | Implementing | ✅ Verified |
 | `JOGO-01` … `JOGO-11` | Implementing | ✅ Verified |
 | `DESC-01` … `DESC-09`, `DESC-11` | Implementing | ✅ Verified |
-| `DESC-10` | Implementing | ❌ Needs Fix — sem evidência de teste |
+| `DESC-10` | ❌ Needs Fix (it. 1) | ✅ Verified (it. 2, `04c1faf`) |
 | `FIM-01`, `FIM-02`, `FIM-03`, `FIM-05` | Implementing | ✅ Verified |
-| `FIM-04` | Implementing | ⚠️ Parcial — cláusula do chat sem asserção |
+| `FIM-04` | ⚠️ Parcial (it. 1) | ✅ Verified (it. 2, `c5d3b6b`) |
 | `CFG-01` … `CFG-06` | Implementing | ✅ Verified |
 | `CONN-01` … `CONN-08` | Implementing | ✅ Verified |
 | `CHAT-01`, `CHAT-03` … `CHAT-05` | Implementing | ✅ Verified |
-| `CHAT-02` | Implementing | ⚠️ Parcial — cláusula "apenas o autor" sem asserção |
+| `CHAT-02` | ⚠️ Parcial (it. 1) | ✅ Verified (it. 2, `8710507`) |
 | `NOTA-01` … `NOTA-04` | Implementing | ✅ Verified |
 | `VIS-01` … `VIS-04` | Implementing | 🖥️ L5 — build gate + verificação no navegador (decisão AD-008) |
 
@@ -312,14 +368,18 @@ As três dívidas anotadas no handoff foram checadas contra o texto do spec:
 
 ## Resumo
 
-**Geral**: ⚠️ Quase pronto — nenhum defeito de comportamento, uma lacuna de teste bloqueante.
+**Geral**: ✅ **Pronto** — nenhum defeito de comportamento, nenhuma lacuna de cobertura em aberto.
 
-**Checagem ancorada no spec**: 76/81 ACs com evidência `file:line` e valor batendo o resultado definido pelo spec · 1 sem evidência (`DESC-10`) · 2 parciais (`FIM-04`, `CHAT-02`) · 4 em camada L5 sem teste automatizado por decisão de arquitetura declarada (`VIS-01`…`VIS-04`).
-**Gates**: 5/5 verdes — 312 unit, 64 integração, typecheck, lint, build.
-**Sensor**: 8 mutações injetadas, 7 mortas, 1 sobreviveu.
+**Checagem ancorada no spec**: 77/81 ACs com evidência `file:line` e valor batendo o resultado definido pelo spec · 4 em camada L5 sem teste automatizado por decisão de arquitetura declarada (`VIS-01`…`VIS-04`, AD-008 + matriz de cobertura) · 0 sem evidência · 0 parciais.
+**Gates**: 5/5 verdes — 314 unit, 65 integração, typecheck, lint, build.
+**Sensor**: 10 mutações injetadas ao longo das duas iterações, 10 mortas.
 
 **O que funciona bem**: o requisito mais crítico do produto (`JOGO-02`) é o mais bem defendido do repositório — a projeção é construída por destinatário em vez de filtrada, existe um único ponto de decisão (`podeVerCarta`), a varredura de vazamento percorre o JSON inteiro em todas as fases, e há um teste de controle que impede o detector de passar vazio. `ESCR-01` é provado por construção (ciclo aleatório único, sem retry) e por 500 repetições em cada tamanho de sala. AD-010 é sustentado tanto no unit quanto na integração, com o alarme real inspecionado. As recusas são asseridas em conjunção com "a sala ficou intocada", o que é exatamente o que a regra do payload pede.
 
-**Problemas encontrados**: `DESC-10` é a única regra do jogo que pode regredir em silêncio. `FIM-04` e `CHAT-02` têm cada uma uma cláusula do spec sem asserção.
+**Sobre as correções da iteração 2**: as três são exemplares no ponto que mais importa para um portão de qualidade — **nenhuma tocou código de produção**, e cada uma mata precisamente o seu mutante e só ele. O teste de `FIM-04` ainda incorporou por conta própria uma asserção de controle contra o caso vacuamente verdadeiro, generalizando o padrão que já existia no teste do `JOGO-02`. Esse é o comportamento que se quer de um implementador respondendo a um relatório de verificação.
 
-**Próximo passo**: aplicar o Fix 1 (bloqueante) e, de preferência, os Fixes 2 e 3 na mesma leva; reexecutar o Verifier. Fora do escopo de código: remover do `STATE.md` o bloqueador desatualizado sobre `sala-do.integration.test.ts:275`, que já não reproduz.
+**Pendências fora do escopo de código**:
+- **Publicação na Cloudflare não executada** — decisão do dono. O critério do T30 "uma partida completa roda no ambiente publicado" segue legitimamente em aberto.
+- `client/src/componentes/BannerDeConexao.tsx` continua sem uso (código morto já registrado no `STATE.md`). Não viola nenhum AC; vale remover ou passar a usar numa faxina futura.
+
+**Próximo passo**: nenhum bloqueio de verificação. A feature está pronta para publicação quando o dono decidir executá-la.
