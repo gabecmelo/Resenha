@@ -733,7 +733,7 @@ describe('saída de jogador durante o jogo (JOGO-10)', () => {
   })
 })
 
-describe('declararDescobri (DESC-01, DESC-09)', () => {
+describe('declararDescobri (DESC-01, DESC-09, DESC-10)', () => {
   it('coloca a declaração em pendente', () => {
     const { estado, contexto } = emJogo()
 
@@ -815,6 +815,23 @@ describe('declararDescobri (DESC-01, DESC-09)', () => {
     const resultado = reduzirOk(confirmado, comoB, { t: 'declararDescobri' })
 
     expect(resultado.estado).toEqual(confirmado)
+  })
+
+  it('recusa a declaração de outro jogador enquanto há uma pendente (DESC-10)', () => {
+    const { estado, contexto } = emJogo()
+    const pendente = reduzirOk(estado, { ...contexto, autorId: 'b' }, {
+      t: 'declararDescobri',
+    }).estado
+
+    const resultado = reduzir(
+      pendente,
+      { ...contexto, autorId: 'c' },
+      { t: 'declararDescobri' },
+      AMBIENTE,
+    )
+
+    expect(resultado).toEqual({ ok: false, erro: 'COMANDO_INVALIDO' })
+    expect(pendente.declaracaoPendente).toEqual({ jogadorId: 'b', declaradaEm: AMBIENTE.agora })
   })
 })
 
