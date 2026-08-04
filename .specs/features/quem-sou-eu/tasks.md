@@ -18,12 +18,19 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 | 1 | T1–T8 (fases 1–2) | ✅ Completo | `a6913cd` … `3252ef2` + correções `fdafd2b`, `85d9fb6` |
 | 2 | T9–T14 (fase 3) | ✅ Completo | `35e399a` … `05324b8` + correção `3beb637` |
 | 3 | T15–T20 (fase 4) | ✅ Completo | `25fd1e9` … `d528e5c` |
-| 4 | T21–T28 (fases 5–6) | Bloqueado — aguarda `design/handoff/` a partir do T23 | — |
-| 5 | T29–T30 (fase 7) | Pendente | — |
+| 4 | T21–T23 (fase 5) | ✅ Completo | `609956e`, `fdcda5c`, `d3d38bf` (+ `8963c9b`, `cb69771`) |
+| 5 | T24–T26 (fase 6, telas iniciais) | ✅ Completo | `77a205a`, `7d074c6`, `80615c3` |
+| 6 | T27–T30 (fases 6–7) | ✅ Completo | `c91d2c8`, `6aa9a7a`, `435619e`, `d3ed8c1` + README |
 
-**Servidor completo.** Todos os requisitos de servidor (SALA, HOST, ESCR, JOGO, DESC, FIM, CFG, CONN, CHAT, NOTA) estão implementados e verdes. O que falta é cliente.
+**Servidor completo.** Todos os requisitos de servidor (SALA, HOST, ESCR, JOGO, DESC, FIM, CFG, CONN, CHAT, NOTA) estão implementados e verdes.
 
-**Testes acumulados:** 251 unit + 64 integração, 0 falhas.
+**Cliente completo.** Seis telas (Início, Lobby, Escrita, Partida, Encerrada, estados de conexão), verificadas no navegador em 360px, 390px, 768px e 1280px, nos dois temas.
+
+**Testes acumulados:** 312 unit + 64 integração.
+
+**Pendente para o dono do projeto:**
+- A publicação (`npm run deploy`) **não** foi executada — depende da conta Cloudflare dele. O critério "uma partida completa roda no ambiente publicado" (T30) segue **em aberto**.
+- `server/core/sala-do.integration.test.ts:275` falha de forma reproduzível nesta máquina (ver "Dívida conhecida" no `STATE.md`). A falha é anterior a este lote — reproduzida na árvore limpa do commit `6aa9a7a`.
 
 **Pendências do lote 2 — todas resolvidas no lote 3:** roteamento de `{t:'notas'}` ao reducer do jogo, montagem do `ModuloDeJogo` (injetado em `server/index.ts`, único ponto onde `core` encontra `games`) e aplicação de `promoverAguardando` pelo `core`.
 

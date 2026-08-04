@@ -11,6 +11,8 @@
     "test:unit": "vitest run --config vitest.config.ts",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test": "npm run test:unit && npm run test:integration",
+    "deploy": "npm run build && wrangler deploy -c dist/resenha/wrangler.json",
+    "deploy:dry": "npm run build && wrangler deploy -c dist/resenha/wrangler.json --dry-run",
     "cf-typegen": "wrangler types"
   },
   "dependencies": {

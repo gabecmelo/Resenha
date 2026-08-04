@@ -85,11 +85,17 @@
 ## Handoff
 
 - **Feature**: `quem-sou-eu` — `.specs/features/quem-sou-eu/`
-- **Phase / Task**: Execute — lotes 1, 2 e 3 completos (T1–T20). **Servidor inteiro pronto e verde.**
-- **Completed**: Specify, Design, Tasks. T1–T20 com 20 commits atômicos, 251 testes unit + 64 de integração. O lote 3 foi interrompido no T19 por limite de gasto da conta e concluído inline pelo orquestrador (T19 e T20). Três correções pós-lote: `fdafd2b`, `85d9fb6`, `3beb637`. Spec em 81 requisitos (`DESC-10`, `DESC-11` nasceram de lacunas achadas pelos testes)
+- **Phase / Task**: Execute — **T1–T30 completos**. Servidor e cliente prontos; falta só a publicação
+- **Completed**: Specify, Design, Tasks e todas as 30 tasks, em commits atômicos. 312 testes unit + 64 de integração. Spec em 81 requisitos (`DESC-10`, `DESC-11` nasceram de lacunas achadas pelos testes). O lote 6 (T27–T30) verificou as seis telas no navegador em 360px, 390px, 768px e 1280px, nos dois temas, com uma sala real de 20 jogadores
 - **In-progress** (file:line): none
-- **Next step**: Lote 4 (T21–T28). T21 e T22 (sessão e provider de conexão) **não** dependem de design e podem rodar já; T23 em diante precisa do handoff
-- **Blockers**: `design/handoff/` ainda não existe — o usuário está gerando o design no Claude Design em paralelo. Bloqueia T23–T29
+- **Next step**: validação final (Verifier) e a publicação na Cloudflare — decisão do dono, ver "Bloqueadores"
+- **Blockers**:
+  - **Publicação não executada.** `npm run deploy` está pronto e o `--dry-run` passa, mas publicar depende da conta Cloudflare do dono. O critério do T30 "uma partida completa roda no ambiente publicado" continua **em aberto**
+  - **Teste de integração falhando**: `server/core/sala-do.integration.test.ts:275` (`HOST-04`, migração automática de host). `expect(prazo).toBeGreaterThan(Date.now() + 29_000)` lê o relógio ~1,5 s **depois** de capturar `prazo`, e o orçamento da asserção é de 1 s. Falha de forma reproduzível nesta máquina e **também na árvore limpa do commit `6aa9a7a`** — é anterior ao lote 6. Correção sugerida (mais forte, não mais fraca): capturar `const referencia = Date.now()` junto do `lerSala` e asserir contra ela. **Não alterado**: mexer em teste exige confirmação do dono
 - **Uncommitted files**: none
 - **Branch**: main
-- **Dívida conhecida**: `design.md` está desatualizado em cinco pontos — `EstadoSala` genérico, `ResultadoReducer` com variante de falha e `promoverAguardando`, assinatura do `ModuloDeJogo` com `Ambiente`, `Carta` virou `string`, `Declaracao` sem `confirmadorId`. Reconciliar antes da validação final
+- **Dívida conhecida**:
+  - `design.md` está desatualizado em cinco pontos — `EstadoSala` genérico, `ResultadoReducer` com variante de falha e `promoverAguardando`, assinatura do `ModuloDeJogo` com `Ambiente`, `Carta` virou `string`, `Declaracao` sem `confirmadorId`. Reconciliar antes da validação final
+  - **Lacuna de protocolo**: a `Projecao` não diz **quem** é o confirmador de uma declaração pendente, só se sou eu (`eu.souConfirmador`). Quem não confirma nem declarou não tem como nomear quem está decidindo, então o anúncio na tela de partida diz "a mesa está conferindo" em vez de citar a pessoa, como o handoff desenhou. Resolver exigiria um `confirmadorId` na projeção
+  - **Lacuna de protocolo**: o handoff mostra "descobriu na 5ª", "rodada 4" e "chat · 3 novas". A projeção não carrega número de perguntas, número de rodada nem mensagens não lidas; as telas usam o que existe (só "descobriu", e o total do chat)
+  - `BannerDeConexao` (T23) ficou sem uso: o handoff desenhou reconexão e sala fechada como **telas inteiras**, não como faixa sobre o jogo, e foi assim que `EstadosGlobais.tsx` implementou
