@@ -3,6 +3,7 @@ import { ProvedorDeConexao, useConexao } from './estado/conexao'
 import { codigoDaUrl } from './estado/entrada'
 import { Escrita } from './telas/Escrita'
 import { Inicio } from './telas/Inicio'
+import { Jogo } from './telas/Jogo'
 import { Lobby } from './telas/Lobby'
 
 /**
@@ -91,6 +92,8 @@ function Sala({
       return <Lobby projecao={projecao} enviar={enviar} aoSair={deixarSala} />
     case 'escrita':
       return <Escrita projecao={projecao} enviar={enviar} aoSair={deixarSala} />
+    case 'jogo':
+      return <Jogo projecao={projecao} enviar={enviar} aoSair={deixarSala} />
     default:
       return null
   }

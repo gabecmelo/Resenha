@@ -1,15 +1,20 @@
 import { useEffect, useState } from 'react'
 import type { Cor } from '../../../shared/protocolo'
+import {
+  estaAcabando,
+  formatarTempo,
+  fracaoRestante,
+  restanteAte,
+} from '../estado/relogio'
 import { MarcadorDeJogador } from './MarcadorDeJogador'
-
-/** Abaixo disto o tempo vira sinal de risco. */
-const ACABANDO_MS = 10_000
 
 export interface PropsDoIndicador {
   ehSuaVez: boolean
   /** Quem está na vez. Ausente quando ninguém está. */
-  apelido?: string
-  cor?: Cor
+  apelido?: string | undefined
+  cor?: Cor | undefined
+  /** `JOGO-11` — a vez continua de quem caiu; a faixa diz isso em vez de esconder. */
+  conectado?: boolean
   /** `JOGO-07` — instante absoluto de vencimento; `null` é sem limite. */
   prazoTurno: number | null
   /** `CFG-03` — duração configurada, para desenhar quanto já passou. */
@@ -17,93 +22,131 @@ export interface PropsDoIndicador {
 }
 
 /**
- * Responde "o que eu faço agora" (`VIS-03`).
+ * A faixa que responde "o que eu faço agora" (`VIS-03`).
  *
- * O tempo é uma linha fina e um número mono — nunca um alarme. A contagem sai do
- * instante absoluto que veio na projeção, então relógio parado no cliente ou
- * reconexão no meio do turno não desalinham ninguém.
+ * É a primeira coisa abaixo do cabeçalho e ocupa a largura toda no celular:
+ * quando a vez é sua, ela é um bloco de cor cheia — não há como confundir com a
+ * vez de outra pessoa, que é uma faixa neutra. Perto do fim, vira aviso.
+ *
+ * A contagem sai do instante absoluto que veio na projeção, então relógio
+ * atrasado no cliente ou reconexão no meio do turno não desalinham ninguém.
  */
 export function IndicadorDeVez({
   ehSuaVez,
   apelido,
   cor,
+  conectado = true,
   prazoTurno,
   duracaoSeg,
 }: PropsDoIndicador) {
   const restante = useRestante(prazoTurno)
-  const acabando = restante !== null && restante <= ACABANDO_MS
-  const fracao =
-    restante === null || duracaoSeg === null ? 0 : Math.min(restante / (duracaoSeg * 1000), 1)
+  const acabando = ehSuaVez && estaAcabando(restante)
 
   return (
     <section
       aria-live="polite"
-      className={`flex flex-col gap-3 rounded-painel border bg-superficie px-4 py-4.5 ${
-        acabando ? 'border-risco-linha' : 'border-linha'
+      className={`-mx-4 -mt-5 flex flex-col gap-2 px-4 py-3.5 sm:mx-0 sm:mt-0 sm:rounded-painel ${
+        acabando
+          ? 'bg-risco'
+          : ehSuaVez
+            ? 'bg-acento'
+            : 'border-b border-linha bg-superficie-2 sm:border-b-0'
       }`}
     >
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
-        {ehSuaVez ? (
-          <span className="text-titulo text-texto">É a sua vez</span>
-        ) : apelido !== undefined && cor !== undefined ? (
-          <span className="inline-flex items-center gap-2.5 text-secao font-medium text-texto-2">
-            <MarcadorDeJogador apelido={apelido} cor={cor} />
-            Vez de {apelido}
+      <div className="flex items-center gap-3">
+        {!ehSuaVez && apelido !== undefined && cor !== undefined && (
+          <span className={conectado ? '' : 'opacity-50'}>
+            <MarcadorDeJogador apelido={apelido} cor={cor} tamanho="grande" />
           </span>
-        ) : (
-          <span className="text-secao text-texto-2">Ninguém na vez</span>
         )}
 
-        {restante !== null && (
+        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span
-            className={`font-mono text-[16px] font-medium ${acabando ? 'text-risco' : 'text-texto-2'}`}
+            className={`font-mono text-[11px] tracking-[0.12em] uppercase ${
+              acabando
+                ? 'text-risco-contraste/75'
+                : ehSuaVez
+                  ? 'text-acento-contraste/75'
+                  : 'text-texto-3'
+            }`}
+          >
+            {acabando ? 'sua vez está acabando' : ehSuaVez ? 'é a sua vez' : 'é a vez de'}
+          </span>
+          <span
+            className={`truncate text-[18px] font-semibold tracking-[-0.02em] ${
+              ehSuaVez ? (acabando ? 'text-risco-contraste' : 'text-acento-contraste') : 'text-texto'
+            }`}
+          >
+            {ehSuaVez
+              ? acabando
+                ? 'Pergunte agora ou passa'
+                : prazoTurno === null
+                  ? 'Sem pressa, sem relógio'
+                  : 'Faça uma pergunta em voz alta'
+              : apelido === undefined
+                ? 'Ninguém na vez'
+                : conectado
+                  ? apelido
+                  : `${apelido} · caiu`}
+          </span>
+        </span>
+
+        {restante === null ? (
+          ehSuaVez && (
+            <span className="flex-none text-right font-mono text-[11px] leading-tight tracking-[0.12em] text-acento-contraste/75 uppercase">
+              sem
+              <br />
+              limite
+            </span>
+          )
+        ) : (
+          <span
+            className={`flex-none font-mono text-[26px] font-medium tracking-[-0.02em] ${
+              acabando
+                ? 'animacao-pulso text-risco-contraste'
+                : ehSuaVez
+                  ? 'text-acento-contraste'
+                  : 'text-texto-2'
+            }`}
           >
             {formatarTempo(restante)}
           </span>
         )}
       </div>
 
-      {restante !== null && (
-        <span className={`block h-[3px] rounded-pilula ${acabando ? 'bg-risco-suave' : 'bg-superficie-2'}`}>
+      {ehSuaVez && restante !== null && (
+        <span
+          className={`block h-1 overflow-hidden rounded-pilula ${
+            acabando ? 'bg-risco-contraste/25' : 'bg-acento-contraste/25'
+          }`}
+        >
           <span
-            className={`block h-[3px] rounded-pilula ${acabando ? 'bg-risco' : 'bg-acento'}`}
-            style={{ width: `${fracao * 100}%` }}
+            className={`block h-1 rounded-pilula ${
+              acabando ? 'bg-risco-contraste' : 'bg-acento-contraste'
+            }`}
+            style={{ width: `${fracaoRestante(restante, duracaoSeg) * 100}%` }}
           />
-        </span>
-      )}
-
-      {acabando ? (
-        <span className="text-miudo text-risco">Acabando o tempo — a vez passa para o próximo.</span>
-      ) : prazoTurno === null && ehSuaVez ? (
-        <span className="font-mono text-[12px] tracking-[0.1em] text-texto-3 uppercase">
-          sem limite de tempo
-        </span>
-      ) : (
-        <span className="text-[15px] text-texto-2">
-          {ehSuaVez
-            ? 'Faça uma pergunta de sim ou não em voz alta.'
-            : 'Responda quando a pergunta vier.'}
         </span>
       )}
     </section>
   )
 }
 
-/** Milissegundos que faltam, atualizados a cada segundo. `null` quando não há prazo. */
+/**
+ * Milissegundos que faltam, relidos a cada tique. `null` quando não há prazo.
+ *
+ * O tique é mais rápido que o segundo mostrado de propósito: o prazo pode mudar
+ * a qualquer momento (a vez passou, alguém reconectou) e meio segundo de atraso
+ * na primeira leitura já não aparece na tela.
+ */
 function useRestante(prazoTurno: number | null): number | null {
   const [agora, setAgora] = useState(() => Date.now())
 
   useEffect(() => {
     if (prazoTurno === null) return
-    const relogio = setInterval(() => setAgora(Date.now()), 1000)
+    const relogio = setInterval(() => setAgora(Date.now()), 500)
     return () => clearInterval(relogio)
   }, [prazoTurno])
 
-  if (prazoTurno === null) return null
-  return Math.max(prazoTurno - agora, 0)
-}
-
-function formatarTempo(restanteMs: number): string {
-  const segundos = Math.ceil(restanteMs / 1000)
-  return `${Math.floor(segundos / 60)}:${String(segundos % 60).padStart(2, '0')}`
+  return restanteAte(prazoTurno, agora)
 }

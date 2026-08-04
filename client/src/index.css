@@ -35,6 +35,15 @@
   --risco-linha: light-dark(#f0d5cf, #46302b);
   --risco-contraste: light-dark(#ffffff, #2a100c);
 
+  /*
+   * Espera por decisão de outra pessoa — a declaração de "Descobri!" pendente
+   * (`DESC-01`, `DESC-02`). Não é acento (não é sua ação) nem risco (nada deu
+   * errado): é o terceiro estado que a tela de partida precisa dizer.
+   */
+  --aviso: light-dark(#9e6e12, #d5a03a);
+  --aviso-suave: light-dark(#fbf3e3, #302510);
+  --aviso-linha: light-dark(#e8d9b6, #4c3d1a);
+
   /* `light-dark()` só resolve cor — a sombra monta o valor a partir dela. */
   --sombra-cor: light-dark(rgb(27 25 23 / 0.1), rgb(0 0 0 / 0.5));
   --sombra-flutuante: 0 12px 32px var(--sombra-cor);
@@ -126,6 +135,9 @@
   --color-risco-suave: var(--risco-suave);
   --color-risco-linha: var(--risco-linha);
   --color-risco-contraste: var(--risco-contraste);
+  --color-aviso: var(--aviso);
+  --color-aviso-suave: var(--aviso-suave);
+  --color-aviso-linha: var(--aviso-linha);
 
   --radius-controle: 8px;
   --radius-painel: 12px;
