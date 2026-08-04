@@ -85,13 +85,12 @@
 ## Handoff
 
 - **Feature**: `quem-sou-eu` — `.specs/features/quem-sou-eu/`
-- **Phase / Task**: Execute — **T1–T30 completos**. Servidor e cliente prontos; falta só a publicação
-- **Completed**: Specify, Design, Tasks e todas as 30 tasks, em commits atômicos. 312 testes unit + 64 de integração. Spec em 81 requisitos (`DESC-10`, `DESC-11` nasceram de lacunas achadas pelos testes). O lote 6 (T27–T30) verificou as seis telas no navegador em 360px, 390px, 768px e 1280px, nos dois temas, com uma sala real de 20 jogadores
+- **Phase / Task**: Execute — **T1–T30 completos** + rodada de correção do Verifier. Servidor e cliente prontos; falta só a publicação
+- **Completed**: Specify, Design, Tasks e todas as 30 tasks, em commits atômicos. **314 testes unit + 65 de integração**. Spec em 81 requisitos (`DESC-10`, `DESC-11` nasceram de lacunas achadas pelos testes). O lote 6 (T27–T30) verificou as seis telas no navegador em 360px, 390px, 768px e 1280px, nos dois temas, com uma sala real de 20 jogadores. O Verifier independente reprovou por três lacunas de cobertura (`DESC-10` sem teste — mutante sobrevivente —, `FIM-04` cláusula do chat, `CHAT-02` cláusula do aviso ao autor); as três foram corrigidas em `04c1faf`, `c5d3b6b` e `8710507`, cada uma com prova de mutante. Nenhum comportamento de produção foi alterado
 - **In-progress** (file:line): none
-- **Next step**: validação final (Verifier) e a publicação na Cloudflare — decisão do dono, ver "Bloqueadores"
+- **Next step**: re-verificação das três lacunas (iteração 2 de no máximo 3) e a publicação na Cloudflare — decisão do dono
 - **Blockers**:
   - **Publicação não executada.** `npm run deploy` está pronto e o `--dry-run` passa, mas publicar depende da conta Cloudflare do dono. O critério do T30 "uma partida completa roda no ambiente publicado" continua **em aberto**
-  - **Teste de integração falhando**: `server/core/sala-do.integration.test.ts:275` (`HOST-04`, migração automática de host). `expect(prazo).toBeGreaterThan(Date.now() + 29_000)` lê o relógio ~1,5 s **depois** de capturar `prazo`, e o orçamento da asserção é de 1 s. Falha de forma reproduzível nesta máquina e **também na árvore limpa do commit `6aa9a7a`** — é anterior ao lote 6. Correção sugerida (mais forte, não mais fraca): capturar `const referencia = Date.now()` junto do `lerSala` e asserir contra ela. **Não alterado**: mexer em teste exige confirmação do dono
 - **Uncommitted files**: none
 - **Branch**: main
 - **Dívida conhecida**:
