@@ -524,3 +524,40 @@ describe('roteamento ao módulo de jogo', () => {
     expect(textosDoChat(sala)).toEqual([])
   })
 })
+
+describe('nova partida (`FIM-04`)', () => {
+  it('preserva jogadores, apelidos, cores, chat e configurações ao voltar ao lobby', () => {
+    const sala = salaEmLobby()
+    despachar(
+      sala,
+      quemSouEu,
+      'j1',
+      {
+        t: 'configurar',
+        config: { ordemTurnos: 'entrada', aoDescobrir: 'continua', tempoTurnoSeg: 90 },
+      },
+      AMBIENTE,
+    )
+    despachar(sala, quemSouEu, 'j1', { t: 'iniciar' }, AMBIENTE)
+    for (const jogador of sala.jogadores) {
+      despachar(sala, quemSouEu, jogador.id, { t: 'escreverCarta', texto: 'Chapolin' }, AMBIENTE)
+      despachar(sala, quemSouEu, jogador.id, { t: 'marcarPronto', pronto: true }, AMBIENTE)
+    }
+    despachar(sala, quemSouEu, 'j1', { t: 'comecar' }, AMBIENTE)
+    despachar(sala, quemSouEu, 'j2', { t: 'chat', texto: 'boa partida' }, AMBIENTE)
+    despachar(sala, quemSouEu, 'j1', { t: 'encerrar' }, AMBIENTE)
+    const jogadoresAntes = structuredClone(sala.jogadores)
+    const chatAntes = structuredClone(sala.chat)
+    const configAntes = structuredClone(sala.config)
+    // Controle: sem histórico anterior, preservar o chat seria trivialmente verdade.
+    expect(textosDoChat(sala)).toContain('boa partida')
+
+    const resultado = despachar(sala, quemSouEu, 'j1', { t: 'novaPartida' }, AMBIENTE)
+
+    expect(resultado.ok).toBe(true)
+    expect(sala.fase).toBe('lobby')
+    expect(sala.chat.slice(0, chatAntes.length)).toEqual(chatAntes)
+    expect(sala.jogadores).toEqual(jogadoresAntes)
+    expect(sala.config).toEqual(configAntes)
+  })
+})
