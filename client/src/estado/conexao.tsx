@@ -133,7 +133,11 @@ export function ProvedorDeConexao({ codigo, apelido, children }: PropsDoProvedor
       })
 
       socket.addEventListener('close', () => {
-        socketRef.current = null
+        // O `close` chega depois do fato: quando ele roda, a referência já pode
+        // apontar para um socket novo. Só quem ainda é o socket em uso pode
+        // limpá-la — do contrário um socket velho fechando deixaria a aplicação
+        // sem canal, e todo comando seria descartado em silêncio.
+        if (socketRef.current === socket) socketRef.current = null
         if (!ativo || encerradoRef.current) return
         setEstado('reconectando')
         tentativa = setTimeout(conectar, backoff.proximo())
