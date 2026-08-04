@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react'
 import { ProvedorDeConexao, useConexao } from './estado/conexao'
 import { codigoDaUrl } from './estado/entrada'
+import { Encerrada } from './telas/Encerrada'
 import { Escrita } from './telas/Escrita'
+import { Conectando, Reconectando, SalaExpirada } from './telas/EstadosGlobais'
 import { Inicio } from './telas/Inicio'
 import { Jogo } from './telas/Jogo'
 import { Lobby } from './telas/Lobby'
@@ -70,9 +72,27 @@ function Sala({
     aoDesistir()
   }
 
-  // Enquanto não chegou projeção, quem está no ar é o Início: é lá que a
-  // conexão em andamento e as recusas de entrada aparecem.
+  // Já dentro da sala, o estado da conexão vira tela: a mesa que está no ar
+  // seria uma foto velha, e a vaga continua guardada (`CONN-03`).
+  if (projecao !== null) {
+    if (estado === 'expirada') {
+      return (
+        <SalaExpirada
+          codigo={tentativa.codigo}
+          mensagem={erro?.mensagem}
+          aoVoltar={deixarSala}
+        />
+      )
+    }
+    if (estado === 'reconectando') return <Reconectando />
+  }
+
+  // Antes da primeira projeção: a conexão em andamento tem tela própria e as
+  // recusas de entrada voltam para o Início, onde o formulário está.
   if (projecao === null) {
+    if (erro === null && estado !== 'expirada') {
+      return <Conectando codigo={tentativa.codigo} />
+    }
     return (
       <Inicio
         codigoInicial={tentativa.codigo}
@@ -94,7 +114,7 @@ function Sala({
       return <Escrita projecao={projecao} enviar={enviar} aoSair={deixarSala} />
     case 'jogo':
       return <Jogo projecao={projecao} enviar={enviar} aoSair={deixarSala} />
-    default:
-      return null
+    case 'encerrada':
+      return <Encerrada projecao={projecao} enviar={enviar} aoSair={deixarSala} />
   }
 }

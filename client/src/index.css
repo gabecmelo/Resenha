@@ -168,12 +168,23 @@
   }
 }
 
+@keyframes girando {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
 .animacao-pulso {
   animation: pulso 1.4s ease-in-out infinite;
 }
 
+.animacao-girando {
+  animation: girando 900ms linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .animacao-pulso {
+  .animacao-pulso,
+  .animacao-girando {
     animation: none;
   }
 }
