@@ -7,6 +7,7 @@ import {
 import { describe, expect, it } from 'vitest'
 import type { Comando, EstadoSala, Mensagem, Projecao } from '../../shared/protocolo'
 import type { EstadoQuemSouEu } from '../games/quem-sou-eu/regras'
+import { CHAT_MAX_POR_JANELA } from './chat'
 import { carregar, salvar } from './estado'
 import { MIGRACAO_HOST_MS } from './sala-do'
 
@@ -421,5 +422,20 @@ describe('robustez do socket', () => {
 
     expect(bruno.recebidas).toHaveLength(recebidasAntes)
     expect(ultimaProjecao(ana).jogadores.map((j) => j.apelido)).toEqual(['Ana'])
+  })
+})
+
+describe('limite de taxa do chat (`CHAT-02`)', () => {
+  it('avisa apenas o autor quando descarta a mensagem excedente', async () => {
+    const stub = await novaSala('DO-CHAT-TAXA')
+    const ana = await entrar(stub, 'Ana')
+    const bruno = await entrar(stub, 'Bruno')
+    await assentar()
+
+    for (let i = 0; i <= CHAT_MAX_POR_JANELA; i += 1) mandar(ana, { t: 'chat', texto: `m${i}` })
+    await assentar()
+
+    expect(erros(ana).map((e) => e.codigo)).toEqual(['CHAT_LIMITE_DE_TAXA'])
+    expect(erros(bruno)).toEqual([])
   })
 })
