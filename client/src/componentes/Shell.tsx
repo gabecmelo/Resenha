@@ -1,12 +1,14 @@
 import { type ReactNode, useState } from 'react'
 import { linkDeConvite } from '../estado/entrada'
 import { AlternadorDeTema } from './AlternadorDeTema'
+import { Modal } from './Modal'
 
 export interface PropsDoShell {
   /** Código da sala. Ausente na tela de início, onde ainda não há sala. */
   codigo?: string
   /** Uma linha sobre o momento da sala: "5 pessoas · Quem Sou Eu?". */
   legenda?: string
+  /** `CONN-06` — chamado só depois da confirmação. */
   aoSair?(): void
   children: ReactNode
 }
@@ -18,6 +20,8 @@ export interface PropsDoShell {
  * `SALA-08` — o código fica sempre à vista e um toque nele copia o convite.
  */
 export function Shell({ codigo, legenda, aoSair, children }: PropsDoShell) {
+  const [confirmandoSaida, setConfirmandoSaida] = useState(false)
+
   return (
     <div className="flex min-h-dvh flex-col bg-fundo">
       <header className="sticky top-0 z-30 border-b border-linha bg-fundo">
@@ -36,7 +40,7 @@ export function Shell({ codigo, legenda, aoSair, children }: PropsDoShell) {
             {aoSair !== undefined && (
               <button
                 type="button"
-                onClick={aoSair}
+                onClick={() => setConfirmandoSaida(true)}
                 className="min-h-11 shrink-0 cursor-pointer px-1 text-apoio font-medium text-texto-2 hover:text-texto"
               >
                 Sair
@@ -47,6 +51,18 @@ export function Shell({ codigo, legenda, aoSair, children }: PropsDoShell) {
       </header>
 
       <main className="mx-auto w-full max-w-[1280px] flex-1 px-4 pt-5 pb-16">{children}</main>
+
+      {confirmandoSaida && aoSair !== undefined && (
+        <Modal
+          titulo="Sair da sala?"
+          descricao="Sua vaga é liberada e a carta que escreveram para você é descartada. Para voltar, é preciso entrar de novo pelo código."
+          rotuloConfirmar="Sair"
+          rotuloCancelar="Ficar"
+          destrutivo
+          aoConfirmar={aoSair}
+          aoCancelar={() => setConfirmandoSaida(false)}
+        />
+      )}
     </div>
   )
 }

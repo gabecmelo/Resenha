@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { ProvedorDeConexao, useConexao } from './estado/conexao'
 import { codigoDaUrl } from './estado/entrada'
 import { Inicio } from './telas/Inicio'
+import { Lobby } from './telas/Lobby'
 
 /**
  * A raiz do app.
@@ -60,7 +61,12 @@ function Sala({
   aoDesistir(): void
   aoEntrar(codigo: string, apelido: string): void
 }) {
-  const { estado, projecao, erro } = useConexao()
+  const { estado, projecao, erro, enviar, sair } = useConexao()
+
+  const deixarSala = () => {
+    sair()
+    aoDesistir()
+  }
 
   // Enquanto não chegou projeção, quem está no ar é o Início: é lá que a
   // conexão em andamento e as recusas de entrada aparecem.
@@ -77,5 +83,12 @@ function Sala({
     )
   }
 
-  return null
+  // A tela exibida deriva da fase que veio na projeção — não existe rota nem
+  // estado de navegação próprio (AD-008).
+  switch (projecao.sala.fase) {
+    case 'lobby':
+      return <Lobby projecao={projecao} enviar={enviar} aoSair={deixarSala} />
+    default:
+      return null
+  }
 }
