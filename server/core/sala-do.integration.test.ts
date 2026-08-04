@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest'
 import type { Comando, EstadoSala, Mensagem, Projecao } from '../../shared/protocolo'
 import type { EstadoQuemSouEu } from '../games/quem-sou-eu/regras'
 import { carregar, salvar } from './estado'
+import { MIGRACAO_HOST_MS } from './sala-do'
 
 type Sala = EstadoSala<EstadoQuemSouEu>
 
@@ -265,6 +266,9 @@ describe('migração automática de host (`HOST-04`)', () => {
     const bruno = await entrar(stub, 'Bruno')
     await entrar(stub, 'Carla')
 
+    // Referência presa ao instante da desconexão: comparar com `Date.now()` na
+    // asserção mediria um relógio que já andou durante o alarme e as esperas.
+    const desconectouEm = Date.now()
     ana.ws.close()
     await assentar()
     const prazo = (await lerSala(stub))?.prazos.migracaoHost
@@ -272,7 +276,8 @@ describe('migração automática de host (`HOST-04`)', () => {
     await runDurableObjectAlarm(stub)
     await assentar()
 
-    expect(prazo).toBeGreaterThan(Date.now() + 29_000)
+    expect(prazo).toBeGreaterThanOrEqual(desconectouEm + MIGRACAO_HOST_MS)
+    expect(prazo).toBeLessThan(desconectouEm + MIGRACAO_HOST_MS + 5_000)
     expect((await lerSala(stub))?.hostId).toBe(bruno.jogadorId)
   })
 
