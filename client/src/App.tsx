@@ -3,7 +3,7 @@ import { ProvedorDeConexao, useConexao } from './estado/conexao'
 import { codigoDaUrl } from './estado/entrada'
 import { Encerrada } from './telas/Encerrada'
 import { Escrita } from './telas/Escrita'
-import { Conectando, Reconectando, SalaExpirada } from './telas/EstadosGlobais'
+import { Conectando, ConexaoEncerrada, Reconectando } from './telas/EstadosGlobais'
 import { Inicio } from './telas/Inicio'
 import { Jogo } from './telas/Jogo'
 import { Lobby } from './telas/Lobby'
@@ -77,9 +77,9 @@ function Sala({
   if (projecao !== null) {
     if (estado === 'expirada') {
       return (
-        <SalaExpirada
+        <ConexaoEncerrada
           codigo={tentativa.codigo}
-          mensagem={erro?.mensagem}
+          erro={erro?.codigo}
           aoVoltar={deixarSala}
         />
       )

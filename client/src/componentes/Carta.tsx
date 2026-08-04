@@ -94,9 +94,11 @@ export function Carta({
             </span>
           </span>
         ) : (
+          /* `VIS-02` — na mesa cheia a carta encolhe, mas nunca é cortada:
+             carta ilegível é o mesmo que carta ausente. */
           <span
             className={`font-semibold tracking-[-0.02em] text-balance [overflow-wrap:anywhere] ${
-              compacta ? 'truncate text-[16px]' : 'text-[19px] leading-[1.15] sm:text-[30px]'
+              compacta ? 'text-[16px] leading-[1.3]' : 'text-[19px] leading-[1.15] sm:text-[30px]'
             } ${apagada ? 'text-texto-2' : 'text-texto'}`}
           >
             {texto}

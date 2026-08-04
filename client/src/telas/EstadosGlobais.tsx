@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import type { CodigoErro } from '../../../shared/protocolo'
 import { AlternadorDeTema, Botao } from '../componentes'
 
 /**
@@ -92,21 +93,51 @@ export function Reconectando() {
 }
 
 /**
- * `CONN-07`, `CONN-08` — a sala foi destruída. Não há o que tentar de novo: o
- * caminho de volta é a única coisa que a tela oferece.
+ * O fim da linha para quem já estava dentro: a sala sumiu (`CONN-07`,
+ * `CONN-08`) ou a pessoa foi removida dela (`HOST-02`, `CONN-04`).
+ *
+ * Não há o que tentar de novo — insistir com a mesma credencial dá no mesmo —,
+ * então a tela diz o que aconteceu e oferece o caminho de volta.
  */
-export function SalaExpirada({
+const FECHAMENTOS: Partial<
+  Record<CodigoErro, { selo: string; titulo: string; explicacao: string }>
+> = {
+  TOKEN_BANIDO: {
+    selo: 'você saiu da sala',
+    titulo: 'Você foi removido desta sala',
+    explicacao:
+      'Quem comanda a sala tirou você da partida. Para voltar, alguém de lá precisa te chamar de novo.',
+  },
+  SALA_CHEIA: {
+    selo: 'sala cheia',
+    titulo: 'Não deu para voltar',
+    explicacao:
+      'A sala encheu enquanto você estava fora. Se alguém sair, o seu lugar abre — peça o código de novo.',
+  },
+}
+
+const FECHAMENTO_PADRAO = {
+  selo: 'sala fechada',
+  titulo: 'Esta sala já fechou',
+  explicacao:
+    'Salas somem depois de um tempo paradas. Peça o código novo para quem estava jogando — ou abra a sua.',
+}
+
+export function ConexaoEncerrada({
   codigo,
-  mensagem,
+  erro,
   aoVoltar,
 }: {
   codigo: string
-  /** O que o servidor respondeu, quando respondeu. */
-  mensagem?: string | undefined
+  /** A recusa que fechou a porta, quando o servidor chegou a dar uma. */
+  erro: CodigoErro | undefined
   aoVoltar(): void
 }) {
+  const { selo, titulo, explicacao } =
+    (erro === undefined ? undefined : FECHAMENTOS[erro]) ?? FECHAMENTO_PADRAO
+
   return (
-    <Estado selo={<Selo tom="risco" texto="sala fechada" />}>
+    <Estado selo={<Selo tom="risco" texto={selo} />}>
       <span
         style={{
           background:
@@ -118,11 +149,8 @@ export function SalaExpirada({
           {codigo}
         </span>
       </span>
-      <h1 className={TITULO}>Esta sala já fechou</h1>
-      <p className={CORPO}>
-        {mensagem ??
-          'Salas somem depois de algumas horas paradas. Peça o código novo para quem estava jogando — ou abra a sua.'}
-      </p>
+      <h1 className={TITULO}>{titulo}</h1>
+      <p className={CORPO}>{explicacao}</p>
       <span className="w-full pt-2">
         <Botao larguraTotal onClick={aoVoltar}>
           Voltar ao início
