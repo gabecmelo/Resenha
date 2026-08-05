@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { ProvedorDeConexao, useConexao } from './estado/conexao'
-import { codigoDaUrl } from './estado/entrada'
+import { caminhoDaSala, codigoDaUrl } from './estado/entrada'
 import { criarSessao, reentradaAutomatica } from './estado/sessao'
 import { Encerrada } from './telas/Encerrada'
 import { Escrita } from './telas/Escrita'
@@ -20,6 +20,9 @@ import { Lobby } from './telas/Lobby'
  * `AJU-01` — quando o código está na URL e existe sessão guardada para aquela
  * sala, a primeira tentativa já nasce pronta: o formulário nunca chega a
  * aparecer.
+ *
+ * `AJU-33` — e o código só está na URL para todo mundo porque entrar numa sala,
+ * por qualquer caminho, escreve o endereço dela aqui.
  */
 
 interface Tentativa {
@@ -37,7 +40,13 @@ export function App() {
   })
 
   const entrar = (codigo: string, apelido: string) => {
+    irPara(caminhoDaSala(codigo))
     setTentativa((anterior) => ({ codigo, apelido, numero: (anterior?.numero ?? 0) + 1 }))
+  }
+
+  const desistir = () => {
+    irPara(caminhoDaSala(null))
+    setTentativa(null)
   }
 
   if (tentativa === null) {
@@ -59,9 +68,18 @@ export function App() {
       codigo={tentativa.codigo}
       apelido={tentativa.apelido}
     >
-      <Sala tentativa={tentativa} aoDesistir={() => setTentativa(null)} aoEntrar={entrar} />
+      <Sala tentativa={tentativa} aoDesistir={desistir} aoEntrar={entrar} />
     </ProvedorDeConexao>
   )
+}
+
+/**
+ * `AJU-33` — troca o endereço exibido sem recarregar a página: o socket, a
+ * projeção e o estado do React seguem intactos. É `replaceState` de propósito —
+ * o app não tem histórico de navegação para o botão "voltar" percorrer.
+ */
+function irPara(caminho: string) {
+  if (window.location.pathname !== caminho) window.history.replaceState(null, '', caminho)
 }
 
 function Sala({

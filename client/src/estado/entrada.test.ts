@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  caminhoDaSala,
   codigoDaUrl,
   linkDeConvite,
   motivoParaCriar,
@@ -47,6 +48,20 @@ describe('linkDeConvite', () => {
 
   it('não duplica a barra quando a origem já termina em barra', () => {
     expect(linkDeConvite('https://resenha.app/', 'KTVRM')).toBe('https://resenha.app/KTVRM')
+  })
+})
+
+describe('caminhoDaSala (AJU-33)', () => {
+  it('põe o código da sala no caminho', () => {
+    expect(caminhoDaSala('KTVRM')).toBe('/KTVRM')
+  })
+
+  it('volta à raiz quando não se está em sala nenhuma', () => {
+    expect(caminhoDaSala(null)).toBe('/')
+  })
+
+  it('escreve o caminho que `codigoDaUrl` lê de volta', () => {
+    expect(codigoDaUrl(caminhoDaSala('KTVRM'))).toBe('KTVRM')
   })
 })
 

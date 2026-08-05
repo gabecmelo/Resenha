@@ -38,6 +38,19 @@ export function linkDeConvite(origem: string, codigo: string): string {
 }
 
 /**
+ * `AJU-33` — o caminho que reflete a sala em que se está, ou a raiz quando não
+ * se está em nenhuma.
+ *
+ * É o inverso de `codigoDaUrl`: o que esta função escreve, aquela lê de volta ao
+ * recarregar. Sem isso a reentrada automática (`AJU-01`) só valia para quem
+ * chegou pelo link de convite — quem criou a sala ou digitou o código ficava com
+ * a URL na raiz e caía no formulário.
+ */
+export function caminhoDaSala(codigo: string | null): string {
+  return codigo === null ? '/' : `/${codigo}`
+}
+
+/**
  * Por que ainda não dá para criar a sala, ou `undefined` quando dá.
  * O texto vai direto para o botão: desabilitado sem motivo trava o grupo.
  */
