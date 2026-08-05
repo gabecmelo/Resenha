@@ -1,7 +1,19 @@
 import { Fragment, useState } from 'react'
-import type { Config, JogadorId, Projecao } from '../../../shared/protocolo'
+import {
+  type Config,
+  type JogadorId,
+  type Projecao,
+  TEMPO_TURNO_MAX_SEG,
+  TEMPO_TURNO_MIN_SEG,
+} from '../../../shared/protocolo'
 import { Botao, Chat, FichaDeJogador, Modal, Shell } from '../componentes'
 import { linkDeConvite } from '../estado/entrada'
+import {
+  PRESETS_DE_TEMPO,
+  ehTempoPersonalizado,
+  rotuloDoTempo,
+  tempoDigitado,
+} from '../estado/turno'
 import type { PropsDaTela } from './tela'
 
 /**
@@ -241,14 +253,6 @@ const OPCOES_DE_ORDEM = [
   { valor: 'entrada', rotulo: 'Ordem de entrada' },
 ] as const
 
-const OPCOES_DE_TEMPO = [
-  { valor: null, rotulo: 'Sem limite' },
-  { valor: 30, rotulo: '30s' },
-  { valor: 60, rotulo: '60s' },
-  { valor: 90, rotulo: '90s' },
-  { valor: 120, rotulo: '2min' },
-] as const
-
 function Regras({
   config,
   souHost,
@@ -279,19 +283,103 @@ function Regras({
             atual={config.ordemTurnos}
             aoEscolher={(ordemTurnos) => enviar({ t: 'configurar', config: { ordemTurnos } })}
           />
-          <Escolha
-            rotulo="Tempo por turno"
-            opcoes={OPCOES_DE_TEMPO}
-            atual={config.tempoTurnoSeg}
-            aoEscolher={(tempoTurnoSeg) => enviar({ t: 'configurar', config: { tempoTurnoSeg } })}
-          />
+          <div className="flex flex-col gap-3">
+            <Escolha
+              rotulo="Tempo por turno"
+              opcoes={PRESETS_DE_TEMPO}
+              atual={config.tempoTurnoSeg}
+              aoEscolher={(tempoTurnoSeg) => enviar({ t: 'configurar', config: { tempoTurnoSeg } })}
+            />
+            <TempoPersonalizado
+              atual={config.tempoTurnoSeg}
+              aoEscolher={(tempoTurnoSeg) => enviar({ t: 'configurar', config: { tempoTurnoSeg } })}
+            />
+          </div>
         </div>
       ) : (
         <dl className="flex flex-col">
           <Leitura rotulo="Ordem dos turnos" valor={rotuloDe(OPCOES_DE_ORDEM, config.ordemTurnos)} />
-          <Leitura rotulo="Tempo por turno" valor={rotuloDe(OPCOES_DE_TEMPO, config.tempoTurnoSeg)} />
+          <Leitura rotulo="Tempo por turno" valor={rotuloDoTempo(config.tempoTurnoSeg)} />
         </dl>
       )}
+    </div>
+  )
+}
+
+/**
+ * `AJU-19`, `AJU-20` — qualquer duração entre 10s e 60min, além dos presets.
+ *
+ * A faixa vem do contrato, não de um número escrito aqui. O campo trava no
+ * tamanho e o botão diz por que não dá para aplicar — o servidor continua
+ * recusando o que não deveria passar (`CFG-04`).
+ */
+function TempoPersonalizado({
+  atual,
+  aoEscolher,
+}: {
+  atual: number | null
+  aoEscolher(tempoTurnoSeg: number): void
+}) {
+  const emVigor = ehTempoPersonalizado(atual)
+  const [texto, setTexto] = useState(emVigor ? String(atual) : '')
+  const [atualAnterior, setAtualAnterior] = useState(atual)
+
+  // O tempo em vigor pode mudar por outra aba do host: o campo acompanha.
+  if (atual !== atualAnterior) {
+    setAtualAnterior(atual)
+    setTexto(ehTempoPersonalizado(atual) ? String(atual) : '')
+  }
+
+  const segundos = tempoDigitado(texto)
+  const aplicar = () => {
+    if (segundos !== null) aoEscolher(segundos)
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor="tempo-personalizado" className="text-apoio text-texto-2">
+        Outro tempo, em segundos
+      </label>
+      <div className="flex items-start gap-2">
+        <input
+          id="tempo-personalizado"
+          type="text"
+          inputMode="numeric"
+          value={texto}
+          maxLength={String(TEMPO_TURNO_MAX_SEG).length}
+          placeholder="240"
+          aria-invalid={texto !== '' && segundos === null}
+          onChange={(evento) => setTexto(evento.target.value)}
+          onKeyDown={(evento) => {
+            if (evento.key === 'Enter') aplicar()
+          }}
+          className={`h-11 w-24 rounded-controle border bg-superficie px-3 text-corpo placeholder:text-texto-apagado focus:outline-none ${
+            emVigor && segundos === atual
+              ? 'border-acento font-semibold text-acento'
+              : texto !== '' && segundos === null
+                ? 'border-risco text-texto'
+                : 'border-controle-linha text-texto focus:border-acento'
+          }`}
+        />
+        <Botao
+          variante="secundario"
+          onClick={aplicar}
+          motivo={
+            segundos === null
+              ? `De ${TEMPO_TURNO_MIN_SEG} segundos a ${TEMPO_TURNO_MAX_SEG / 60} minutos.`
+              : segundos === atual
+                ? 'Este já é o tempo em vigor.'
+                : undefined
+          }
+        >
+          Aplicar
+        </Botao>
+      </div>
+      <span className="text-[12px] text-texto-3">
+        {emVigor
+          ? `Em vigor: ${rotuloDoTempo(atual)}.`
+          : `De ${TEMPO_TURNO_MIN_SEG}s a ${TEMPO_TURNO_MAX_SEG / 60}min.`}
+      </span>
     </div>
   )
 }
