@@ -372,6 +372,49 @@ T11 → T12 → T13 → T14 → T15
 
 ---
 
+### T16: Mínimo de jogadores vem do contrato
+
+**What**: A tela para de exigir 3 pessoas; o número passa a vir de um só lugar.
+**Where**: `shared/protocolo.ts`, `client/src/telas/Lobby.tsx`, `client/src/telas/Inicio.tsx`, `server/games/quem-sou-eu/regras.ts`
+**Depends on**: T15
+**Requirement**: `AJU-06`, `AJU-34`
+
+**Done when**:
+- [ ] O mínimo é exportado por `shared/protocolo.ts` e importado **tanto** pelas regras do servidor **quanto** pelo cliente
+- [ ] `MINIMO_PARA_INICIAR` some do `Lobby.tsx`; nenhum literal `3` de mínimo sobra no cliente
+- [ ] Com 2 jogadores ativos o host **consegue** iniciar, verificado no navegador
+- [ ] Com 1 jogador o botão continua desabilitado, com o motivo correto
+- [ ] Todo texto de interface que diz "3 pessoas" passa a refletir o mínimo real
+- [ ] Os testes do servidor que usam o mínimo continuam verdes sem alteração de asserção
+- [ ] Gate: `npm run test:unit` e build
+
+**Tests**: unit · **Gate**: quick
+**Commit**: `fix(client): permite iniciar partida com dois jogadores`
+
+> A causa raiz foi a duplicação: o número vivia em dois lugares e só um mudou. Corrigir só o literal do `Lobby.tsx` deixaria a armadilha montada para a próxima vez.
+
+---
+
+### T17: Código da sala sempre na URL
+
+**What**: Refletir o código na URL para quem cria a sala ou digita o código, não só para quem chega pelo link.
+**Where**: `client/src/App.tsx`
+**Depends on**: T16
+**Requirement**: `AJU-33`, `AJU-01`
+
+**Done when**:
+- [ ] Ao entrar numa sala por qualquer caminho, a URL passa a conter o código
+- [ ] Recarregar a página depois disso reentra sozinho, sem formulário — **inclusive para quem criou a sala**
+- [ ] Sair da sala devolve a URL à raiz
+- [ ] A troca de URL não recarrega a página nem perde o socket
+- [ ] Verificado no navegador nos três caminhos: criar, digitar código, abrir link de convite
+- [ ] Gate: build
+
+**Tests**: none · **Gate**: build
+**Commit**: `fix(client): reflete o codigo da sala na url`
+
+---
+
 ## Phase Execution Map
 
 ```

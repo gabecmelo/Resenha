@@ -63,6 +63,7 @@ Junto vieram quatro mudanças de regra que só a experiência revela: 3 jogadore
 3. `AJU-03` — WHEN o cliente guarda a sessão THEN o sistema SHALL guardar também o apelido daquela sala, para exibi-lo antes da primeira projeção chegar
 4. `AJU-04` — WHEN o token guardado é recusado pelo servidor (vaga liberada, sala expirada, jogador expulso) THEN o sistema SHALL descartá-lo e exibir a tela de entrada com o motivo
 5. `AJU-05` — WHEN a reconexão automática está em andamento THEN o sistema SHALL indicar isso, e SHALL NOT exibir formulário de entrada nesse intervalo
+6. `AJU-33` — WHEN um jogador entra numa sala por qualquer caminho — criando, digitando o código ou pelo link de convite — THEN o sistema SHALL refletir o código da sala na URL, para que a reentrada automática de `AJU-01` valha para todos e não só para quem chegou pelo convite
 
 **Independent Test**: Entrar numa sala pelo celular, apagar a tela, esperar, reacender — voltar direto ao jogo sem digitar nada.
 
@@ -79,6 +80,7 @@ Junto vieram quatro mudanças de regra que só a experiência revela: 3 jogadore
 1. `AJU-06` — WHEN a sala está em LOBBY com 2 ou mais jogadores ativos THEN o sistema SHALL habilitar a ação "Iniciar" ao host — **substitui `HOST-01`**, que exigia 3
 2. `AJU-07` — WHEN uma redistribuição durante a ESCRITA deixaria menos de 2 ativos THEN o sistema SHALL cancelar a partida e devolver ao LOBBY — **substitui `ESCR-08`**, que usava 3
 3. `AJU-08` — WHEN o sorteio ocorre com exatamente 2 jogadores THEN o sistema SHALL produzir o ciclo A→B→A, sem ponto fixo
+4. `AJU-34` — WHEN a interface precisa do mínimo de jogadores THEN o sistema SHALL obtê-lo do contrato compartilhado, e SHALL NOT repetir o número no cliente — a duplicação é o que fez o servidor aceitar 2 enquanto a tela continuava exigindo 3
 
 **Independent Test**: Criar sala, entrar com 2 pessoas, iniciar e jogar até o fim.
 
@@ -203,7 +205,10 @@ Junto vieram quatro mudanças de regra que só a experiência revela: 3 jogadore
 | AJU-27 … AJU-30 | Cabeçalho e chat | estende `VIS-01`, `CHAT-04` | Pending |
 | AJU-31 … AJU-32 | Cronômetro | corrige `JOGO-07` | Pending |
 
-**32 requisitos.** O spec pai `quem-sou-eu/spec.md` é atualizado em conjunto: `HOST-01`, `ESCR-08`, `DESC-08`, `CFG-02`, `CFG-03`, `DESC-07` e `CHAT-01` passam a apontar para os ACs desta rodada.
+| AJU-33 | Voltar para a sala sozinho | fecha buraco de `AJU-01` | Pending |
+| AJU-34 | Jogar em dois | fecha buraco de `AJU-06` | Pending |
+
+**34 requisitos.** `AJU-33` e `AJU-34` nasceram durante o Execute: a metade de servidor de `AJU-01` e `AJU-06` foi entregue e a metade de interface não tinha task, então o comportamento não chegava ao usuário. O spec pai `quem-sou-eu/spec.md` é atualizado em conjunto: `HOST-01`, `ESCR-08`, `DESC-08`, `CFG-02`, `CFG-03`, `DESC-07` e `CHAT-01` passam a apontar para os ACs desta rodada.
 
 ---
 
