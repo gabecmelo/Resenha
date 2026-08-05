@@ -61,27 +61,6 @@ npm run build       # bundle do front e do Worker
 Os testes de integração sobem Durable Objects reais e exercitam hibernação, alarme e
 persistência — por isso demoram bem mais que os unitários.
 
-## Publicando na Cloudflare
-
-```bash
-npx wrangler login   # uma vez, na máquina
-npm run deploy:dry   # confere o bundle e os bindings sem publicar
-npm run deploy       # publica front e Worker num comando
-```
-
-`npm run deploy` roda o build e entrega o Worker junto com os assets estáticos, usando
-a configuração que o plugin da Cloudflare gera em `dist/resenha/wrangler.json`.
-
-> **Atenção antes da primeira publicação.** A migração em `wrangler.jsonc` usa
-> `new_sqlite_classes`, e **o tipo de storage do namespace é imutável**. Trocar por
-> `new_classes` cria o namespace com o storage legado de chave-valor — irreversível e
-> indisponível no plano free. Corrigir depois exigiria recriar o namespace com outro
-> nome de classe, perdendo as salas existentes.
-
-Depois de publicar, o domínio é o `*.workers.dev` do Worker (ou o domínio próprio que
-você associar a ele). Nenhuma variável de ambiente ou segredo é necessário: todo o
-estado vive dentro do Durable Object da sala.
-
 ## Limpeza automática de salas
 
 Não há banco de dados nem rotina de manutenção. As salas se destroem sozinhas:
@@ -90,3 +69,7 @@ Não há banco de dados nem rotina de manutenção. As salas se destroem sozinha
 - 6 horas sem nenhuma ação de jogador, mesmo com sockets abertos.
 
 Depois disso o código volta a ficar livre.
+
+## Publicar
+
+Instruções de publicação e de teste em rede local estão em [`docs/DEPLOY.md`](docs/DEPLOY.md).

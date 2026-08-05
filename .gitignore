@@ -2,6 +2,13 @@ node_modules/
 dist/
 .wrangler/
 *.tsbuildinfo
+
+# Gerado por `wrangler types` a partir do wrangler.jsonc — recriado no postinstall.
+worker-configuration.d.ts
+
+# Export do Claude Design (mocks e capturas). Fonte de verdade visual durante a
+# construção, mas pesa 6 MB e não é necessário para rodar nem entender o projeto.
+design/
 .env
 .env.*
 !.env.example
