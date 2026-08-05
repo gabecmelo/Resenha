@@ -12,8 +12,8 @@ import { embaralhar, sortearAlvos } from './sorteio'
 
 /** `ESCR-03` */
 export const CARTA_MAX_CARACTERES = 60
-/** `HOST-01`, `ESCR-08` — abaixo disso não há partida de "Quem Sou Eu?". */
-export const MIN_JOGADORES = 3
+/** `AJU-06`, `AJU-07` — abaixo disso não há partida de "Quem Sou Eu?". */
+export const MIN_JOGADORES = 2
 
 /** `DESC-01` — o confirmador não é guardado: `DESC-03` fala em "conectados", que muda. */
 export interface Declaracao {
@@ -80,8 +80,8 @@ export function estadoVazio(): EstadoQuemSouEu {
 }
 
 /**
- * `ESCR-01`, `HOST-01` — sorteia os alvos entre os jogadores ativos.
- * Recusa abaixo de 3 ativos; jogadores `aguardando` ficam de fora (`SALA-10`).
+ * `ESCR-01`, `AJU-06` — sorteia os alvos entre os jogadores ativos.
+ * Recusa abaixo de 2 ativos; jogadores `aguardando` ficam de fora (`SALA-10`).
  */
 export function iniciarRodada(
   jogadores: Jogador[],

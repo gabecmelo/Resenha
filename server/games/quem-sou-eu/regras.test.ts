@@ -81,11 +81,25 @@ function emJogo(over: Partial<ContextoDeSala> = {}) {
 
 // ---------------------------------------------------------------------------
 
-describe('iniciarRodada (ESCR-01, HOST-01)', () => {
-  it('recusa iniciar com menos de 3 jogadores ativos', () => {
-    const resultado = iniciarRodada([jogador('a'), jogador('b')], AMBIENTE)
+describe('iniciarRodada (ESCR-01, AJU-06, AJU-08)', () => {
+  it('recusa iniciar com apenas 1 jogador ativo', () => {
+    const resultado = iniciarRodada([jogador('a')], AMBIENTE)
 
     expect(resultado).toEqual({ ok: false, erro: 'JOGADORES_INSUFICIENTES' })
+  })
+
+  it('aceita iniciar com exatamente 2 jogadores ativos (AJU-06)', () => {
+    const estado = rodadaDe([jogador('a'), jogador('b')])
+
+    expect(Object.keys(estado.atribuicoes).sort()).toEqual(['a', 'b'])
+  })
+
+  it('produz o ciclo A→B→A com exatamente 2 jogadores, sem ponto fixo (AJU-08)', () => {
+    for (let i = 0; i < 200; i += 1) {
+      const estado = rodadaDe([jogador('a'), jogador('b')])
+
+      expect(estado.atribuicoes).toEqual({ a: 'b', b: 'a' })
+    }
   })
 
   it('aceita iniciar com exatamente 3 jogadores ativos', () => {
@@ -118,9 +132,9 @@ describe('iniciarRodada (ESCR-01, HOST-01)', () => {
     expect(Object.values(estado.atribuicoes)).not.toContain('d')
   })
 
-  it('recusa quando os ativos são menos de 3, mesmo com jogadores aguardando na sala', () => {
+  it('recusa quando os ativos são menos de 2, mesmo com jogadores aguardando na sala', () => {
     const resultado = iniciarRodada(
-      [jogador('a'), jogador('b'), jogador('c', 'aguardando')],
+      [jogador('a'), jogador('b', 'aguardando'), jogador('c', 'aguardando')],
       AMBIENTE,
     )
 
@@ -337,6 +351,19 @@ describe('comecar (ESCR-06, HOST-06)', () => {
     expect(resultado).toEqual({ ok: false, erro: 'SEM_AUTORIDADE' })
   })
 
+  it('leva ao jogo uma partida de 2 jogadores (AJU-06)', () => {
+    const jogadores = [jogador('a'), jogador('b')]
+    const contexto = ctx({ jogadores, config: { ...CONFIG_PADRAO, ordemTurnos: 'entrada' } })
+    const pronto = todosEscrevemEProntos(rodadaDe(jogadores), contexto)
+
+    const resultado = reduzirOk(pronto, contexto, { t: 'comecar' })
+
+    expect({ fase: resultado.faseSeguinte, ordem: resultado.estado.ordem }).toEqual({
+      fase: 'jogo',
+      ordem: ['a', 'b'],
+    })
+  })
+
   it('não exige PRONTO de quem está aguardando', () => {
     const jogadores = [jogador('a'), jogador('b'), jogador('c'), jogador('d', 'aguardando')]
     const contexto = ctx({ jogadores })
@@ -428,7 +455,7 @@ describe('saída de jogador durante a escrita (ESCR-07, ESCR-08)', () => {
     expect(resultado.estado.prontos).toEqual([])
   })
 
-  it('cancela a partida e volta ao lobby quando sobram menos de 3 ativos', () => {
+  it('redistribui, sem cancelar, quando ainda sobram 2 ativos (AJU-07)', () => {
     const trio = ctx().jogadores
     const pronto = todosEscrevemEProntos(rodadaDe(trio), ctx())
     const restantes = [jogador('a'), jogador('b')]
@@ -441,9 +468,25 @@ describe('saída de jogador durante a escrita (ESCR-07, ESCR-08)', () => {
     expect({
       fase: resultado.faseSeguinte,
       atribuicoes: resultado.estado.atribuicoes,
+    }).toEqual({ fase: undefined, atribuicoes: { a: 'b', b: 'a' } })
+  })
+
+  it('cancela a partida e volta ao lobby quando sobram menos de 2 ativos (AJU-07)', () => {
+    const trio = ctx().jogadores
+    const pronto = todosEscrevemEProntos(rodadaDe(trio), ctx())
+    const restantes = [jogador('a')]
+
+    const resultado = reduzirOk(pronto, ctx({ jogadores: restantes }), {
+      t: 'saiuJogador',
+      jogadorId: 'c',
+    })
+
+    expect({
+      fase: resultado.faseSeguinte,
+      atribuicoes: resultado.estado.atribuicoes,
       cartas: resultado.estado.cartas,
       minimo: MIN_JOGADORES,
-    }).toEqual({ fase: 'lobby', atribuicoes: {}, cartas: {}, minimo: 3 })
+    }).toEqual({ fase: 'lobby', atribuicoes: {}, cartas: {}, minimo: 2 })
   })
 
   it('anuncia a redistribuição no chat (CHAT-03)', () => {
