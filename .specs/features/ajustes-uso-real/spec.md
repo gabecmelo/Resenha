@@ -121,6 +121,25 @@ Junto vieram quatro mudanças de regra que só a experiência revela: 3 jogadore
 
 ---
 
+### P1: O host define o tamanho da sala ⭐
+
+**User Story**: Como quem cria a sala, quero definir quantas pessoas cabem, para fechar a sala no tamanho que o grupo combinou.
+
+**Why P1**: Hoje o teto é fixo em 20 para todo mundo. Um grupo de 5 não tem como impedir que a sala aceite mais gente.
+
+**Acceptance Criteria**:
+
+1. `AJU-35` — WHEN um visitante cria uma sala THEN o sistema SHALL permitir escolher o limite máximo de jogadores, entre o mínimo da partida e 20
+2. `AJU-36` — WHEN a tela de criação é exibida THEN o sistema SHALL já trazer o limite preenchido com o padrão de 20, de modo que quem não quiser mexer crie a sala sem nenhum passo a mais
+3. `AJU-37` — WHEN a sala atinge o limite escolhido THEN o sistema SHALL recusar novas entradas informando que a sala está cheia — **substitui o teto fixo de `SALA-05`**, que valia 20 para todas as salas
+4. `AJU-38` — WHEN o limite informado não é inteiro ou está fora da faixa permitida THEN o sistema SHALL recusar a criação da sala
+5. `AJU-39` — WHEN a lotação é exibida THEN o sistema SHALL mostrar o limite **daquela sala**, não o teto global
+6. `AJU-40` — WHEN uma sala já existe THEN o sistema SHALL NOT permitir alterar o limite dela — a escolha vale para a sala inteira, feita na criação
+
+**Independent Test**: Criar sala com limite 3, entrar com 3 pessoas e ver a quarta receber "sala cheia".
+
+---
+
 ### P2: Configurações que fazem sentido
 
 **User Story**: Como host, quero definir qualquer tempo por turno e não quero uma opção que não uso, para a configuração refletir como o grupo joga.
@@ -207,8 +226,9 @@ Junto vieram quatro mudanças de regra que só a experiência revela: 3 jogadore
 
 | AJU-33 | Voltar para a sala sozinho | fecha buraco de `AJU-01` | Pending |
 | AJU-34 | Jogar em dois | fecha buraco de `AJU-06` | Pending |
+| AJU-35 … AJU-40 | O host define o tamanho da sala | **substitui** `SALA-05` | Pending |
 
-**34 requisitos.** `AJU-33` e `AJU-34` nasceram durante o Execute: a metade de servidor de `AJU-01` e `AJU-06` foi entregue e a metade de interface não tinha task, então o comportamento não chegava ao usuário. O spec pai `quem-sou-eu/spec.md` é atualizado em conjunto: `HOST-01`, `ESCR-08`, `DESC-08`, `CFG-02`, `CFG-03`, `DESC-07` e `CHAT-01` passam a apontar para os ACs desta rodada.
+**40 requisitos.** `AJU-33` e `AJU-34` nasceram durante o Execute: a metade de servidor de `AJU-01` e `AJU-06` foi entregue e a metade de interface não tinha task, então o comportamento não chegava ao usuário. O spec pai `quem-sou-eu/spec.md` é atualizado em conjunto: `HOST-01`, `ESCR-08`, `DESC-08`, `CFG-02`, `CFG-03`, `DESC-07` e `CHAT-01` passam a apontar para os ACs desta rodada.
 
 ---
 

@@ -102,7 +102,7 @@ Referência normativa para os requisitos abaixo.
 2. `SALA-02` — WHEN um visitante abre o link de uma sala existente THEN o sistema SHALL pedir apenas um apelido antes de entrar
 3. `SALA-03` — WHEN um visitante informa um apelido com menos de 2 ou mais de 16 caracteres THEN o sistema SHALL recusar a entrada e exibir o motivo
 4. `SALA-04` — WHEN um visitante informa um apelido já usado por um jogador presente na sala, comparando **sem distinguir maiúsculas de minúsculas** e ignorando espaços nas pontas, THEN o sistema SHALL recusar a entrada e exibir "esse apelido já está na sala"
-5. `SALA-05` — WHEN um visitante tenta entrar em uma sala que já tem 20 jogadores THEN o sistema SHALL recusar a entrada e exibir que a sala está cheia
+5. `SALA-05` — ⚠️ **substituído por `AJU-37`** (o limite passou a ser escolhido pelo host na criação, entre o mínimo e 20) — WHEN um visitante tenta entrar em uma sala que já atingiu **o limite daquela sala** THEN o sistema SHALL recusar a entrada e exibir que a sala está cheia
 6. `SALA-06` — WHEN um visitante tenta entrar com um código que não corresponde a nenhuma sala viva THEN o sistema SHALL exibir "sala não encontrada" e oferecer criar uma nova
 7. `SALA-07` — WHEN um jogador entra na sala THEN o sistema SHALL atribuir a ele uma cor ainda não usada na sala e exibir essa cor consistentemente na lista de jogadores, nas cartas e no chat
 8. `SALA-08` — WHEN um jogador está na sala THEN o sistema SHALL exibir o código da sala e um botão que copia o link de convite

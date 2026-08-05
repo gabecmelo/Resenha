@@ -415,6 +415,47 @@ T11 → T12 → T13 → T14 → T15
 
 ---
 
+### T18: Limite de jogadores por sala — servidor
+
+**What**: A sala passa a guardar o próprio limite, escolhido na criação, em vez de usar o teto global.
+**Where**: `shared/protocolo.ts`, `server/core/roster.ts`, `server/core/sala-do.ts`, `server/index.ts`
+**Depends on**: T17
+**Requirement**: `AJU-35`, `AJU-37`, `AJU-38`, `AJU-40`
+
+**Done when**:
+- [ ] `EstadoSala` guarda o limite da sala; `POST /api/salas` aceita o valor na criação
+- [ ] `roster.entrar` usa o limite **da sala**, não a constante global
+- [ ] Limite fora da faixa (menor que o mínimo da partida, maior que 20), não inteiro ou ausente na criação é tratado: ausente aplica o padrão 20, inválido **recusa a criação**
+- [ ] Entrar numa sala já no limite devolve "sala cheia", com o limite da sala
+- [ ] Não existe caminho que altere o limite de uma sala já criada (`AJU-40`)
+- [ ] Quem já tem vaga continua reconectando mesmo com a sala no limite (`CONN-02` preservado)
+- [ ] Gate: `npm run test:unit && npm run test:integration`
+
+**Tests**: integration · **Gate**: full
+**Commit**: `feat(core): limite de jogadores definido na criacao da sala`
+
+---
+
+### T19: Limite de jogadores por sala — tela de criação
+
+**What**: Campo na criação da sala, já preenchido com o padrão.
+**Where**: `client/src/telas/Inicio.tsx`, `client/src/componentes/` conforme necessário
+**Depends on**: T18
+**Requirement**: `AJU-35`, `AJU-36`, `AJU-38`, `AJU-39`
+
+**Done when**:
+- [ ] A tela de criar sala tem o campo de limite **já preenchido com 20** — criar sem tocar nele continua sendo duas interações
+- [ ] A faixa oferecida vai do mínimo da partida até 20, usando as constantes do contrato — **sem number mágico**
+- [ ] Valor fora da faixa é impedido no campo, e o servidor continua recusando
+- [ ] A lotação exibida na sala usa o limite daquela sala (ex.: `3/6`)
+- [ ] Verificado no navegador: criar sala com limite 3, entrar com 3 e ver a quarta pessoa receber "sala cheia"
+- [ ] Gate: build
+
+**Tests**: none · **Gate**: build
+**Commit**: `feat(client): permite escolher o limite da sala na criacao`
+
+---
+
 ## Phase Execution Map
 
 ```
