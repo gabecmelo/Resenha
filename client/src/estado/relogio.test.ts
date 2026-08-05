@@ -31,6 +31,37 @@ describe('restanteAte', () => {
   })
 })
 
+describe('restanteAte — teto da duração do turno (AJU-31)', () => {
+  it('não devolve mais que o turno configurado quando o relógio do cliente atrasa', () => {
+    // Vencimento daqui a 31s num turno de 30s: o cliente está 1s atrás do servidor.
+    expect(restanteAte(1_000_031_000, 1_000_000_000, 30)).toBe(30_000)
+  })
+
+  it('num turno de 30s nunca exibe 0:31', () => {
+    const restante = restanteAte(1_000_030_400, 1_000_000_000, 30)
+
+    expect(formatarTempo(restante ?? 0)).toBe('0:30')
+  })
+
+  it('não mexe no restante que já cabe no turno', () => {
+    expect(restanteAte(1_000_012_000, 1_000_000_000, 30)).toBe(12_000)
+  })
+
+  it('preserva o comportamento sem duração configurada', () => {
+    expect(restanteAte(1_000_031_000, 1_000_000_000, null)).toBe(31_000)
+  })
+
+  it('continua devolvendo null sem prazo, mesmo com duração configurada', () => {
+    expect(restanteAte(null, 1_000_000_000, 30)).toBeNull()
+  })
+
+  it('não antecipa o vencimento: o último segundo do turno segue valendo (AJU-32)', () => {
+    const restante = restanteAte(1_000_000_001, 1_000_000_000, 30)
+
+    expect(formatarTempo(restante ?? 0)).toBe('0:01')
+  })
+})
+
 describe('formatarTempo', () => {
   it('escreve minuto e segundo com dois dígitos', () => {
     expect(formatarTempo(42_000)).toBe('0:42')
@@ -41,7 +72,12 @@ describe('formatarTempo', () => {
     expect(formatarTempo(500)).toBe('0:01')
   })
 
-  it('zero é 0:00', () => {
+  it('exibe 0:01 até o vencimento, mesmo com 1 ms de sobra (AJU-32)', () => {
+    expect(formatarTempo(1)).toBe('0:01')
+    expect(formatarTempo(999)).toBe('0:01')
+  })
+
+  it('zero é 0:00 — e só com restante zero (AJU-32)', () => {
     expect(formatarTempo(0)).toBe('0:00')
   })
 

@@ -39,7 +39,7 @@ export function IndicadorDeVez({
   prazoTurno,
   duracaoSeg,
 }: PropsDoIndicador) {
-  const restante = useRestante(prazoTurno)
+  const restante = useRestante(prazoTurno, duracaoSeg)
   const acabando = ehSuaVez && estaAcabando(restante)
 
   return (
@@ -138,8 +138,11 @@ export function IndicadorDeVez({
  * O tique é mais rápido que o segundo mostrado de propósito: o prazo pode mudar
  * a qualquer momento (a vez passou, alguém reconectou) e meio segundo de atraso
  * na primeira leitura já não aparece na tela.
+ *
+ * `AJU-31` — a duração entra na conta como teto: sem ela, um relógio de cliente
+ * atrasado faria um turno de 30s começar em `0:31`.
  */
-function useRestante(prazoTurno: number | null): number | null {
+function useRestante(prazoTurno: number | null, duracaoSeg: number | null): number | null {
   const [agora, setAgora] = useState(() => Date.now())
 
   useEffect(() => {
@@ -148,5 +151,5 @@ function useRestante(prazoTurno: number | null): number | null {
     return () => clearInterval(relogio)
   }, [prazoTurno])
 
-  return restanteAte(prazoTurno, agora)
+  return restanteAte(prazoTurno, agora, duracaoSeg)
 }

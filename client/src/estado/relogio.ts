@@ -18,10 +18,21 @@ export const ACABANDO_MS = 10_000
  *
  * Nunca devolve negativo: prazo vencido é zero, porque quem avança a vez é o
  * servidor e a tela não deve antecipar isso contando para trás.
+ *
+ * `AJU-31` — nunca devolve mais que a duração do turno. A projeção manda o
+ * instante absoluto de vencimento, e não quantos segundos faltam: qualquer
+ * defasagem do relógio do cliente para o do servidor faz a conta passar de N
+ * segundos, e o arredondamento para cima exibe N+1 num turno de N. O teto é a
+ * correção; trocar o arredondamento quebraria `AJU-32`.
  */
-export function restanteAte(prazoTurno: number | null, agora: number): number | null {
+export function restanteAte(
+  prazoTurno: number | null,
+  agora: number,
+  duracaoSeg: number | null = null,
+): number | null {
   if (prazoTurno === null) return null
-  return Math.max(prazoTurno - agora, 0)
+  const restante = Math.max(prazoTurno - agora, 0)
+  return duracaoSeg === null ? restante : Math.min(restante, duracaoSeg * 1000)
 }
 
 /** `m:ss`, arredondando para cima — "0:01" ainda é um segundo de jogo. */
