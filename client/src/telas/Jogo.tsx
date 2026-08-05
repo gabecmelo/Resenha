@@ -40,6 +40,9 @@ export function Jogo({ projecao, enviar, aoSair }: PropsDaTela) {
   const minhaFicha = jogadores.find((jogador) => jogador.id === eu.id)
   const ehMinhaVez = jogo?.vezDe === eu.id
   const compacta = ativos.length > MESA_CHEIA
+  // `AJU-12` — quem está no rodízio vem na projeção; a tela não recalcula regra
+  // nenhuma (AD-008). Sobrando um, não há para quem passar a vez.
+  const sozinhoNoRodizio = jogo !== undefined && jogo.ordem.length === 1
 
   const minhaLinha = useRef<HTMLLIElement>(null)
   const [confirmandoEncerrar, setConfirmandoEncerrar] = useState(false)
@@ -123,6 +126,7 @@ export function Jogo({ projecao, enviar, aoSair }: PropsDaTela) {
                 apelidoDeQuemDeclarou={souDeclarante ? undefined : declarante?.apelido}
                 ehMinhaVez={ehMinhaVez}
                 semRelogio={sala.config.tempoTurnoSeg === null}
+                sozinhoNoRodizio={sozinhoNoRodizio}
                 souHost={eu.ehHost}
                 apelidoDaVez={daVez?.apelido}
                 enviar={enviar}
@@ -225,13 +229,19 @@ function Mesa({
   )
 }
 
-/** `JOGO-04`, `JOGO-05`, `DESC-01`, `FIM-01` — o que dá para fazer agora. */
+/**
+ * `JOGO-04`, `JOGO-05`, `DESC-01`, `FIM-01` — o que dá para fazer agora.
+ *
+ * `AJU-12` — restando um no rodízio, passar e pular a vez somem: passar a vez
+ * para si mesmo é operação sem efeito, e o servidor já ignora o avanço.
+ */
 function Acoes({
   jaDescobriu,
   souDeclarante,
   apelidoDeQuemDeclarou,
   ehMinhaVez,
   semRelogio,
+  sozinhoNoRodizio,
   souHost,
   apelidoDaVez,
   enviar,
@@ -242,6 +252,7 @@ function Acoes({
   apelidoDeQuemDeclarou: string | undefined
   ehMinhaVez: boolean
   semRelogio: boolean
+  sozinhoNoRodizio: boolean
   souHost: boolean
   apelidoDaVez: string | undefined
   enviar: PropsDaTela['enviar']
@@ -271,7 +282,7 @@ function Acoes({
         ))}
 
       {/* `JOGO-04` — passar a vez é de quem está na vez. */}
-      {ehMinhaVez && (
+      {ehMinhaVez && !sozinhoNoRodizio && (
         <Botao larguraTotal variante="secundario" onClick={() => enviar({ t: 'passarVez' })}>
           Passei a vez
         </Botao>
@@ -280,17 +291,19 @@ function Acoes({
       <p className="text-[12px] leading-snug text-texto-3">
         {jaDescobriu
           ? 'Você já descobriu. Fique na mesa e responda as perguntas dos outros — sem entregar nada.'
-          : ehMinhaVez
-            ? semRelogio
-              ? 'Sem relógio, a vez só passa quando você passar.'
-              : 'Fale o palpite em voz alta antes de clicar em Descobri!.'
-            : 'Responda em voz alta quando a pergunta vier. Declarar não depende da sua vez.'}
+          : sozinhoNoRodizio && ehMinhaVez
+            ? 'Você é o último sem descobrir. A vez é sua até declarar, sem relógio e sem passar.'
+            : ehMinhaVez
+              ? semRelogio
+                ? 'Sem relógio, a vez só passa quando você passar.'
+                : 'Fale o palpite em voz alta antes de clicar em Descobri!.'
+              : 'Responda em voz alta quando a pergunta vier. Declarar não depende da sua vez.'}
       </p>
 
       {/* `VIS-04` — ação de host não existe na tela de quem não é host. */}
       {souHost && (
         <div className="mt-1 flex flex-col gap-2.5 border-t border-linha pt-4">
-          {apelidoDaVez !== undefined && !ehMinhaVez && (
+          {apelidoDaVez !== undefined && !ehMinhaVez && !sozinhoNoRodizio && (
             <Botao larguraTotal variante="secundario" onClick={() => enviar({ t: 'pularVez' })}>
               Pular a vez de {apelidoDaVez}
             </Botao>
