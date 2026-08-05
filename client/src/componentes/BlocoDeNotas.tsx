@@ -1,6 +1,12 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import {
+  chegouDoServidor,
+  criarEnvioAdiado,
+  digitou,
+  rascunhoDoServidor,
+} from '../estado/notas'
 
-/** `NOTA-01` — acima disso o servidor recusa; o campo para antes de chegar lá. */
+/** `NOTA-01`, `AJU-26` — o campo para no limite; o servidor continua validando. */
 const LIMITE_DE_NOTAS = 2000
 
 export interface PropsDoBloco {
@@ -13,10 +19,30 @@ export interface PropsDoBloco {
  *
  * Só o dono vê — a projeção nunca traz as notas de outra pessoa. Começa
  * recolhido para não disputar espaço com a mesa em 360px.
+ *
+ * `AJU-22`…`AJU-25` — o que se digita é estado local: aparece na hora, sai para
+ * o servidor depois da pausa e não é sobrescrito pela projeção enquanto o campo
+ * está em edição.
  */
 export function BlocoDeNotas({ texto, aoMudar }: PropsDoBloco) {
   const [aberto, setAberto] = useState(false)
-  const linhas = texto === '' ? 0 : texto.split('\n').length
+  const [rascunho, setRascunho] = useState(() => rascunhoDoServidor(texto))
+
+  // A projeção só entra quando o campo não está em edição. `chegouDoServidor`
+  // devolve o mesmo rascunho quando nada muda, o que fecha o ciclo.
+  const proximo = chegouDoServidor(rascunho, texto)
+  if (proximo !== rascunho) setRascunho(proximo)
+
+  const aoMudarRef = useRef(aoMudar)
+  useEffect(() => {
+    aoMudarRef.current = aoMudar
+  })
+
+  const envio = useMemo(() => criarEnvioAdiado(), [])
+  // Trocar de fase ou sair não pode engolir o que acabou de ser digitado.
+  useEffect(() => () => envio.liberar(aoMudarRef.current), [envio])
+
+  const linhas = proximo.texto === '' ? 0 : proximo.texto.split('\n').length
 
   if (!aberto) {
     return (
@@ -41,19 +67,26 @@ export function BlocoDeNotas({ texto, aoMudar }: PropsDoBloco) {
         </span>
         <button
           type="button"
-          onClick={() => setAberto(false)}
+          onClick={() => {
+            envio.liberar(aoMudar)
+            setAberto(false)
+          }}
           className="min-h-11 cursor-pointer text-miudo font-medium text-acento"
         >
           recolher
         </button>
       </div>
       <textarea
-        value={texto}
+        value={proximo.texto}
         rows={4}
         maxLength={LIMITE_DE_NOTAS}
         aria-label="Suas anotações"
         placeholder={'Anote o que já descobriu: “não é ator”, “está vivo”…'}
-        onChange={(evento) => aoMudar(evento.target.value)}
+        onChange={(evento) => {
+          setRascunho(digitou(evento.target.value))
+          envio.agendar(evento.target.value, aoMudar)
+        }}
+        onBlur={() => envio.liberar(aoMudar)}
         className="w-full resize-y bg-transparent text-[15px] leading-relaxed text-texto placeholder:text-texto-apagado focus:outline-none"
       />
       <span className="text-[12px] text-texto-3">só você vê · salvo</span>
