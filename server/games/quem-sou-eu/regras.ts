@@ -290,6 +290,12 @@ function comVezAvancada(
   ctx: ContextoDeSala,
   ambiente: Ambiente,
 ): ResultadoReducer<EstadoQuemSouEu> {
+  // `AJU-10`, `AJU-11`, `AJU-12` — restando um no rodízio não há para quem
+  // passar: a vez fica com ele e o prazo não corre.
+  if (estado.ordem.length <= 1) {
+    return { ok: true, estado, eventos: [], prazos: { turno: null } }
+  }
+
   const novo = clonar(estado)
   novo.vezDe = proximoDaOrdem(novo.ordem, novo.vezDe)
 
@@ -405,8 +411,8 @@ function responderDeclaracao(
     }
   }
 
-  // `DESC-08` — sem dois jogadores no rodízio não há partida; aplica `FIM-02`.
-  if (novo.ordem.length < 2) {
+  // `AJU-13` — o último do rodízio declarou: revela tudo e encerra (`FIM-02`).
+  if (novo.ordem.length === 0) {
     novo.reveladoParaTodos = true
     novo.vezDe = null
     return {
@@ -415,6 +421,18 @@ function responderDeclaracao(
       eventos: [{ texto: `${apelido} descobriu! A partida terminou.` }],
       prazos: { turno: null },
       faseSeguinte: 'encerrada',
+    }
+  }
+
+  // `AJU-09`, `AJU-10`, `AJU-11` — sobrou um: a partida segue com ele, a vez é
+  // dele e o prazo de turno é limpo.
+  if (novo.ordem.length === 1) {
+    novo.vezDe = novo.ordem[0]
+    return {
+      ok: true,
+      estado: novo,
+      eventos: [{ texto: `${apelido} descobriu!` }],
+      prazos: { turno: null },
     }
   }
 
@@ -568,11 +586,36 @@ function saiuJogador(
   if (novo.declaracaoPendente?.jogadorId === jogadorId) novo.declaracaoPendente = null
   if (posicao !== -1) novo.ordem.splice(posicao, 1)
 
+  // `AJU-14` — o rodízio ficou vazio: a partida não continua; aplica `FIM-02`.
+  if (novo.ordem.length === 0) {
+    novo.reveladoParaTodos = true
+    novo.vezDe = null
+    return {
+      ok: true,
+      estado: novo,
+      eventos: [{ texto: 'Não restou ninguém no rodízio. A partida foi encerrada.' }],
+      prazos: { turno: null },
+      faseSeguinte: 'encerrada',
+    }
+  }
+
+  // `AJU-10`, `AJU-11` — restou um: a vez é dele e o prazo de turno é limpo.
+  if (novo.ordem.length === 1) {
+    const trocou = novo.vezDe !== novo.ordem[0]
+    novo.vezDe = novo.ordem[0]
+    return {
+      ok: true,
+      estado: novo,
+      eventos: trocou ? [{ texto: `É a vez de ${apelidoDe(ctx, novo.vezDe)}.` }] : [],
+      prazos: { turno: null },
+    }
+  }
+
   if (estado.vezDe !== jogadorId) {
     return { ok: true, estado: novo, eventos: [], prazos: {} }
   }
 
-  novo.vezDe = novo.ordem.length === 0 ? null : novo.ordem[posicao % novo.ordem.length]
+  novo.vezDe = novo.ordem[posicao % novo.ordem.length]
   return {
     ok: true,
     estado: novo,

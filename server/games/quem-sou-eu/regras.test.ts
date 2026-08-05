@@ -1117,31 +1117,190 @@ describe('efeito de descobrir sobre o rodízio (DESC-06, DESC-08, AJU-18)', () =
     })
   })
 
-  it('encerra a partida quando o rodízio fica com menos de 2 jogadores', () => {
-    const { estado, contexto } = emJogo({ config: sai })
+  it('não encerra a partida enquanto restar mais de um no rodízio', () => {
+    const resultado = confirmadoPara('c')
+
+    expect({
+      fase: resultado.faseSeguinte,
+      revelado: resultado.estado.reveladoParaTodos,
+    }).toEqual({ fase: undefined, revelado: false })
+  })
+})
+
+// ---------------------------------------------------------------------------
+// `AJU-09`…`AJU-14` substituem `DESC-08`: a partida não encerra mais sozinha
+// quando sobra um jogador no rodízio.
+// ---------------------------------------------------------------------------
+
+describe('o último do rodízio continua jogando (AJU-09, AJU-10, AJU-11, AJU-13)', () => {
+  const comTempo = { ...CONFIG_PADRAO, ordemTurnos: 'entrada' as const, tempoTurnoSeg: 30 }
+
+  /** Trio em jogo com `b` e `c` já confirmados: só `a` continua no rodízio. */
+  function soRestaA() {
+    const { estado, contexto } = emJogo({ config: comTempo })
+    let atual = estado
+    let ultima = null as ReturnType<typeof reduzirOk> | null
+    for (const id of ['b', 'c']) {
+      const pendente = reduzirOk(atual, { ...contexto, autorId: id }, {
+        t: 'declararDescobri',
+      }).estado
+      ultima = reduzirOk(pendente, { ...contexto, autorId: 'a' }, {
+        t: 'responderDeclaracao',
+        aceita: true,
+      })
+      atual = ultima.estado
+    }
+    if (ultima === null) throw new Error('nenhuma confirmação executada')
+    return { estado: atual, contexto, ultima }
+  }
+
+  it('mantém a partida em JOGO quando a confirmação deixa exatamente um (AJU-09)', () => {
+    const { estado, ultima } = soRestaA()
+
+    expect({
+      fase: ultima.faseSeguinte,
+      revelado: estado.reveladoParaTodos,
+      ordem: estado.ordem,
+      vezDe: estado.vezDe,
+    }).toEqual({ fase: undefined, revelado: false, ordem: ['a'], vezDe: 'a' })
+  })
+
+  it('limpa o prazo de turno na confirmação que deixa um só (AJU-11)', () => {
+    const { ultima } = soRestaA()
+
+    expect(ultima.prazos).toEqual({ turno: null })
+  })
+
+  it('não avança o rodízio quando o último passa a vez (AJU-10, AJU-11)', () => {
+    const { estado, contexto } = soRestaA()
+
+    const resultado = reduzirOk(estado, { ...contexto, autorId: 'a' }, { t: 'passarVez' })
+
+    expect({
+      vezDe: resultado.estado.vezDe,
+      ordem: resultado.estado.ordem,
+      prazos: resultado.prazos,
+    }).toEqual({ vezDe: 'a', ordem: ['a'], prazos: { turno: null } })
+  })
+
+  it('não avança nem reagenda quando o host pula a vez do último (AJU-10, AJU-12)', () => {
+    const { estado, contexto } = soRestaA()
+
+    const resultado = reduzirOk(estado, { ...contexto, autorId: 'a' }, { t: 'pularVez' })
+
+    expect({ vezDe: resultado.estado.vezDe, prazos: resultado.prazos }).toEqual({
+      vezDe: 'a',
+      prazos: { turno: null },
+    })
+  })
+
+  it('não avança nem reagenda quando o prazo de turno vence com um só (AJU-10, AJU-11)', () => {
+    const { estado, contexto } = soRestaA()
+
+    const resultado = reduzirOk(estado, contexto, { t: 'venceuPrazoTurno' })
+
+    expect({ vezDe: resultado.estado.vezDe, prazos: resultado.prazos }).toEqual({
+      vezDe: 'a',
+      prazos: { turno: null },
+    })
+  })
+
+  it('revela todas as cartas e encerra quando o último declara e é confirmado (AJU-13)', () => {
+    const { estado, contexto } = soRestaA()
+    const pendente = reduzirOk(estado, { ...contexto, autorId: 'a' }, {
+      t: 'declararDescobri',
+    }).estado
+
+    const resultado = reduzirOk(pendente, { ...contexto, autorId: 'b' }, {
+      t: 'responderDeclaracao',
+      aceita: true,
+    })
+
+    expect({
+      fase: resultado.faseSeguinte,
+      revelado: resultado.estado.reveladoParaTodos,
+      ordem: resultado.estado.ordem,
+      vezDe: resultado.estado.vezDe,
+      prazos: resultado.prazos,
+    }).toEqual({
+      fase: 'encerrada',
+      revelado: true,
+      ordem: [],
+      vezDe: null,
+      prazos: { turno: null },
+    })
+  })
+
+  it('preserva o texto das cartas para a revelação final (AJU-13)', () => {
+    const { estado, contexto } = soRestaA()
+    const pendente = reduzirOk(estado, { ...contexto, autorId: 'a' }, {
+      t: 'declararDescobri',
+    }).estado
+
+    const resultado = reduzirOk(pendente, { ...contexto, autorId: 'b' }, {
+      t: 'responderDeclaracao',
+      aceita: true,
+    })
+
+    expect(resultado.estado.cartas).toEqual(estado.cartas)
+  })
+})
+
+describe('rodízio esvaziado por saída (AJU-14)', () => {
+  it('encerra a partida e revela tudo quando o último do rodízio sai da sala', () => {
+    const { estado, contexto } = emJogo()
     let atual = estado
     for (const id of ['b', 'c']) {
       const pendente = reduzirOk(atual, { ...contexto, autorId: id }, {
         t: 'declararDescobri',
       }).estado
-      const resposta = reduzirOk(pendente, { ...contexto, autorId: 'a' }, {
+      atual = reduzirOk(pendente, { ...contexto, autorId: 'a' }, {
         t: 'responderDeclaracao',
         aceita: true,
-      })
-      atual = resposta.estado
-      if (id === 'c') {
-        expect({
-          fase: resposta.faseSeguinte,
-          revelado: atual.reveladoParaTodos,
-          ordem: atual.ordem,
-          vezDe: atual.vezDe,
-        }).toEqual({ fase: 'encerrada', revelado: true, ordem: ['a'], vezDe: null })
-      } else {
-        expect(resposta.faseSeguinte).toBeUndefined()
-      }
+      }).estado
     }
+    // `b` e `c` seguem na sala: o rodízio esvazia sem que a sala esvazie.
+    const restantes = [jogador('b'), jogador('c')]
+
+    const resultado = reduzirOk(atual, ctx({ ...contexto, jogadores: restantes }), {
+      t: 'saiuJogador',
+      jogadorId: 'a',
+    })
+
+    expect({
+      fase: resultado.faseSeguinte,
+      revelado: resultado.estado.reveladoParaTodos,
+      ordem: resultado.estado.ordem,
+      vezDe: resultado.estado.vezDe,
+      prazos: resultado.prazos,
+    }).toEqual({
+      fase: 'encerrada',
+      revelado: true,
+      ordem: [],
+      vezDe: null,
+      prazos: { turno: null },
+    })
   })
 
+  it('passa a vez ao que restou e limpa o prazo quando o penúltimo sai (AJU-10, AJU-11)', () => {
+    const comTempo = { ...CONFIG_PADRAO, ordemTurnos: 'entrada' as const, tempoTurnoSeg: 30 }
+    const jogadores = [jogador('a'), jogador('b')]
+    const base = ctx({ jogadores, config: comTempo })
+    const pronto = todosEscrevemEProntos(rodadaDe(jogadores), base)
+    const { estado } = reduzirOk(pronto, base, { t: 'comecar' })
+
+    const resultado = reduzirOk(estado, ctx({ ...base, fase: 'jogo', jogadores: [jogador('b')] }), {
+      t: 'saiuJogador',
+      jogadorId: 'a',
+    })
+
+    expect({
+      fase: resultado.faseSeguinte,
+      ordem: resultado.estado.ordem,
+      vezDe: resultado.estado.vezDe,
+      prazos: resultado.prazos,
+    }).toEqual({ fase: undefined, ordem: ['b'], vezDe: 'b', prazos: { turno: null } })
+  })
 })
 
 describe('saída de jogador com declaração pendente (DESC-01)', () => {
