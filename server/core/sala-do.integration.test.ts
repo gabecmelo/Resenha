@@ -425,6 +425,157 @@ describe('robustez do socket', () => {
   })
 })
 
+/** Leva um grupo do lobby ao jogo, com as cartas escritas e o PRONTO marcado. */
+async function jogoCom(
+  nome: string,
+  apelidos: string[],
+  tempoTurnoSeg: number | null = null,
+): Promise<{ stub: DurableObjectStub; jogadores: Jogador[] }> {
+  const stub = await novaSala(nome)
+  const jogadores: Jogador[] = []
+  for (const apelido of apelidos) jogadores.push(await entrar(stub, apelido))
+  const host = jogadores[0]
+
+  if (tempoTurnoSeg !== null) {
+    mandar(host, { t: 'configurar', config: { tempoTurnoSeg } })
+    await assentar()
+  }
+
+  mandar(host, { t: 'iniciar' })
+  await assentar()
+  for (const jogador of jogadores) {
+    mandar(jogador, { t: 'escreverCarta', texto: `carta de ${jogador.jogadorId}` })
+    mandar(jogador, { t: 'marcarPronto', pronto: true })
+    await assentar()
+  }
+  mandar(host, { t: 'comecar' })
+  await assentar()
+
+  return { stub, jogadores }
+}
+
+/** "Descobri!" de `quem`, confirmado por `confirmador`. */
+async function descobre(quem: Jogador, confirmador: Jogador): Promise<void> {
+  mandar(quem, { t: 'declararDescobri' })
+  await assentar()
+  mandar(confirmador, { t: 'responderDeclaracao', aceita: true })
+  await assentar()
+}
+
+describe('partida em dois (`AJU-06`, `AJU-09`, `AJU-13`)', () => {
+  it('vai do lobby ao encerramento com apenas 2 jogadores', async () => {
+    const { stub, jogadores } = await jogoCom('DO-DOIS', ['Ana', 'Bruno'], 30)
+    const [ana, bruno] = jogadores
+    expect(ultimaProjecao(ana).sala.fase).toBe('jogo')
+    expect(ultimaProjecao(ana).jogo?.ordem).toHaveLength(2)
+
+    // `AJU-09` — com Bruno fora do rodízio, Ana continua jogando sozinha.
+    await descobre(bruno, ana)
+    const meio = ultimaProjecao(ana)
+    expect({
+      fase: meio.sala.fase,
+      ordem: meio.jogo?.ordem,
+      vezDe: meio.jogo?.vezDe,
+      prazoTurno: meio.jogo?.prazoTurno,
+    }).toEqual({
+      fase: 'jogo',
+      ordem: [ana.jogadorId],
+      vezDe: ana.jogadorId,
+      prazoTurno: null,
+    })
+    expect((await lerSala(stub))?.prazos.turno).toBeNull()
+
+    // `AJU-13` — a declaração da última revela tudo e encerra.
+    await descobre(ana, bruno)
+    const fim = ultimaProjecao(ana)
+    expect(fim.sala.fase).toBe('encerrada')
+    expect(fim.jogadores.every((j) => j.carta !== undefined)).toBe(true)
+    expect(ultimaProjecao(bruno).jogadores.every((j) => j.carta !== undefined)).toBe(true)
+    // A própria carta só existe no payload depois da revelação (`JOGO-02`).
+    expect(fim.eu.minhaCarta).toBe(fim.jogadores.find((j) => j.id === ana.jogadorId)?.carta)
+    expect(fim.eu.minhaCarta).toMatch(/^carta de /)
+  })
+})
+
+describe('o último do rodízio continua jogando (`AJU-09`, `AJU-11`, `AJU-13`)', () => {
+  it('mantém a vez e desliga o cronômetro quando os outros dois descobrem', async () => {
+    const { stub, jogadores } = await jogoCom('DO-ULTIMO', ['Ana', 'Bruno', 'Carla'], 30)
+    const [ana, bruno, carla] = jogadores
+    expect((await lerSala(stub))?.prazos.turno).not.toBeNull()
+
+    await descobre(bruno, ana)
+    await descobre(carla, ana)
+
+    const depois = ultimaProjecao(ana)
+    expect({
+      fase: depois.sala.fase,
+      ordem: depois.jogo?.ordem,
+      vezDe: depois.jogo?.vezDe,
+      prazoTurno: depois.jogo?.prazoTurno,
+    }).toEqual({
+      fase: 'jogo',
+      ordem: [ana.jogadorId],
+      vezDe: ana.jogadorId,
+      prazoTurno: null,
+    })
+    expect((await lerSala(stub))?.prazos.turno).toBeNull()
+  })
+
+  it('revela todas as cartas a todos e move a sala para encerrada (`AJU-13`)', async () => {
+    const { jogadores } = await jogoCom('DO-ULTIMO-FIM', ['Ana', 'Bruno', 'Carla'], 30)
+    const [ana, bruno, carla] = jogadores
+    await descobre(bruno, ana)
+    await descobre(carla, ana)
+
+    await descobre(ana, bruno)
+
+    for (const jogador of [ana, bruno, carla]) {
+      const projecao = ultimaProjecao(jogador)
+      expect({
+        de: jogador.jogadorId,
+        fase: projecao.sala.fase,
+        cartas: projecao.jogadores.filter((j) => j.carta !== undefined).length,
+        // `FIM-02` — a própria carta passa a existir no payload de quem a recebe.
+        minhaCarta: projecao.eu.minhaCarta,
+      }).toEqual({
+        de: jogador.jogadorId,
+        fase: 'encerrada',
+        cartas: 3,
+        minhaCarta: projecao.jogadores.find((j) => j.id === jogador.jogadorId)?.carta,
+      })
+      expect(projecao.eu.minhaCarta).toMatch(/^carta de /)
+    }
+  })
+})
+
+describe('o chat preserva o autor que saiu (`AJU-16`)', () => {
+  it('mantém apelido e cor da mensagem depois de o autor deixar a sala', async () => {
+    const stub = await novaSala('DO-CHAT-AUTOR')
+    const ana = await entrar(stub, 'Ana')
+    const bruno = await entrar(stub, 'Bruno')
+    await assentar()
+    const corDeBruno = ultimaProjecao(ana).jogadores.find((j) => j.id === bruno.jogadorId)?.cor
+
+    mandar(bruno, { t: 'chat', texto: 'até mais' })
+    await assentar()
+    mandar(bruno, { t: 'sair' })
+    await assentar()
+
+    const visao = ultimaProjecao(ana)
+    // Controle: o autor não está mais na lista, então o apelido só pode vir da
+    // própria mensagem.
+    expect(visao.jogadores.map((j) => j.id)).toEqual([ana.jogadorId])
+    expect(visao.chat.find((m) => m.texto === 'até mais')).toEqual({
+      tipo: 'jogador',
+      autorId: bruno.jogadorId,
+      apelido: 'Bruno',
+      cor: corDeBruno,
+      texto: 'até mais',
+      em: expect.any(Number),
+    })
+  })
+})
+
 describe('limite de taxa do chat (`CHAT-02`)', () => {
   it('avisa apenas o autor quando descarta a mensagem excedente', async () => {
     const stub = await novaSala('DO-CHAT-TAXA')
