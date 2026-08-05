@@ -121,7 +121,7 @@ Referência normativa para os requisitos abaixo.
 
 **Acceptance Criteria**:
 
-1. `HOST-01` — WHEN a sala está em LOBBY com no mínimo 3 jogadores ativos THEN o sistema SHALL habilitar ao host a ação "Iniciar"; com menos de 3, SHALL manter a ação desabilitada e informar o mínimo
+1. `HOST-01` — ⚠️ **substituído por `AJU-06`** (mínimo passou de 3 para 2 jogadores ativos) — WHEN a sala está em LOBBY com no mínimo 2 jogadores ativos THEN o sistema SHALL habilitar ao host a ação "Iniciar"; com menos de 2, SHALL manter a ação desabilitada e informar o mínimo
 2. `HOST-02` — WHEN o host aciona "Expulsar" sobre um jogador THEN o sistema SHALL removê-lo da sala imediatamente e SHALL impedir que ele entre novamente na mesma sala com o mesmo token de sessão
 3. `HOST-03` — WHEN o host transfere o comando a outro jogador THEN o sistema SHALL torná-lo host e remover os poderes do anterior, sem interromper a partida
 4. `HOST-04` — WHEN o host está desconectado há 30 segundos ininterruptos THEN o sistema SHALL transferir o comando automaticamente ao jogador que está **na sala** há mais tempo entre os conectados (antiguidade de entrada, preservada por quem caiu e voltou) e SHALL anunciar a troca a todos
@@ -148,7 +148,7 @@ Referência normativa para os requisitos abaixo.
 5. `ESCR-05` — WHEN um jogador que já marcou PRONTO desmarca THEN o sistema SHALL permitir editar a carta e marcar PRONTO novamente, enquanto a sala estiver em ESCRITA; WHEN ele tenta editar a carta **sem** desmarcar THEN o sistema SHALL recusar a edição
 6. `ESCR-06` — WHEN todos os jogadores ativos estão PRONTO THEN o sistema SHALL habilitar ao host a ação "Começar"; enquanto houver qualquer pendente, SHALL mantê-la desabilitada
 7. `ESCR-07` — WHEN um jogador ativo sai ou é expulso durante a ESCRITA THEN o sistema SHALL descartar todas as cartas escritas, sortear novos alvos entre os jogadores ativos restantes e zerar todos os PRONTO
-8. `ESCR-08` — WHEN a redistribuição de `ESCR-07` deixaria menos de 3 jogadores ativos THEN o sistema SHALL cancelar a partida e devolver a sala ao LOBBY, informando o motivo
+8. `ESCR-08` — ⚠️ **substituído por `AJU-07`** (mínimo passou de 3 para 2) — WHEN a redistribuição de `ESCR-07` deixaria menos de 2 jogadores ativos THEN o sistema SHALL cancelar a partida e devolver a sala ao LOBBY, informando o motivo
 9. `ESCR-09` — WHEN o host aciona "Cancelar" durante a ESCRITA THEN o sistema SHALL descartar as cartas, devolver a sala ao LOBBY e promover a **ativo** todo jogador que estava aguardando — no LOBBY não existe jogador aguardando (`SALA-09`)
 10. `ESCR-10` — WHEN um jogador entra na sala durante a ESCRITA THEN o sistema SHALL NOT redistribuir os alvos, e SHALL informar ao host que há jogador aguardando e que "Cancelar" devolve a sala ao LOBBY para incluí-lo
 
@@ -193,9 +193,9 @@ Referência normativa para os requisitos abaixo.
 3. `DESC-03` — WHEN quem declarou é o próprio host THEN o sistema SHALL direcionar a confirmação ao jogador que está **na sala** há mais tempo entre os demais que estão conectados **e ativos na rodada** — quem apenas aguarda a próxima partida não confirma (mesmo critério de antiguidade de `HOST-04`)
 4. `DESC-04` — WHEN a declaração é confirmada THEN o sistema SHALL revelar a carta ao jogador que declarou, marcá-lo como "descobriu" para todos e anunciar a confirmação
 5. `DESC-05` — WHEN a declaração é negada THEN o sistema SHALL descartá-la sem revelar a carta, anunciar a negativa, e SHALL permitir que o jogador declare novamente
-6. `DESC-06` — WHEN a declaração é confirmada e a configuração é "sai do rodízio" THEN o sistema SHALL remover o jogador da ordem de turnos, mantendo o acesso dele à lista de cartas, ao chat e às notas
-7. `DESC-07` — WHEN a declaração é confirmada e a configuração é "continua jogando" THEN o sistema SHALL manter o jogador na ordem de turnos
-8. `DESC-08` — WHEN a configuração é "sai do rodízio" e a confirmação deixa a partida com menos de 2 jogadores no rodízio THEN o sistema SHALL encerrar a partida automaticamente, aplicando `FIM-02`
+6. `DESC-06` — WHEN a declaração é confirmada THEN o sistema SHALL remover o jogador da ordem de turnos, mantendo o acesso dele à lista de cartas, ao chat e às notas *(a configuração que permitia continuar no rodízio foi removida por `AJU-18`)*
+7. `DESC-07` — ❌ **removido por `AJU-18`**. Não existe mais a opção "continua jogando": quem descobre sempre sai do rodízio
+8. `DESC-08` — ⚠️ **substituído por `AJU-09`…`AJU-13`**. A partida **não** encerra mais sozinha quando sobra um jogador no rodízio — ele continua jogando até declarar ou até o host encerrar
 9. `DESC-09` — WHEN um jogador com declaração pendente ou já confirmada aciona "Descobri!" novamente THEN o sistema SHALL ignorar a ação sem alterar o estado
 10. `DESC-10` — WHEN já existe uma declaração pendente e **outro** jogador aciona "Descobri!" THEN o sistema SHALL recusar a segunda declaração — só uma fica pendente por vez
 11. `DESC-11` — WHEN o jogador que declarou sai da sala com a declaração ainda pendente THEN o sistema SHALL descartar a declaração sem revelar a carta
@@ -231,10 +231,10 @@ Referência normativa para os requisitos abaixo.
 **Acceptance Criteria**:
 
 1. `CFG-01` — WHEN a sala está em LOBBY THEN o sistema SHALL permitir ao host definir a ordem dos turnos como "sorteada" ou "ordem de entrada"
-2. `CFG-02` — WHEN a sala está em LOBBY THEN o sistema SHALL permitir ao host definir se quem descobre "continua jogando" ou "sai do rodízio"
-3. `CFG-03` — WHEN a sala está em LOBBY THEN o sistema SHALL permitir ao host definir o tempo por turno entre "sem limite", 30s, 60s, 90s e 2min
+2. `CFG-02` — ❌ **removido por `AJU-18`**. A escolha entre "continua jogando" e "sai do rodízio" não existe mais
+3. `CFG-03` — ⚠️ **estendido por `AJU-19`** — WHEN a sala está em LOBBY THEN o sistema SHALL permitir ao host definir o tempo por turno entre "sem limite", os presets (30s, 60s, 90s, 2min) e **qualquer valor personalizado de 10 segundos a 60 minutos**
 4. `CFG-04` — WHEN a sala não está em LOBBY THEN o sistema SHALL exibir as configurações em modo somente leitura para todos
-5. `CFG-05` — WHEN uma sala é criada THEN o sistema SHALL aplicar os padrões: ordem sorteada, sai do rodízio, sem limite de tempo
+5. `CFG-05` — WHEN uma sala é criada THEN o sistema SHALL aplicar os padrões: ordem sorteada e sem limite de tempo *(o padrão "sai do rodízio" virou regra fixa em `AJU-18`)*
 6. `CFG-06` — WHEN o host altera uma configuração THEN o sistema SHALL refletir a mudança na tela de todos os jogadores
 
 **Independent Test**: Host muda o tempo para 30s no lobby e os outros jogadores veem a mudança; durante o jogo os controles aparecem travados.
@@ -270,7 +270,7 @@ Referência normativa para os requisitos abaixo.
 
 **Acceptance Criteria**:
 
-1. `CHAT-01` — WHEN um jogador envia uma mensagem de 1 a 300 caracteres, desconsiderados os espaços nas pontas, THEN o sistema SHALL entregá-la a todos na sala com o apelido e a cor do autor; WHEN a mensagem é vazia ou formada apenas por espaços THEN o sistema SHALL recusá-la sem registrá-la
+1. `CHAT-01` — ⚠️ **estendido por `AJU-15`** (o apelido e a cor passam a ser **gravados na mensagem**, não resolvidos na lista de jogadores) — WHEN um jogador envia uma mensagem de 1 a 300 caracteres, desconsiderados os espaços nas pontas, THEN o sistema SHALL entregá-la a todos na sala com o apelido e a cor do autor; WHEN a mensagem é vazia ou formada apenas por espaços THEN o sistema SHALL recusá-la sem registrá-la
 2. `CHAT-02` — WHEN um jogador envia mais de 5 mensagens em 5 segundos THEN o sistema SHALL descartar as excedentes e avisar apenas o autor
 3. `CHAT-03` — WHEN um evento de partida ocorre (início, PRONTO de todos, troca de vez, declaração de "Descobri!", confirmação ou negativa, migração de host, encerramento) THEN o sistema SHALL registrá-lo no chat como mensagem de sistema, visualmente distinta das mensagens de jogador
 4. `CHAT-04` — WHEN um jogador reconecta THEN o sistema SHALL entregar o histórico de chat da sala
