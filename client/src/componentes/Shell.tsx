@@ -18,6 +18,11 @@ export interface PropsDoShell {
  * tela pertence ao jogo, então o cabeçalho não cresce nem ganha navegação.
  *
  * `SALA-08` — o código fica sempre à vista e um toque nele copia o convite.
+ *
+ * `AJU-27` — os dois lados seguem a mesma régua: cada elemento tem a mesma
+ * altura de toque e as margens negativas das pontas devolvem o texto à margem
+ * da página, para que a marca à esquerda e o "Sair" à direita fiquem alinhados
+ * com o conteúdo abaixo em qualquer largura.
  */
 export function Shell({ codigo, legenda, aoSair, children }: PropsDoShell) {
   const [confirmandoSaida, setConfirmandoSaida] = useState(false)
@@ -25,23 +30,25 @@ export function Shell({ codigo, legenda, aoSair, children }: PropsDoShell) {
   return (
     <div className="flex min-h-dvh flex-col bg-fundo">
       <header className="sticky top-0 z-30 border-b border-linha bg-fundo">
-        <div className="mx-auto flex h-14 w-full max-w-[1280px] items-center gap-3 px-4 sm:h-15">
-          <span className="text-[15px] font-semibold tracking-tight text-texto">Resenha</span>
+        <div className="mx-auto flex h-14 w-full max-w-[1280px] items-center gap-2 px-4 sm:h-15 sm:gap-3">
+          <span className="flex h-11 flex-none items-center text-[15px] font-semibold tracking-tight text-texto">
+            Resenha
+          </span>
 
           {legenda !== undefined && (
-            <span className="hidden min-w-0 flex-1 truncate text-miudo text-texto-3 sm:block">
+            <span className="hidden min-w-0 flex-1 items-center truncate text-miudo text-texto-3 sm:flex">
               {legenda}
             </span>
           )}
 
-          <span className="flex min-w-0 flex-1 items-center justify-end gap-2 sm:flex-none">
+          <span className="-mr-2 flex min-w-0 flex-1 items-center justify-end gap-1 sm:flex-none sm:gap-2">
             {codigo !== undefined && <CopiarConvite codigo={codigo} />}
-            <AlternadorDeTema className={codigo === undefined ? '' : 'hidden sm:inline-flex'} />
+            <AlternadorDeTema />
             {aoSair !== undefined && (
               <button
                 type="button"
                 onClick={() => setConfirmandoSaida(true)}
-                className="min-h-11 shrink-0 cursor-pointer px-1 text-apoio font-medium text-texto-2 hover:text-texto"
+                className="flex h-11 flex-none cursor-pointer items-center rounded-controle px-2 text-apoio font-medium text-texto-2 hover:text-texto"
               >
                 Sair
               </button>
@@ -83,7 +90,7 @@ function CopiarConvite({ codigo }: { codigo: string }) {
           })
           .catch(() => setCopiado(false))
       }}
-      className="flex min-h-11 min-w-0 cursor-pointer items-center gap-2 rounded-controle px-2 hover:bg-superficie-2"
+      className="flex h-11 min-w-0 cursor-pointer items-center gap-2 rounded-controle px-2 hover:bg-superficie-2"
     >
       <span className="font-mono text-[15px] font-medium tracking-[0.08em] text-texto">
         {codigo}
