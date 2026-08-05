@@ -395,27 +395,26 @@ function responderDeclaracao(
   // `DESC-04` — a partir daqui a carta dele passa a existir na projeção dele.
   novo.descobriram.push(pendente.jogadorId)
 
-  // `DESC-06` — "sai do rodízio"; `DESC-07` — "continua jogando" não mexe na ordem.
-  if (ctx.config.aoDescobrir === 'sai') {
-    const posicao = novo.ordem.indexOf(pendente.jogadorId)
-    if (posicao !== -1) {
-      novo.ordem.splice(posicao, 1)
-      if (novo.vezDe === pendente.jogadorId) {
-        novo.vezDe = novo.ordem.length === 0 ? null : novo.ordem[posicao % novo.ordem.length]
-      }
+  // `DESC-06`, `AJU-18` — quem descobre sempre sai do rodízio; a opção
+  // "continua jogando" deixou de existir.
+  const posicao = novo.ordem.indexOf(pendente.jogadorId)
+  if (posicao !== -1) {
+    novo.ordem.splice(posicao, 1)
+    if (novo.vezDe === pendente.jogadorId) {
+      novo.vezDe = novo.ordem.length === 0 ? null : novo.ordem[posicao % novo.ordem.length]
     }
+  }
 
-    // `DESC-08` — sem dois jogadores no rodízio não há partida; aplica `FIM-02`.
-    if (novo.ordem.length < 2) {
-      novo.reveladoParaTodos = true
-      novo.vezDe = null
-      return {
-        ok: true,
-        estado: novo,
-        eventos: [{ texto: `${apelido} descobriu! A partida terminou.` }],
-        prazos: { turno: null },
-        faseSeguinte: 'encerrada',
-      }
+  // `DESC-08` — sem dois jogadores no rodízio não há partida; aplica `FIM-02`.
+  if (novo.ordem.length < 2) {
+    novo.reveladoParaTodos = true
+    novo.vezDe = null
+    return {
+      ok: true,
+      estado: novo,
+      eventos: [{ texto: `${apelido} descobriu! A partida terminou.` }],
+      prazos: { turno: null },
+      faseSeguinte: 'encerrada',
     }
   }
 

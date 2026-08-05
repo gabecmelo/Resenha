@@ -3,6 +3,7 @@ import {
   type Ambiente,
   CONFIG_PADRAO,
   CORES,
+  type Config,
   type EstadoSala,
   type JogadorId,
   type Projecao,
@@ -102,7 +103,7 @@ describe('autoridade de host (`HOST-06`)', () => {
       sala,
       quemSouEu,
       'j2',
-      { t: 'configurar', config: { aoDescobrir: 'continua' } },
+      { t: 'configurar', config: { ordemTurnos: 'entrada' } },
       AMBIENTE,
     )
 
@@ -236,23 +237,37 @@ describe('jogador aguardando', () => {
 })
 
 describe('configuração da partida', () => {
-  it('aplica as três opções escolhidas pelo host no lobby (`CFG-01`…`CFG-03`)', () => {
+  it('aplica as opções escolhidas pelo host no lobby (`CFG-01`, `CFG-03`)', () => {
     const sala = salaEmLobby()
 
     const resultado = despachar(
       sala,
       quemSouEu,
       'j1',
-      { t: 'configurar', config: { ordemTurnos: 'entrada', aoDescobrir: 'continua', tempoTurnoSeg: 90 } },
+      { t: 'configurar', config: { ordemTurnos: 'entrada', tempoTurnoSeg: 90 } },
       AMBIENTE,
     )
 
     expect(resultado.ok).toBe(true)
     expect(sala.config).toEqual({
       ordemTurnos: 'entrada',
-      aoDescobrir: 'continua',
       tempoTurnoSeg: 90,
     })
+  })
+
+  it('descarta o campo removido sem alterar a configuração (`AJU-18`, `AJU-21`)', () => {
+    const sala = salaEmLobby()
+
+    const resultado = despachar(
+      sala,
+      quemSouEu,
+      'j1',
+      { t: 'configurar', config: { aoDescobrir: 'continua' } as Partial<Config> },
+      AMBIENTE,
+    )
+
+    expect(resultado.ok).toBe(true)
+    expect(sala.config).toEqual(CONFIG_PADRAO)
   })
 
   it('alteração parcial preserva as demais configurações (`CFG-06`)', () => {
@@ -534,7 +549,7 @@ describe('nova partida (`FIM-04`)', () => {
       'j1',
       {
         t: 'configurar',
-        config: { ordemTurnos: 'entrada', aoDescobrir: 'continua', tempoTurnoSeg: 90 },
+        config: { ordemTurnos: 'entrada', tempoTurnoSeg: 90 },
       },
       AMBIENTE,
     )

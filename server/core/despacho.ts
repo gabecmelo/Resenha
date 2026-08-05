@@ -135,7 +135,11 @@ export function avisar<E>(
 // Comandos do `core`
 // ---------------------------------------------------------------------------
 
-/** `CFG-01`, `CFG-02`, `CFG-03`, `CFG-04` */
+/**
+ * `CFG-01`, `CFG-03`, `CFG-04`. `AJU-18` — a configuração é remontada campo a
+ * campo, e não por espalhamento: o que o cliente mandar fora do contrato (a
+ * opção removida, por exemplo) não entra na sala.
+ */
 function configurar<E>(
   sala: EstadoSala<E>,
   autor: Jogador,
@@ -145,16 +149,17 @@ function configurar<E>(
   if (sala.fase !== 'lobby') return { ok: false, erro: 'FASE_INVALIDA' }
   if (!configValida(parcial)) return { ok: false, erro: 'COMANDO_INVALIDO' }
 
-  sala.config = { ...sala.config, ...parcial }
+  sala.config = {
+    ordemTurnos: parcial.ordemTurnos ?? sala.config.ordemTurnos,
+    tempoTurnoSeg:
+      parcial.tempoTurnoSeg === undefined ? sala.config.tempoTurnoSeg : parcial.tempoTurnoSeg,
+  }
   return { ok: true, valor: SEM_EFEITOS }
 }
 
 /** O comando chega como JSON de cliente: só as opções do spec são aceitas. */
 function configValida(parcial: Partial<Config>): boolean {
   if (parcial.ordemTurnos !== undefined && !['sorteada', 'entrada'].includes(parcial.ordemTurnos)) {
-    return false
-  }
-  if (parcial.aoDescobrir !== undefined && !['continua', 'sai'].includes(parcial.aoDescobrir)) {
     return false
   }
   if (

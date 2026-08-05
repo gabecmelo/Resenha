@@ -112,7 +112,7 @@ describe('POST /api/salas', () => {
       codigo,
       fase: 'lobby',
       jogadores: [],
-      config: { ordemTurnos: 'sorteada', aoDescobrir: 'sai', tempoTurnoSeg: null },
+      config: { ordemTurnos: 'sorteada', tempoTurnoSeg: null },
     })
   })
 

@@ -847,10 +847,11 @@ describe('declararDescobri (DESC-01, DESC-09, DESC-10)', () => {
   })
 
   it('ignora a declaração de quem já teve a descoberta confirmada', () => {
-    const { estado, contexto } = emJogo({ config: { ...CONFIG_PADRAO, aoDescobrir: 'continua' } })
-    const comoB = { ...contexto, autorId: 'b' }
+    const jogadores = [jogador('a'), jogador('b'), jogador('c'), jogador('d')]
+    const { estado, contexto } = emJogo({ jogadores })
+    const comoB = { ...contexto, jogadores, autorId: 'b' }
     const pendente = reduzirOk(estado, comoB, { t: 'declararDescobri' }).estado
-    const confirmado = reduzirOk(pendente, { ...contexto, autorId: 'a' }, {
+    const confirmado = reduzirOk(pendente, { ...contexto, jogadores, autorId: 'a' }, {
       t: 'responderDeclaracao',
       aceita: true,
     }).estado
@@ -995,18 +996,24 @@ describe('quem confirma a declaração (DESC-02, DESC-03)', () => {
 })
 
 describe('confirmar a declaração (DESC-04)', () => {
-  const continua = { ...CONFIG_PADRAO, ordemTurnos: 'entrada' as const, aoDescobrir: 'continua' as const }
+  // Quatro jogadores: com `AJU-18` quem descobre sempre sai do rodízio, e com
+  // três o primeiro "Descobri!" já mexeria no desfecho da partida.
+  const quatro = [jogador('a'), jogador('b'), jogador('c'), jogador('d')]
 
-  it('marca o declarante como "descobriu" e limpa a pendência', () => {
-    const { estado, contexto } = emJogo({ config: continua })
-    const pendente = reduzirOk(estado, { ...contexto, autorId: 'b' }, {
+  function confirmadoDeB() {
+    const { estado, contexto } = emJogo({ jogadores: quatro })
+    const pendente = reduzirOk(estado, { ...contexto, jogadores: quatro, autorId: 'b' }, {
       t: 'declararDescobri',
     }).estado
 
-    const resultado = reduzirOk(pendente, { ...contexto, autorId: 'a' }, {
+    return reduzirOk(pendente, { ...contexto, jogadores: quatro, autorId: 'a' }, {
       t: 'responderDeclaracao',
       aceita: true,
     })
+  }
+
+  it('marca o declarante como "descobriu" e limpa a pendência', () => {
+    const resultado = confirmadoDeB()
 
     expect({
       descobriram: resultado.estado.descobriram,
@@ -1015,29 +1022,13 @@ describe('confirmar a declaração (DESC-04)', () => {
   })
 
   it('não revela as cartas dos demais jogadores', () => {
-    const { estado, contexto } = emJogo({ config: continua })
-    const pendente = reduzirOk(estado, { ...contexto, autorId: 'b' }, {
-      t: 'declararDescobri',
-    }).estado
-
-    const resultado = reduzirOk(pendente, { ...contexto, autorId: 'a' }, {
-      t: 'responderDeclaracao',
-      aceita: true,
-    })
+    const resultado = confirmadoDeB()
 
     expect(resultado.estado.reveladoParaTodos).toBe(false)
   })
 
   it('anuncia a confirmação no chat (CHAT-03)', () => {
-    const { estado, contexto } = emJogo({ config: continua })
-    const pendente = reduzirOk(estado, { ...contexto, autorId: 'b' }, {
-      t: 'declararDescobri',
-    }).estado
-
-    const resultado = reduzirOk(pendente, { ...contexto, autorId: 'a' }, {
-      t: 'responderDeclaracao',
-      aceita: true,
-    })
+    const resultado = confirmadoDeB()
 
     expect(resultado.eventos).toEqual([{ texto: 'B descobriu!' }])
   })
@@ -1094,14 +1085,9 @@ describe('negar a declaração (DESC-05)', () => {
   })
 })
 
-describe('efeito da configuração ao descobrir (DESC-06, DESC-07, DESC-08)', () => {
+describe('efeito de descobrir sobre o rodízio (DESC-06, DESC-08, AJU-18)', () => {
   const quatro = [jogador('a'), jogador('b'), jogador('c'), jogador('d')]
-  const sai = { ...CONFIG_PADRAO, ordemTurnos: 'entrada' as const, aoDescobrir: 'sai' as const }
-  const continua = {
-    ...CONFIG_PADRAO,
-    ordemTurnos: 'entrada' as const,
-    aoDescobrir: 'continua' as const,
-  }
+  const sai = { ...CONFIG_PADRAO, ordemTurnos: 'entrada' as const }
 
   function confirmadoPara(id: string, config: Config = sai, jogadores = quatro) {
     const { estado, contexto } = emJogo({ jogadores, config })
@@ -1116,16 +1102,10 @@ describe('efeito da configuração ao descobrir (DESC-06, DESC-07, DESC-08)', ()
     })
   }
 
-  it('remove o jogador do rodízio quando a configuração é "sai"', () => {
+  it('remove do rodízio todo jogador cuja descoberta é confirmada (AJU-18)', () => {
     const resultado = confirmadoPara('c')
 
     expect(resultado.estado.ordem).toEqual(['a', 'b', 'd'])
-  })
-
-  it('mantém o jogador no rodízio quando a configuração é "continua"', () => {
-    const resultado = confirmadoPara('c', continua)
-
-    expect(resultado.estado.ordem).toEqual(['a', 'b', 'c', 'd'])
   })
 
   it('avança a vez quando quem sai do rodízio era o jogador da vez', () => {
@@ -1162,26 +1142,6 @@ describe('efeito da configuração ao descobrir (DESC-06, DESC-07, DESC-08)', ()
     }
   })
 
-  it('não encerra a partida com a configuração "continua", por mais que todos descubram', () => {
-    const { estado, contexto } = emJogo({ config: continua })
-    let atual = estado
-    let ultima = null as ReturnType<typeof reduzirOk> | null
-    for (const id of ['b', 'c']) {
-      const pendente = reduzirOk(atual, { ...contexto, autorId: id }, {
-        t: 'declararDescobri',
-      }).estado
-      ultima = reduzirOk(pendente, { ...contexto, autorId: 'a' }, {
-        t: 'responderDeclaracao',
-        aceita: true,
-      })
-      atual = ultima.estado
-    }
-
-    expect({ fase: ultima?.faseSeguinte, revelado: atual.reveladoParaTodos }).toEqual({
-      fase: undefined,
-      revelado: false,
-    })
-  })
 })
 
 describe('saída de jogador com declaração pendente (DESC-01)', () => {
