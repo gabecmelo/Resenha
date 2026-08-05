@@ -4,6 +4,7 @@ import {
   linkDeConvite,
   motivoParaCriar,
   motivoParaEntrar,
+  motivoParaIniciar,
   normalizarCodigo,
 } from './entrada'
 
@@ -98,5 +99,23 @@ describe('motivoParaEntrar', () => {
 
   it('recusa código com letra fora do alfabeto', () => {
     expect(motivoParaEntrar('Caê', 'KTVIO')).toBe('O código não leva I nem O.')
+  })
+})
+
+describe('motivoParaIniciar (AJU-06, AJU-34)', () => {
+  it('não tem motivo com 2 jogadores ativos', () => {
+    expect(motivoParaIniciar(2)).toBeUndefined()
+  })
+
+  it('não tem motivo acima do mínimo', () => {
+    expect(motivoParaIniciar(5)).toBeUndefined()
+  })
+
+  it('diz o que falta com 1 jogador ativo', () => {
+    expect(motivoParaIniciar(1)).toBe('Precisa de pelo menos 2 pessoas — falta 1.')
+  })
+
+  it('usa o plural quando falta mais de uma pessoa', () => {
+    expect(motivoParaIniciar(0)).toBe('Precisa de pelo menos 2 pessoas — faltam 2.')
   })
 })

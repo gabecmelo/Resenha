@@ -1,19 +1,24 @@
-import type {
-  Ambiente,
-  Comando,
-  Config,
-  ContextoDeSala,
-  Jogador,
-  JogadorId,
-  Resultado,
-  ResultadoReducer,
+import {
+  MIN_JOGADORES,
+  type Ambiente,
+  type Comando,
+  type Config,
+  type ContextoDeSala,
+  type Jogador,
+  type JogadorId,
+  type Resultado,
+  type ResultadoReducer,
 } from '../../../shared/protocolo'
 import { embaralhar, sortearAlvos } from './sorteio'
 
 /** `ESCR-03` */
 export const CARTA_MAX_CARACTERES = 60
-/** `AJU-06`, `AJU-07` — abaixo disso não há partida de "Quem Sou Eu?". */
-export const MIN_JOGADORES = 2
+
+/**
+ * `AJU-06`, `AJU-07`, `AJU-34` — abaixo disso não há partida de "Quem Sou Eu?".
+ * O número vem do contrato compartilhado, para a tela usar exatamente o mesmo.
+ */
+export { MIN_JOGADORES }
 
 /** `DESC-01` — o confirmador não é guardado: `DESC-03` fala em "conectados", que muda. */
 export interface Declaracao {

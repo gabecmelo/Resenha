@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { TAMANHO_CODIGO } from '../../../shared/protocolo'
+import { MIN_JOGADORES, TAMANHO_CODIGO } from '../../../shared/protocolo'
 import { Botao, CampoDeTexto, Shell } from '../componentes'
 import type { ErroDeSala } from '../estado/conexao'
 import {
@@ -189,7 +189,9 @@ function Apresentacao() {
         <span className="font-mono text-[11px] tracking-[0.12em] text-texto-3 uppercase">
           jogo disponível
         </span>
-        <span className="text-[15px] font-medium text-texto">Quem Sou Eu? · 3 a 20 pessoas</span>
+        <span className="text-[15px] font-medium text-texto">
+          Quem Sou Eu? · {MIN_JOGADORES} a 20 pessoas
+        </span>
         <p className="text-apoio text-texto-2">
           Cada um recebe uma carta que todos veem menos ele. As perguntas são no viva-voz; o site só
           mostra as cartas e de quem é a vez.

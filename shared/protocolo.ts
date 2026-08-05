@@ -20,6 +20,16 @@ export type Fase = 'lobby' | 'escrita' | 'jogo' | 'encerrada'
 export const ALFABETO_CODIGO = 'ABCDEFGHJKLMNPQRSTUVWXYZ'
 export const TAMANHO_CODIGO = 5
 
+/**
+ * `AJU-06`, `AJU-34` — mínimo de jogadores ativos para uma partida existir.
+ *
+ * Vive aqui porque servidor e cliente precisam do **mesmo** número: o servidor
+ * para recusar, a tela para desabilitar o botão com o motivo certo. Manter o
+ * número em dois lugares foi o que fez o servidor passar a aceitar 2 enquanto o
+ * lobby continuava exigindo 3.
+ */
+export const MIN_JOGADORES = 2
+
 /** Identificador público e curto do jogador. Nunca é a credencial. */
 export type JogadorId = string
 

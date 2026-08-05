@@ -7,7 +7,7 @@
  * (`HOST-01`, `ESCR-06` valem para todo botão desabilitado do produto).
  */
 
-import { ALFABETO_CODIGO, TAMANHO_CODIGO } from '../../../shared/protocolo'
+import { ALFABETO_CODIGO, MIN_JOGADORES, TAMANHO_CODIGO } from '../../../shared/protocolo'
 
 /** `SALA-03` */
 export const MIN_APELIDO = 2
@@ -60,6 +60,22 @@ export function motivoParaEntrar(apelido: string, codigo: string): string | unde
   if (!ehCodigoCompleto(normalizado)) return 'O código não leva I nem O.'
 
   return undefined
+}
+
+/**
+ * `AJU-06`, `AJU-34` — por que o host ainda não pode iniciar, ou `undefined`
+ * quando pode.
+ *
+ * O mínimo vem do contrato compartilhado: quem recusa de fato é o servidor, e
+ * repetir o número aqui foi o que deixou a tela exigindo 3 depois que a regra
+ * passou a aceitar 2.
+ */
+export function motivoParaIniciar(ativos: number): string | undefined {
+  const faltam = MIN_JOGADORES - ativos
+  if (faltam <= 0) return undefined
+  return `Precisa de pelo menos ${MIN_JOGADORES} pessoas — ${
+    faltam === 1 ? 'falta 1' : `faltam ${faltam}`
+  }.`
 }
 
 function motivoDoApelido(apelido: string, fim: string): string | undefined {

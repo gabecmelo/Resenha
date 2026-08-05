@@ -1,5 +1,6 @@
 import { Fragment, useState } from 'react'
 import {
+  MIN_JOGADORES,
   type Config,
   type JogadorId,
   type Projecao,
@@ -7,7 +8,7 @@ import {
   TEMPO_TURNO_MIN_SEG,
 } from '../../../shared/protocolo'
 import { Botao, Chat, FichaDeJogador, Modal, Shell } from '../componentes'
-import { linkDeConvite } from '../estado/entrada'
+import { linkDeConvite, motivoParaIniciar } from '../estado/entrada'
 import {
   PRESETS_DE_TEMPO,
   ehTempoPersonalizado,
@@ -25,8 +26,6 @@ import type { PropsDaTela } from './tela'
  * de aviso (`VIS-04`).
  */
 
-/** `HOST-01` */
-const MINIMO_PARA_INICIAR = 3
 /** `SALA-05` */
 const MAXIMO_DE_JOGADORES = 20
 
@@ -34,7 +33,8 @@ export function Lobby({ projecao, enviar, aoSair }: PropsDaTela) {
   const { sala, eu, jogadores } = projecao
   const ativos = jogadores.filter((jogador) => jogador.situacao === 'ativo')
   const host = jogadores.find((jogador) => jogador.id === sala.hostId)
-  const faltam = MINIMO_PARA_INICIAR - ativos.length
+  // `AJU-34` — o mínimo vem do contrato, não de um número escrito nesta tela.
+  const motivoDeEspera = motivoParaIniciar(ativos.length)
 
   return (
     <Shell
@@ -83,17 +83,13 @@ export function Lobby({ projecao, enviar, aoSair }: PropsDaTela) {
               <Botao
                 larguraTotal
                 onClick={() => enviar({ t: 'iniciar' })}
-                motivo={
-                  faltam > 0
-                    ? `Precisa de pelo menos ${MINIMO_PARA_INICIAR} pessoas — ${
-                        faltam === 1 ? 'falta 1' : `faltam ${faltam}`
-                      }.`
-                    : undefined
-                }
+                motivo={motivoDeEspera}
               >
-                {faltam > 0 ? 'Iniciar partida' : `Iniciar com ${ativos.length} pessoas`}
+                {motivoDeEspera !== undefined
+                  ? 'Iniciar partida'
+                  : `Iniciar com ${ativos.length} pessoas`}
               </Botao>
-              {faltam <= 0 && (
+              {motivoDeEspera === undefined && (
                 <p className="text-apoio text-texto-2">
                   Cada um vai escrever a carta de outra pessoa.
                 </p>
@@ -132,7 +128,7 @@ function Convite({ codigo, sozinho }: { codigo: string; sozinho: boolean }) {
           <h2 className="text-titulo text-texto">Chame a galera</h2>
           <p className="text-[15px] leading-relaxed text-texto-2">
             Mande o link no grupo ou dite as cinco letras em voz alta. A partida começa com{' '}
-            {MINIMO_PARA_INICIAR} pessoas.
+            {MIN_JOGADORES} pessoas.
           </p>
         </div>
       )}
