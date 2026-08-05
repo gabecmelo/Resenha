@@ -63,11 +63,13 @@ T7
 T8 → T9 → T10
 ```
 
-### Phase 5: Interface (3 tasks)
+### Phase 5: Interface (5 tasks)
 
 ```
-T11 → T12 → T13
+T11 → T12 → T13 → T14 → T15
 ```
+
+> **T14 e T15 foram acrescentados depois do lote 1.** O worker daquele lote apontou que `AJU-12` e `AJU-19` tinham a metade de servidor coberta e **nenhuma task de interface** — o servidor passou a aceitar tempo livre sem existir campo para digitá-lo, e passou a ignorar avanço de vez com um jogador só sem os botões sumirem da tela. Falha de planejamento, corrigida aqui.
 
 ---
 
@@ -327,6 +329,49 @@ T11 → T12 → T13
 
 ---
 
+### T14: Campo de tempo por turno personalizado
+
+**What**: Permitir ao host digitar uma duração fora dos presets.
+**Where**: `client/src/telas/Lobby.tsx`
+**Depends on**: T12
+**Requirement**: `AJU-19`, `AJU-20`
+
+**Done when**:
+- [ ] Além de "Sem limite" e dos presets, existe campo para valor personalizado
+- [ ] A faixa aceita vai de 10 segundos a 60 minutos, usando as constantes exportadas pelo contrato — **sem number mágico no cliente**
+- [ ] Valor fora da faixa é impedido no campo e o servidor continua recusando
+- [ ] O valor em vigor aparece selecionado ao reabrir o lobby, mesmo quando é personalizado
+- [ ] O seletor "Continua jogando / Sai do rodízio" **não** existe mais (removido no T1) — confirmar
+- [ ] Verificado no navegador, nos dois temas
+- [ ] Gate: build
+
+**Tests**: none · **Gate**: build
+**Commit**: `feat(client): permite tempo de turno personalizado`
+
+---
+
+### T15: Esconder avanço de vez quando resta um jogador
+
+**What**: Com um único jogador no rodízio, some "Passei a vez" e some "Pular a vez" do host.
+**Where**: `client/src/telas/Jogo.tsx`
+**Depends on**: T14
+**Requirement**: `AJU-12`
+
+**Done when**:
+- [ ] Com um só no rodízio, "Passei a vez" não é renderizado
+- [ ] Com um só no rodízio, "Pular a vez" não é renderizado para o host
+- [ ] "Descobri!" continua disponível
+- [ ] Nenhum cronômetro é exibido nesse estado (o servidor limpou o prazo em `AJU-11`)
+- [ ] Com dois ou mais no rodízio, tudo volta ao normal
+- [ ] A decisão vem da projeção — **o cliente não recalcula regra** (AD-008)
+- [ ] Verificado no navegador
+- [ ] Gate: build
+
+**Tests**: none · **Gate**: build
+**Commit**: `feat(client): esconde avanco de vez com um jogador no rodizio`
+
+---
+
 ## Phase Execution Map
 
 ```
@@ -336,7 +381,7 @@ Phase 1:  T1
 Phase 2:  T2 → T3 → T4 → T5 → T6
 Phase 3:  T7
 Phase 4:  T8 → T9 → T10
-Phase 5:  T11 → T12 → T13
+Phase 5:  T11 → T12 → T13 → T14 → T15
 ```
 
 ---
@@ -401,11 +446,13 @@ Nenhuma ❌ VIOLATION.
 | ---------- | ----- |
 | `AJU-01`…`AJU-05` | T8 |
 | `AJU-06`…`AJU-08` | T3, T7 |
-| `AJU-09`…`AJU-14` | T5, T7 |
+| `AJU-09`…`AJU-14` | T5, T7, **T15** (`AJU-12`, metade de interface) |
 | `AJU-15`…`AJU-17` | T1, T2, T7, T13 |
-| `AJU-18`…`AJU-21` | T1, T4, T6 |
+| `AJU-18`…`AJU-21` | T1, T4, T6, **T14** (`AJU-19`/`AJU-20`, metade de interface) |
 | `AJU-22`…`AJU-26` | T9, T11 |
 | `AJU-27`…`AJU-30` | T12, T13 |
 | `AJU-31`…`AJU-32` | T10 |
 
 **32 de 32 requisitos mapeados. Nenhum órfão.**
+
+> **Lição desta rodada.** A cobertura original marcava `AJU-12` e `AJU-19` como cobertos por tasks de servidor, e a tabela fechou 32/32 mesmo assim. Requisito com metade no servidor e metade na tela precisa aparecer **nas duas** colunas — contagem fechada não é sinônimo de cobertura completa.
