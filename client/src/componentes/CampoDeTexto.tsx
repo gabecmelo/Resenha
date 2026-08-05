@@ -23,8 +23,9 @@ export interface PropsDoCampo {
 /**
  * Campo de uma linha com rótulo, contador e erro de limite.
  *
- * O contador é aviso, não trava: o campo aceita passar do limite e diz quanto
- * passou. Quem recusa de verdade é o servidor — o cliente não guarda regra.
+ * `AJU-26` — o campo para no limite, e texto colado acima dele é truncado. A
+ * trava é conveniência, não regra: quem recusa de verdade continua sendo o
+ * servidor. O contador segue à vista para a pessoa saber onde está.
  */
 export function CampoDeTexto({
   rotulo,
@@ -54,6 +55,7 @@ export function CampoDeTexto({
         type="text"
         value={valor}
         placeholder={placeholder}
+        maxLength={limite}
         disabled={travado}
         autoFocus={autoFoco}
         aria-invalid={aviso !== undefined}
