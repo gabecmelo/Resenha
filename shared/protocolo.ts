@@ -70,8 +70,6 @@ export interface Jogador {
 export interface Config {
   /** `CFG-01` */
   ordemTurnos: 'sorteada' | 'entrada'
-  /** `CFG-02` */
-  aoDescobrir: 'continua' | 'sai'
   /** `CFG-03`, `JOGO-08` — `null` significa "sem limite". */
   tempoTurnoSeg: number | null
 }
@@ -79,9 +77,15 @@ export interface Config {
 /** Padrões de uma sala recém-criada (`CFG-05`). */
 export const CONFIG_PADRAO: Config = {
   ordemTurnos: 'sorteada',
-  aoDescobrir: 'sai',
   tempoTurnoSeg: null,
 }
+
+/**
+ * `AJU-19`, `AJU-20` — faixa do tempo por turno personalizado. Abaixo do mínimo
+ * o turno não cabe numa pergunta; acima do máximo "sem limite" já resolve.
+ */
+export const TEMPO_TURNO_MIN_SEG = 10
+export const TEMPO_TURNO_MAX_SEG = 60 * 60
 
 /**
  * Prazos multiplexados sobre o alarme único do Durable Object (AD-010).
@@ -100,9 +104,15 @@ export interface Prazos {
 
 export type TipoPrazo = keyof Prazos
 
-/** `CHAT-03` — mensagem de sistema é um tipo distinto, não uma flag opcional. */
+/**
+ * `CHAT-03` — mensagem de sistema é um tipo distinto, não uma flag opcional.
+ *
+ * `AJU-15` — a mensagem de jogador carrega o apelido e a cor do autor **no
+ * momento do envio**. Resolvê-los na lista de jogadores apagaria o autor do
+ * histórico assim que ele saísse da sala (`AJU-16`, `AJU-17`).
+ */
 export type MensagemChat =
-  | { em: number; texto: string; tipo: 'jogador'; autorId: JogadorId }
+  | { em: number; texto: string; tipo: 'jogador'; autorId: JogadorId; apelido: string; cor: Cor }
   | { em: number; texto: string; tipo: 'sistema' }
 
 /**

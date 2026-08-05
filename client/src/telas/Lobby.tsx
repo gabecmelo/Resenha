@@ -245,11 +245,6 @@ const OPCOES_DE_ORDEM = [
   { valor: 'entrada', rotulo: 'Ordem de entrada' },
 ] as const
 
-const OPCOES_AO_DESCOBRIR = [
-  { valor: 'continua', rotulo: 'Continua jogando' },
-  { valor: 'sai', rotulo: 'Sai do rodízio' },
-] as const
-
 const OPCOES_DE_TEMPO = [
   { valor: null, rotulo: 'Sem limite' },
   { valor: 30, rotulo: '30s' },
@@ -289,12 +284,6 @@ function Regras({
             aoEscolher={(ordemTurnos) => enviar({ t: 'configurar', config: { ordemTurnos } })}
           />
           <Escolha
-            rotulo="Quem descobre a carta"
-            opcoes={OPCOES_AO_DESCOBRIR}
-            atual={config.aoDescobrir}
-            aoEscolher={(aoDescobrir) => enviar({ t: 'configurar', config: { aoDescobrir } })}
-          />
-          <Escolha
             rotulo="Tempo por turno"
             opcoes={OPCOES_DE_TEMPO}
             atual={config.tempoTurnoSeg}
@@ -304,7 +293,6 @@ function Regras({
       ) : (
         <dl className="flex flex-col">
           <Leitura rotulo="Ordem dos turnos" valor={rotuloDe(OPCOES_DE_ORDEM, config.ordemTurnos)} />
-          <Leitura rotulo="Quem descobre" valor={rotuloDe(OPCOES_AO_DESCOBRIR, config.aoDescobrir)} />
           <Leitura rotulo="Tempo por turno" valor={rotuloDe(OPCOES_DE_TEMPO, config.tempoTurnoSeg)} />
         </dl>
       )}

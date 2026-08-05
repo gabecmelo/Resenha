@@ -267,7 +267,6 @@ describe('configuração da partida', () => {
 
     expect(sala.config).toEqual({
       ordemTurnos: 'entrada',
-      aoDescobrir: 'sai',
       tempoTurnoSeg: 60,
     })
   })
@@ -287,10 +286,9 @@ describe('configuração da partida', () => {
     expect(sala.config).toEqual(CONFIG_PADRAO)
   })
 
-  it('a sala nasce com ordem sorteada, sai do rodízio e sem limite de tempo (`CFG-05`)', () => {
+  it('a sala nasce com ordem sorteada e sem limite de tempo (`CFG-05`, `AJU-21`)', () => {
     expect(salaEmLobby().config).toEqual({
       ordemTurnos: 'sorteada',
-      aoDescobrir: 'sai',
       tempoTurnoSeg: null,
     })
   })
