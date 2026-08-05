@@ -10,14 +10,13 @@ import type {
   Resultado,
   ResultadoReducer,
 } from '../../shared/protocolo'
+import { TEMPO_TURNO_MAX_SEG, TEMPO_TURNO_MIN_SEG } from '../../shared/protocolo'
 import * as chat from './chat'
 import { TIPOS_DE_PRAZO, definir } from './prazos'
 import { expulsar as expulsarDoRoster, migrarHost, transferirHost } from './roster'
 
 /** `NOTA-01` */
 export const NOTAS_MAX_CARACTERES = 2_000
-/** `CFG-03` — as únicas durações de turno oferecidas, além de "sem limite". */
-export const TEMPOS_DE_TURNO: readonly number[] = [30, 60, 90, 120]
 
 /** Avisos que o `core` entrega ao jogo. Não vêm de cliente: nascem da sala. */
 export type AvisoDeSala =
@@ -157,17 +156,21 @@ function configurar<E>(
   return { ok: true, valor: SEM_EFEITOS }
 }
 
-/** O comando chega como JSON de cliente: só as opções do spec são aceitas. */
+/**
+ * O comando chega como JSON de cliente: só as opções do spec são aceitas.
+ *
+ * `AJU-19`, `AJU-20` — o tempo por turno deixou de ser uma lista fechada: vale
+ * qualquer inteiro de segundos dentro da faixa, ou `null` para "sem limite".
+ * Os presets da tela são conveniência, não a regra.
+ */
 function configValida(parcial: Partial<Config>): boolean {
   if (parcial.ordemTurnos !== undefined && !['sorteada', 'entrada'].includes(parcial.ordemTurnos)) {
     return false
   }
-  if (
-    parcial.tempoTurnoSeg !== undefined &&
-    parcial.tempoTurnoSeg !== null &&
-    !TEMPOS_DE_TURNO.includes(parcial.tempoTurnoSeg)
-  ) {
-    return false
+  const segundos = parcial.tempoTurnoSeg
+  if (segundos !== undefined && segundos !== null) {
+    if (!Number.isInteger(segundos)) return false
+    if (segundos < TEMPO_TURNO_MIN_SEG || segundos > TEMPO_TURNO_MAX_SEG) return false
   }
   return true
 }

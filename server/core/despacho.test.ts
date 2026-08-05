@@ -9,6 +9,8 @@ import {
   type Projecao,
   type ResultadoReducer,
   type Situacao,
+  TEMPO_TURNO_MAX_SEG,
+  TEMPO_TURNO_MIN_SEG,
 } from '../../shared/protocolo'
 import { quemSouEu } from '../games/quem-sou-eu'
 import type { EstadoQuemSouEu } from '../games/quem-sou-eu/regras'
@@ -288,7 +290,7 @@ describe('configuração da partida', () => {
     })
   })
 
-  it('recusa tempo de turno fora das opções do spec (`CFG-03`)', () => {
+  it('recusa tempo de turno abaixo da faixa (`AJU-20`)', () => {
     const sala = salaEmLobby()
 
     const resultado = despachar(
@@ -301,6 +303,97 @@ describe('configuração da partida', () => {
 
     expect(resultado).toEqual({ ok: false, erro: 'COMANDO_INVALIDO' })
     expect(sala.config).toEqual(CONFIG_PADRAO)
+  })
+
+  it('aceita um tempo de turno fora dos presets, dentro da faixa (`AJU-19`)', () => {
+    const sala = salaEmLobby()
+
+    const resultado = despachar(
+      sala,
+      quemSouEu,
+      'j1',
+      { t: 'configurar', config: { tempoTurnoSeg: 240 } },
+      AMBIENTE,
+    )
+
+    expect(resultado.ok).toBe(true)
+    expect(sala.config.tempoTurnoSeg).toBe(240)
+  })
+
+  it('aceita os dois extremos da faixa (`AJU-19`)', () => {
+    const minima = salaEmLobby()
+    const maxima = salaEmLobby()
+
+    despachar(
+      minima,
+      quemSouEu,
+      'j1',
+      { t: 'configurar', config: { tempoTurnoSeg: TEMPO_TURNO_MIN_SEG } },
+      AMBIENTE,
+    )
+    despachar(
+      maxima,
+      quemSouEu,
+      'j1',
+      { t: 'configurar', config: { tempoTurnoSeg: TEMPO_TURNO_MAX_SEG } },
+      AMBIENTE,
+    )
+
+    expect([minima.config.tempoTurnoSeg, maxima.config.tempoTurnoSeg]).toEqual([10, 3_600])
+  })
+
+  it('recusa tempo de turno acima da faixa e mantém a configuração anterior (`AJU-20`)', () => {
+    const sala = salaEmLobby()
+    despachar(sala, quemSouEu, 'j1', { t: 'configurar', config: { tempoTurnoSeg: 90 } }, AMBIENTE)
+
+    const resultado = despachar(
+      sala,
+      quemSouEu,
+      'j1',
+      { t: 'configurar', config: { tempoTurnoSeg: TEMPO_TURNO_MAX_SEG + 1 } },
+      AMBIENTE,
+    )
+
+    expect(resultado).toEqual({ ok: false, erro: 'COMANDO_INVALIDO' })
+    expect(sala.config.tempoTurnoSeg).toBe(90)
+  })
+
+  it('mantém "sem limite" como valor válido (`JOGO-08`)', () => {
+    const sala = salaEmLobby()
+    despachar(sala, quemSouEu, 'j1', { t: 'configurar', config: { tempoTurnoSeg: 90 } }, AMBIENTE)
+
+    const resultado = despachar(
+      sala,
+      quemSouEu,
+      'j1',
+      { t: 'configurar', config: { tempoTurnoSeg: null } },
+      AMBIENTE,
+    )
+
+    expect(resultado.ok).toBe(true)
+    expect(sala.config.tempoTurnoSeg).toBeNull()
+  })
+
+  it('recusa tempo de turno não inteiro ou não numérico (`AJU-20`)', () => {
+    const recusados = [45.5, Number.NaN, Number.POSITIVE_INFINITY, '60' as unknown as number]
+
+    for (const valor of recusados) {
+      const sala = salaEmLobby()
+
+      const resultado = despachar(
+        sala,
+        quemSouEu,
+        'j1',
+        { t: 'configurar', config: { tempoTurnoSeg: valor } },
+        AMBIENTE,
+      )
+
+      expect({ valor, resultado, config: sala.config }).toEqual({
+        valor,
+        resultado: { ok: false, erro: 'COMANDO_INVALIDO' },
+        config: CONFIG_PADRAO,
+      })
+    }
   })
 
   it('a sala nasce com ordem sorteada e sem limite de tempo (`CFG-05`, `AJU-21`)', () => {
