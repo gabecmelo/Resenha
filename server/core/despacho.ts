@@ -229,7 +229,7 @@ function mensagemDeChat<E>(
   texto: string,
   ambiente: Ambiente,
 ): Resultado<Efeitos> {
-  const enviada = chat.enviar(sala, autor.id, texto, ambiente.agora)
+  const enviada = chat.enviar(sala, autor, texto, ambiente.agora)
   if (!enviada.ok) return { ok: false, erro: enviada.erro }
   return { ok: true, valor: SEM_EFEITOS }
 }

@@ -227,6 +227,8 @@ describe('jogador aguardando', () => {
     expect(sala.chat.at(-1)).toEqual({
       tipo: 'jogador',
       autorId: 'j2',
+      apelido: 'Jogador 2',
+      cor: CORES[1],
       texto: 'boa sorte',
       em: AMBIENTE.agora,
     })

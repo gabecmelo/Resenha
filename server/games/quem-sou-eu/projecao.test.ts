@@ -77,7 +77,7 @@ function salaDe(
     banidos: [],
     config: { ...CONFIG_PADRAO },
     chat: [
-      { em: 1_500, texto: 'bora!', tipo: 'jogador', autorId: 'b' },
+      { em: 1_500, texto: 'bora!', tipo: 'jogador', autorId: 'b', apelido: 'B', cor: 'laranja' },
       { em: 1_600, texto: 'A partida começou.', tipo: 'sistema' },
     ],
     jogo: null,

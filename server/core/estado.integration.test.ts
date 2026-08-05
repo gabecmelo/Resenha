@@ -44,7 +44,7 @@ function documento(codigo: string): EstadoSala<JogoDeTeste> {
     banidos: ['hash-expulso'],
     config: { ...CONFIG_PADRAO, tempoTurnoSeg: 60 },
     chat: [
-      { em: 3_000, texto: 'oi', tipo: 'jogador', autorId: 'j1' },
+      { em: 3_000, texto: 'oi', tipo: 'jogador', autorId: 'j1', apelido: 'J1', cor: 'vermelho' },
       { em: 4_000, texto: 'A partida começou.', tipo: 'sistema' },
     ],
     jogo: {
@@ -106,7 +106,7 @@ describe('round-trip', () => {
     const lido = await rodar((s) => carregar<JogoDeTeste>(s))
 
     expect(lido?.chat).toEqual([
-      { em: 3_000, texto: 'oi', tipo: 'jogador', autorId: 'j1' },
+      { em: 3_000, texto: 'oi', tipo: 'jogador', autorId: 'j1', apelido: 'J1', cor: 'vermelho' },
       { em: 4_000, texto: 'A partida começou.', tipo: 'sistema' },
     ])
   })
