@@ -136,7 +136,6 @@ export function Jogo({ projecao, enviar, aoSair }: PropsDaTela) {
             <BlocoDeNotas texto={eu.notas} aoMudar={(texto) => enviar({ t: 'notas', texto })} />
             <ChatDaMesa
               mensagens={projecao.chat}
-              jogadores={jogadores}
               aoEnviar={(texto) => enviar({ t: 'chat', texto })}
             />
           </section>
@@ -428,11 +427,9 @@ function Espectador() {
  */
 function ChatDaMesa({
   mensagens,
-  jogadores,
   aoEnviar,
 }: {
   mensagens: Projecao['chat']
-  jogadores: Ficha[]
   aoEnviar(texto: string): void
 }) {
   const [aberto, setAberto] = useState(false)
@@ -456,7 +453,7 @@ function ChatDaMesa({
       </h2>
 
       <div className={aberto ? 'block' : 'hidden lg:block'}>
-        <Chat mensagens={mensagens} jogadores={jogadores} aoEnviar={aoEnviar} />
+        <Chat mensagens={mensagens} aoEnviar={aoEnviar} />
       </div>
     </div>
   )

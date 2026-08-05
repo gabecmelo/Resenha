@@ -62,11 +62,7 @@ export function Lobby({ projecao, enviar, aoSair }: PropsDaTela) {
 
         <section className="order-4 flex flex-col gap-3 lg:order-none lg:col-start-3 lg:row-span-3 lg:row-start-1">
           <Titulo texto="Chat" />
-          <Chat
-            mensagens={projecao.chat}
-            jogadores={jogadores}
-            aoEnviar={(texto) => enviar({ t: 'chat', texto })}
-          />
+          <Chat mensagens={projecao.chat} aoEnviar={(texto) => enviar({ t: 'chat', texto })} />
         </section>
 
         <section className="order-5 lg:order-none lg:col-start-1 lg:row-start-3">

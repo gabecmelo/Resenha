@@ -211,11 +211,7 @@ export function Escrita({ projecao, enviar, aoSair }: PropsDaTela) {
           <BlocoDeNotas texto={eu.notas} aoMudar={(texto) => enviar({ t: 'notas', texto })} />
           <div className="flex flex-col gap-3">
             <h2 className="font-mono text-[11px] tracking-[0.12em] text-texto-3 uppercase">chat</h2>
-            <Chat
-              mensagens={projecao.chat}
-              jogadores={jogadores}
-              aoEnviar={(texto) => enviar({ t: 'chat', texto })}
-            />
+            <Chat mensagens={projecao.chat} aoEnviar={(texto) => enviar({ t: 'chat', texto })} />
           </div>
         </section>
       </div>

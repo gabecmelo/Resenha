@@ -1,15 +1,14 @@
-import { useState } from 'react'
-import type { Cor, JogadorId, MensagemChat } from '../../../shared/protocolo'
+import { useEffect, useRef, useState } from 'react'
+import type { MensagemChat } from '../../../shared/protocolo'
+import { estaNoFim } from '../estado/rolagem'
 import { corDoJogador } from './cores'
 
-/** `CHAT-01` — acima disso o servidor recusa; o campo para antes de chegar lá. */
+/** `CHAT-01`, `AJU-26` — o campo para no limite; o servidor continua validando. */
 const LIMITE_DA_MENSAGEM = 300
 
 export interface PropsDoChat {
   /** `CHAT-04` — o histórico como veio na projeção, do mais antigo ao mais novo. */
   mensagens: MensagemChat[]
-  /** Para resolver autor → apelido e cor. */
-  jogadores: Array<{ id: JogadorId; apelido: string; cor: Cor }>
   /** Ausente deixa o chat só de leitura. */
   aoEnviar?(texto: string): void
 }
@@ -20,8 +19,13 @@ export interface PropsDoChat {
  * O chat é apoio, não canal principal — a conversa acontece por voz (AD-003).
  * Mensagem de sistema é aviso do jogo: mono, centralizada entre duas linhas, sem
  * cor de autor, para não se confundir com gente falando.
+ *
+ * `AJU-16` — o apelido e a cor vêm gravados na própria mensagem, não da lista de
+ * jogadores: quem escreveu continua nomeado depois de sair da sala.
+ * `AJU-29` — o histórico tem altura própria e rola por dentro; a página não
+ * estica quando a conversa cresce.
  */
-export function Chat({ mensagens, jogadores, aoEnviar }: PropsDoChat) {
+export function Chat({ mensagens, aoEnviar }: PropsDoChat) {
   return (
     <div className="flex min-w-0 flex-col gap-3.5">
       {mensagens.length === 0 ? (
@@ -32,40 +36,65 @@ export function Chat({ mensagens, jogadores, aoEnviar }: PropsDoChat) {
           </span>
         </div>
       ) : (
-        <ol className="flex flex-col gap-3.5">
-          {mensagens.map((mensagem, indice) => {
-            if (mensagem.tipo === 'sistema') {
-              return (
-                <li key={indice} className="flex items-center gap-2.5">
-                  <span className="h-px flex-1 bg-linha-suave" />
-                  <span className="text-center font-mono text-[11px] tracking-[0.08em] text-texto-3 uppercase">
-                    {mensagem.texto}
-                  </span>
-                  <span className="h-px flex-1 bg-linha-suave" />
-                </li>
-              )
-            }
-
-            const autor = jogadores.find((jogador) => jogador.id === mensagem.autorId)
-            return (
-              <li key={indice} className="flex min-w-0 flex-col gap-0.5">
-                {/* O apelido vem escrito, não só colorido: a cor é atalho, não a informação. */}
-                <span
-                  className="text-miudo font-semibold"
-                  style={autor === undefined ? undefined : { color: corDoJogador(autor.cor) }}
-                >
-                  {autor?.apelido ?? 'quem saiu'}
-                </span>
-                <span className="text-[15px] leading-relaxed break-words text-texto">
-                  {mensagem.texto}
-                </span>
-              </li>
-            )
-          })}
-        </ol>
+        <Historico mensagens={mensagens} />
       )}
 
       {aoEnviar !== undefined && <Escrever aoEnviar={aoEnviar} />}
+    </div>
+  )
+}
+
+/** `AJU-29`, `AJU-30` — altura limitada, rolagem própria, sem arrastar quem leu. */
+function Historico({ mensagens }: { mensagens: MensagemChat[] }) {
+  const caixa = useRef<HTMLDivElement>(null)
+  // Guardado em ref, e não em estado: o que interessa é onde a rolagem estava
+  // **antes** de a mensagem nova entrar, e re-renderizar por isso seria à toa.
+  const grudadoNoFim = useRef(true)
+
+  useEffect(() => {
+    const alvo = caixa.current
+    if (alvo === null || !grudadoNoFim.current) return
+    alvo.scrollTop = alvo.scrollHeight
+  }, [mensagens.length])
+
+  return (
+    <div
+      ref={caixa}
+      onScroll={(evento) => {
+        grudadoNoFim.current = estaNoFim(evento.currentTarget)
+      }}
+      className="max-h-[45vh] min-h-0 overflow-y-auto overscroll-contain"
+    >
+      <ol className="flex flex-col gap-3.5">
+        {mensagens.map((mensagem, indice) => {
+          if (mensagem.tipo === 'sistema') {
+            return (
+              <li key={indice} className="flex items-center gap-2.5">
+                <span className="h-px flex-1 bg-linha-suave" />
+                <span className="text-center font-mono text-[11px] tracking-[0.08em] text-texto-3 uppercase">
+                  {mensagem.texto}
+                </span>
+                <span className="h-px flex-1 bg-linha-suave" />
+              </li>
+            )
+          }
+
+          return (
+            <li key={indice} className="flex min-w-0 flex-col gap-0.5">
+              {/* O apelido vem escrito, não só colorido: a cor é atalho, não a informação. */}
+              <span
+                className="text-miudo font-semibold"
+                style={{ color: corDoJogador(mensagem.cor) }}
+              >
+                {mensagem.apelido}
+              </span>
+              <span className="text-[15px] leading-relaxed break-words text-texto">
+                {mensagem.texto}
+              </span>
+            </li>
+          )
+        })}
+      </ol>
     </div>
   )
 }
