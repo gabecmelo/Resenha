@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from 'react'
 import type { CodigoErro, Comando, Mensagem, Projecao } from '../../../shared/protocolo'
-import { criarBackoff, criarSessao } from './sessao'
+import { criarBackoff, criarSessao, deveReconectarAoAparecer, tokenFoiRecusado } from './sessao'
 
 /**
  * Socket único da aplicação (`CONN-01`, `CONN-03`).
@@ -91,11 +91,11 @@ export function ProvedorDeConexao({ codigo, apelido, children }: PropsDoProvedor
     encerradoRef.current = false
 
     const conectar = () => {
-      const socket = new WebSocket(enderecoDaSala(codigo, sessao.lerToken(codigo)))
+      const socket = new WebSocket(enderecoDaSala(codigo, sessao.ler(codigo)?.token ?? null))
       socketRef.current = socket
 
       socket.addEventListener('open', () => {
-        const token = sessao.lerToken(codigo)
+        const token = sessao.ler(codigo)?.token ?? null
         // `CONN-02` — com token o servidor devolve a mesma vaga; sem token, a
         // conexão é uma entrada nova.
         socket.send(
@@ -117,8 +117,9 @@ export function ProvedorDeConexao({ codigo, apelido, children }: PropsDoProvedor
         }
         if (mensagem.t === 'entrou') {
           // `CONN-01` — o token é a credencial; guardá-lo é o que torna a
-          // reconexão possível.
-          sessao.guardarToken(codigo, mensagem.token)
+          // reconexão possível. `AJU-03` — o apelido vai junto, para a
+          // reentrada ter nome a exibir antes da primeira projeção.
+          sessao.guardar(codigo, { token: mensagem.token, apelido: apelidoRef.current })
           backoff.zerar()
           setErro(null)
           setEstado('conectado')
@@ -126,7 +127,13 @@ export function ProvedorDeConexao({ codigo, apelido, children }: PropsDoProvedor
         }
 
         setErro({ codigo: mensagem.codigo, mensagem: mensagem.mensagem })
-        if (ERROS_TERMINAIS.includes(mensagem.codigo)) {
+        // `AJU-04` — a credencial guardada não vale mais: insistir com ela dá no
+        // mesmo, e continuar tentando entraria de novo como jogador novo, sem
+        // ninguém pedir. Descartá-la e parar é o que devolve a tela de entrada
+        // com o motivo.
+        const recusouToken = tokenFoiRecusado(mensagem.codigo)
+        if (recusouToken) sessao.apagar(codigo)
+        if (recusouToken || ERROS_TERMINAIS.includes(mensagem.codigo)) {
           encerradoRef.current = true
           setEstado('expirada')
         }
@@ -144,10 +151,22 @@ export function ProvedorDeConexao({ codigo, apelido, children }: PropsDoProvedor
       })
     }
 
+    // `AJU-02` — a tela apagou, o navegador suspendeu a aba e o socket morreu.
+    // Ao voltar, esperar o backoff é esperar à toa: a pessoa está olhando.
+    const aoVoltarAVista = () => {
+      if (!ativo || encerradoRef.current) return
+      if (!deveReconectarAoAparecer(!document.hidden, socketRef.current !== null)) return
+      clearTimeout(tentativa)
+      backoff.zerar()
+      conectar()
+    }
+
     conectar()
+    document.addEventListener('visibilitychange', aoVoltarAVista)
 
     return () => {
       ativo = false
+      document.removeEventListener('visibilitychange', aoVoltarAVista)
       clearTimeout(tentativa)
       socketRef.current?.close()
       socketRef.current = null
@@ -163,7 +182,7 @@ export function ProvedorDeConexao({ codigo, apelido, children }: PropsDoProvedor
 
   const sair = useCallback(() => {
     enviar({ t: 'sair' })
-    sessao.apagarToken(codigo)
+    sessao.apagar(codigo)
     encerradoRef.current = true
     socketRef.current?.close()
   }, [codigo, enviar, sessao])

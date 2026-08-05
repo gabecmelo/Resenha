@@ -6,6 +6,9 @@ import {
   criarSessao,
   depositoDoNavegador,
   depositoEmMemoria,
+  deveReconectarAoAparecer,
+  reentradaAutomatica,
+  tokenFoiRecusado,
 } from './sessao'
 
 /** Substitui `globalThis.localStorage` e devolve como desfazer. */
@@ -25,66 +28,105 @@ afterEach(() => {
   desfazer = null
 })
 
-describe('criarSessao — token por código de sala (CONN-01, CONN-02)', () => {
+describe('criarSessao — sessão por código de sala (CONN-01, CONN-02)', () => {
   it('devolve o token guardado para aquela sala', () => {
     const sessao = criarSessao(depositoEmMemoria())
 
-    sessao.guardarToken('ABCDE', 'tok-abcde')
+    sessao.guardar('ABCDE', { token: 'tok-abcde', apelido: 'Ana' })
 
-    expect(sessao.lerToken('ABCDE')).toBe('tok-abcde')
+    expect(sessao.ler('ABCDE')?.token).toBe('tok-abcde')
   })
 
-  it('devolve null para sala sem token guardado', () => {
+  it('devolve null para sala sem sessão guardada', () => {
     const sessao = criarSessao(depositoEmMemoria())
 
-    expect(sessao.lerToken('ABCDE')).toBeNull()
+    expect(sessao.ler('ABCDE')).toBeNull()
   })
 
-  it('não vaza o token de uma sala para outra', () => {
+  it('não vaza a sessão de uma sala para outra', () => {
     const sessao = criarSessao(depositoEmMemoria())
 
-    sessao.guardarToken('ABCDE', 'tok-abcde')
+    sessao.guardar('ABCDE', { token: 'tok-abcde', apelido: 'Ana' })
 
-    expect(sessao.lerToken('FGHJK')).toBeNull()
+    expect(sessao.ler('FGHJK')).toBeNull()
   })
 
-  it('mantém tokens distintos para salas distintas no mesmo depósito', () => {
+  it('mantém sessões distintas para salas distintas no mesmo depósito', () => {
     const sessao = criarSessao(depositoEmMemoria())
 
-    sessao.guardarToken('ABCDE', 'tok-abcde')
-    sessao.guardarToken('FGHJK', 'tok-fghjk')
+    sessao.guardar('ABCDE', { token: 'tok-abcde', apelido: 'Ana' })
+    sessao.guardar('FGHJK', { token: 'tok-fghjk', apelido: 'Bia' })
 
-    expect([sessao.lerToken('ABCDE'), sessao.lerToken('FGHJK')]).toEqual(['tok-abcde', 'tok-fghjk'])
+    expect([sessao.ler('ABCDE'), sessao.ler('FGHJK')]).toEqual([
+      { token: 'tok-abcde', apelido: 'Ana' },
+      { token: 'tok-fghjk', apelido: 'Bia' },
+    ])
   })
 
-  it('substitui o token da sala quando um novo é emitido', () => {
+  it('substitui a sessão da sala quando um novo token é emitido', () => {
     const sessao = criarSessao(depositoEmMemoria())
 
-    sessao.guardarToken('ABCDE', 'tok-velho')
-    sessao.guardarToken('ABCDE', 'tok-novo')
+    sessao.guardar('ABCDE', { token: 'tok-velho', apelido: 'Ana' })
+    sessao.guardar('ABCDE', { token: 'tok-novo', apelido: 'Ana' })
 
-    expect(sessao.lerToken('ABCDE')).toBe('tok-novo')
+    expect(sessao.ler('ABCDE')?.token).toBe('tok-novo')
+  })
+})
+
+describe('criarSessao — apelido junto do token (AJU-03)', () => {
+  it('guarda o apelido daquela sala e o devolve na leitura', () => {
+    const sessao = criarSessao(depositoEmMemoria())
+
+    sessao.guardar('ABCDE', { token: 'tok-abcde', apelido: 'Ana' })
+
+    expect(sessao.ler('ABCDE')?.apelido).toBe('Ana')
+  })
+
+  it('guarda um apelido por sala, sem misturar salas', () => {
+    const sessao = criarSessao(depositoEmMemoria())
+
+    sessao.guardar('ABCDE', { token: 'tok-abcde', apelido: 'Ana' })
+    sessao.guardar('FGHJK', { token: 'tok-fghjk', apelido: 'Bia' })
+
+    expect([sessao.ler('ABCDE')?.apelido, sessao.ler('FGHJK')?.apelido]).toEqual(['Ana', 'Bia'])
+  })
+
+  it('sobrevive à ida e volta pelo depósito, que só guarda texto', () => {
+    const deposito = depositoEmMemoria()
+    criarSessao(deposito).guardar('ABCDE', { token: 'tok-abcde', apelido: 'Ana Maria' })
+
+    expect(criarSessao(deposito).ler('ABCDE')).toEqual({
+      token: 'tok-abcde',
+      apelido: 'Ana Maria',
+    })
+  })
+
+  it('ignora valor guardado em outro formato, em vez de quebrar a entrada', () => {
+    const deposito = depositoEmMemoria()
+    deposito.setItem('resenha.sessao.ABCDE', 'tok-de-uma-versao-anterior')
+
+    expect(criarSessao(deposito).ler('ABCDE')).toBeNull()
   })
 })
 
 describe('criarSessao — sair da sala (CONN-06)', () => {
-  it('apaga o token da sala de onde o jogador saiu', () => {
+  it('apaga a sessão da sala de onde o jogador saiu', () => {
     const sessao = criarSessao(depositoEmMemoria())
-    sessao.guardarToken('ABCDE', 'tok-abcde')
+    sessao.guardar('ABCDE', { token: 'tok-abcde', apelido: 'Ana' })
 
-    sessao.apagarToken('ABCDE')
+    sessao.apagar('ABCDE')
 
-    expect(sessao.lerToken('ABCDE')).toBeNull()
+    expect(sessao.ler('ABCDE')).toBeNull()
   })
 
-  it('preserva o token das outras salas ao apagar', () => {
+  it('preserva a sessão das outras salas ao apagar', () => {
     const sessao = criarSessao(depositoEmMemoria())
-    sessao.guardarToken('ABCDE', 'tok-abcde')
-    sessao.guardarToken('FGHJK', 'tok-fghjk')
+    sessao.guardar('ABCDE', { token: 'tok-abcde', apelido: 'Ana' })
+    sessao.guardar('FGHJK', { token: 'tok-fghjk', apelido: 'Bia' })
 
-    sessao.apagarToken('ABCDE')
+    sessao.apagar('ABCDE')
 
-    expect(sessao.lerToken('FGHJK')).toBe('tok-fghjk')
+    expect(sessao.ler('FGHJK')?.token).toBe('tok-fghjk')
   })
 })
 
@@ -93,18 +135,18 @@ describe('depositoDoNavegador — degradação (CONN-01)', () => {
     const real = depositoEmMemoria()
     desfazer = comLocalStorage({ value: real })
 
-    criarSessao(depositoDoNavegador()).guardarToken('ABCDE', 'tok-abcde')
+    criarSessao(depositoDoNavegador()).guardar('ABCDE', { token: 'tok-abcde', apelido: 'Ana' })
 
-    expect(criarSessao(depositoDoNavegador()).lerToken('ABCDE')).toBe('tok-abcde')
+    expect(criarSessao(depositoDoNavegador()).ler('ABCDE')?.token).toBe('tok-abcde')
   })
 
   it('degrada para memória quando o localStorage não existe', () => {
     desfazer = comLocalStorage({ value: undefined })
 
     const sessao = criarSessao(depositoDoNavegador())
-    sessao.guardarToken('ABCDE', 'tok-abcde')
+    sessao.guardar('ABCDE', { token: 'tok-abcde', apelido: 'Ana' })
 
-    expect(sessao.lerToken('ABCDE')).toBe('tok-abcde')
+    expect(sessao.ler('ABCDE')?.token).toBe('tok-abcde')
   })
 
   it('degrada para memória quando o acesso ao localStorage lança', () => {
@@ -115,9 +157,9 @@ describe('depositoDoNavegador — degradação (CONN-01)', () => {
     })
 
     const sessao = criarSessao(depositoDoNavegador())
-    sessao.guardarToken('ABCDE', 'tok-abcde')
+    sessao.guardar('ABCDE', { token: 'tok-abcde', apelido: 'Ana' })
 
-    expect(sessao.lerToken('ABCDE')).toBe('tok-abcde')
+    expect(sessao.ler('ABCDE')?.token).toBe('tok-abcde')
   })
 
   it('degrada para memória quando o localStorage recusa a escrita', () => {
@@ -132,9 +174,79 @@ describe('depositoDoNavegador — degradação (CONN-01)', () => {
     })
 
     const sessao = criarSessao(depositoDoNavegador())
-    sessao.guardarToken('ABCDE', 'tok-abcde')
+    sessao.guardar('ABCDE', { token: 'tok-abcde', apelido: 'Ana' })
 
-    expect(sessao.lerToken('ABCDE')).toBe('tok-abcde')
+    expect(sessao.ler('ABCDE')?.token).toBe('tok-abcde')
+  })
+})
+
+describe('reentradaAutomatica — voltar para a sala sozinho (AJU-01)', () => {
+  it('devolve a sala quando o código está na URL e há sessão para aquele código', () => {
+    const sessao = criarSessao(depositoEmMemoria())
+    sessao.guardar('ABCDE', { token: 'tok-abcde', apelido: 'Ana' })
+
+    expect(reentradaAutomatica('ABCDE', sessao)).toEqual({ codigo: 'ABCDE', apelido: 'Ana' })
+  })
+
+  it('não entra sozinho sem código na URL, mesmo com sessão guardada', () => {
+    const sessao = criarSessao(depositoEmMemoria())
+    sessao.guardar('ABCDE', { token: 'tok-abcde', apelido: 'Ana' })
+
+    expect(reentradaAutomatica('', sessao)).toBeNull()
+  })
+
+  it('não usa o token de outra sala', () => {
+    const sessao = criarSessao(depositoEmMemoria())
+    sessao.guardar('ABCDE', { token: 'tok-abcde', apelido: 'Ana' })
+
+    expect(reentradaAutomatica('FGHJK', sessao)).toBeNull()
+  })
+
+  it('não entra sozinho quando não há sessão guardada', () => {
+    expect(reentradaAutomatica('ABCDE', criarSessao(depositoEmMemoria()))).toBeNull()
+  })
+})
+
+describe('tokenFoiRecusado — a credencial guardada não vale mais (AJU-04)', () => {
+  it('é verdadeiro quando o jogador foi expulso', () => {
+    expect(tokenFoiRecusado('TOKEN_BANIDO')).toBe(true)
+  })
+
+  it('é verdadeiro quando a vaga foi liberada', () => {
+    expect(tokenFoiRecusado('JOGADOR_NAO_ENCONTRADO')).toBe(true)
+  })
+
+  it('é verdadeiro quando a sala acabou', () => {
+    expect(tokenFoiRecusado('SALA_EXPIRADA')).toBe(true)
+    expect(tokenFoiRecusado('SALA_NAO_ENCONTRADA')).toBe(true)
+  })
+
+  it('é verdadeiro quando a sala encheu e não há mais vaga guardada', () => {
+    expect(tokenFoiRecusado('SALA_CHEIA')).toBe(true)
+  })
+
+  it('é falso nas recusas de quem está entrando pela primeira vez', () => {
+    expect(tokenFoiRecusado('APELIDO_INVALIDO')).toBe(false)
+    expect(tokenFoiRecusado('APELIDO_EM_USO')).toBe(false)
+  })
+
+  it('é falso numa recusa de comando, que não tem a ver com a credencial', () => {
+    expect(tokenFoiRecusado('CHAT_LIMITE_DE_TAXA')).toBe(false)
+    expect(tokenFoiRecusado('FASE_INVALIDA')).toBe(false)
+  })
+})
+
+describe('deveReconectarAoAparecer — a aba voltou do segundo plano (AJU-02)', () => {
+  it('reconecta na hora quando a aba fica visível sem socket', () => {
+    expect(deveReconectarAoAparecer(true, false)).toBe(true)
+  })
+
+  it('não reconecta com o socket ainda de pé — nada de conexão redundante', () => {
+    expect(deveReconectarAoAparecer(true, true)).toBe(false)
+  })
+
+  it('não reconecta enquanto a aba está escondida', () => {
+    expect(deveReconectarAoAparecer(false, false)).toBe(false)
   })
 })
 

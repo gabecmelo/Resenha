@@ -7,11 +7,13 @@
  * reconexão.
  *
  * O código da sala entra como chave literal: quem chama já normalizou. Duas
- * salas distintas nunca compartilham token.
+ * salas distintas nunca compartilham sessão.
  */
 
+import type { CodigoErro } from '../../../shared/protocolo'
+
 /** Prefixo das chaves no depósito — isola o app de outras coisas no domínio. */
-export const PREFIXO_TOKEN = 'resenha.token.'
+export const PREFIXO_SESSAO = 'resenha.sessao.'
 
 /** Subconjunto de `Storage` que a sessão usa. Existe para poder degradar. */
 export interface Deposito {
@@ -20,12 +22,23 @@ export interface Deposito {
   removeItem(chave: string): void
 }
 
+/** O que fica guardado de uma sala. */
+export interface SessaoDaSala {
+  /** A credencial (AD-006). */
+  token: string
+  /**
+   * `AJU-03` — o apelido daquela sala anda junto do token: sem ele a reentrada
+   * automática não teria nome a exibir antes da primeira projeção chegar.
+   */
+  apelido: string
+}
+
 export interface Sessao {
-  /** Token guardado para essa sala, ou `null` quando não há. */
-  lerToken(codigo: string): string | null
-  guardarToken(codigo: string, token: string): void
-  /** `CONN-06` — sair apaga o token daquela sala, e só dela. */
-  apagarToken(codigo: string): void
+  /** Sessão guardada para essa sala, ou `null` quando não há. */
+  ler(codigo: string): SessaoDaSala | null
+  guardar(codigo: string, sessao: SessaoDaSala): void
+  /** `CONN-06` — sair apaga a sessão daquela sala, e só dela. */
+  apagar(codigo: string): void
 }
 
 /** Depósito volátil: vale pela aba, some ao fechar. */
@@ -47,7 +60,7 @@ export function depositoEmMemoria(): Deposito {
 export function depositoDoNavegador(): Deposito {
   try {
     const alvo = globalThis.localStorage
-    const sonda = `${PREFIXO_TOKEN}sonda`
+    const sonda = `${PREFIXO_SESSAO}sonda`
     alvo.setItem(sonda, '1')
     alvo.removeItem(sonda)
     return alvo
@@ -57,12 +70,78 @@ export function depositoDoNavegador(): Deposito {
 }
 
 export function criarSessao(deposito: Deposito = depositoDoNavegador()): Sessao {
-  const chave = (codigo: string) => `${PREFIXO_TOKEN}${codigo}`
+  const chave = (codigo: string) => `${PREFIXO_SESSAO}${codigo}`
   return {
-    lerToken: (codigo) => deposito.getItem(chave(codigo)),
-    guardarToken: (codigo, token) => deposito.setItem(chave(codigo), token),
-    apagarToken: (codigo) => deposito.removeItem(chave(codigo)),
+    ler: (codigo) => interpretarSessao(deposito.getItem(chave(codigo))),
+    guardar: (codigo, sessao) => deposito.setItem(chave(codigo), JSON.stringify(sessao)),
+    apagar: (codigo) => deposito.removeItem(chave(codigo)),
   }
+}
+
+/** Valor de outro formato — de uma versão anterior ou corrompido — não é sessão. */
+function interpretarSessao(guardado: string | null): SessaoDaSala | null {
+  if (guardado === null) return null
+  try {
+    const bruto: unknown = JSON.parse(guardado)
+    if (typeof bruto !== 'object' || bruto === null) return null
+    const { token, apelido } = bruto as { token?: unknown; apelido?: unknown }
+    if (typeof token !== 'string' || typeof apelido !== 'string') return null
+    return { token, apelido }
+  } catch {
+    return null
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Reentrada automática
+// ---------------------------------------------------------------------------
+
+/**
+ * `AJU-01` — a sala em que se entra sozinho, ou `null` quando não há.
+ *
+ * As duas condições valem juntas: o código precisa vir na URL (o link de convite
+ * sempre o carrega) **e** precisa existir sessão guardada para **aquele** código.
+ * Token de outra sala nunca serve, e entrar sozinho a partir da raiz do site
+ * seria surpreendente.
+ */
+export function reentradaAutomatica(
+  codigoDaUrl: string,
+  sessao: Sessao,
+): { codigo: string; apelido: string } | null {
+  if (codigoDaUrl === '') return null
+  const guardada = sessao.ler(codigoDaUrl)
+  return guardada === null ? null : { codigo: codigoDaUrl, apelido: guardada.apelido }
+}
+
+/**
+ * `AJU-04` — recusas em que o token guardado deixou de valer: a vaga foi
+ * liberada, a sala acabou ou o jogador foi removido. Insistir com a mesma
+ * credencial dá no mesmo, então ela é descartada e a tela de entrada volta.
+ *
+ * Apelido inválido ou em uso não entra na lista: são recusas de quem está
+ * entrando pela primeira vez, quando não há token nenhum a descartar.
+ */
+const RECUSAS_DE_TOKEN: readonly CodigoErro[] = [
+  'TOKEN_BANIDO',
+  'JOGADOR_NAO_ENCONTRADO',
+  'SALA_NAO_ENCONTRADA',
+  'SALA_EXPIRADA',
+  'SALA_CHEIA',
+]
+
+export function tokenFoiRecusado(codigo: CodigoErro): boolean {
+  return RECUSAS_DE_TOKEN.includes(codigo)
+}
+
+/**
+ * `AJU-02` — a aba voltou a ficar visível.
+ *
+ * O navegador móvel suspende a aba em segundo plano e o socket morre com a tela
+ * apagada; esperar o backoff nesse momento é esperar à toa. Com o socket ainda
+ * de pé não há nada a fazer — reconectar por cima derrubaria a conexão boa.
+ */
+export function deveReconectarAoAparecer(visivel: boolean, temSocket: boolean): boolean {
+  return visivel && !temSocket
 }
 
 // ---------------------------------------------------------------------------

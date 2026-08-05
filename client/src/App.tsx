@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { ProvedorDeConexao, useConexao } from './estado/conexao'
 import { codigoDaUrl } from './estado/entrada'
+import { criarSessao, reentradaAutomatica } from './estado/sessao'
 import { Encerrada } from './telas/Encerrada'
 import { Escrita } from './telas/Escrita'
 import { Conectando, ConexaoEncerrada, Reconectando } from './telas/EstadosGlobais'
@@ -15,6 +16,10 @@ import { Lobby } from './telas/Lobby'
  * tela é o Início; a partir da primeira projeção quem manda é `sala.fase`
  * (AD-008). Cada tentativa de entrar remonta o provedor, então "Entrar" sempre
  * significa uma conexão nova, com o apelido que está no campo agora.
+ *
+ * `AJU-01` — quando o código está na URL e existe sessão guardada para aquela
+ * sala, a primeira tentativa já nasce pronta: o formulário nunca chega a
+ * aparecer.
  */
 
 interface Tentativa {
@@ -26,7 +31,10 @@ interface Tentativa {
 
 export function App() {
   const codigoDoLink = useMemo(() => codigoDaUrl(window.location.pathname), [])
-  const [tentativa, setTentativa] = useState<Tentativa | null>(null)
+  const [tentativa, setTentativa] = useState<Tentativa | null>(() => {
+    const volta = reentradaAutomatica(codigoDoLink, criarSessao())
+    return volta === null ? null : { ...volta, numero: 0 }
+  })
 
   const entrar = (codigo: string, apelido: string) => {
     setTentativa((anterior) => ({ codigo, apelido, numero: (anterior?.numero ?? 0) + 1 }))
