@@ -10,7 +10,7 @@ não pontua e não decide vencedor. O que ele resolve é exatamente a parte que 
 resolve mal — esconder a sua carta de você e mostrá-la para todos os outros.
 
 - Sem cadastro: entra com um apelido e joga.
-- De 2 a 20 pessoas por sala.
+- Quem cria a sala escolhe o tamanho dela, de 2 a 20 pessoas.
 - Cair a conexão nunca elimina ninguém — a vaga fica guardada enquanto a sala existir.
 
 ## Como está montado
