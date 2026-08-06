@@ -1,9 +1,11 @@
 import { useState } from 'react'
-import { MIN_JOGADORES, TAMANHO_CODIGO } from '../../../shared/protocolo'
+import { MAX_JOGADORES, MIN_JOGADORES, TAMANHO_CODIGO } from '../../../shared/protocolo'
 import { Botao, CampoDeTexto, Shell } from '../componentes'
 import type { ErroDeSala } from '../estado/conexao'
 import {
+  LIMITE_PADRAO,
   MAX_APELIDO,
+  limiteDigitado,
   motivoParaCriar,
   motivoParaEntrar,
   normalizarCodigo,
@@ -53,6 +55,8 @@ export function Inicio({
 }: PropsDoInicio) {
   const [apelido, setApelido] = useState(apelidoInicial)
   const [codigo, setCodigo] = useState(codigoInicial)
+  // `AJU-36` — já preenchido: quem não quiser mexer cria a sala sem passo a mais.
+  const [limite, setLimite] = useState(LIMITE_PADRAO)
   const [criando, setCriando] = useState(false)
   const [falhaAoCriar, setFalhaAoCriar] = useState(false)
   // O erro é do objeto que chegou: dispensar um não esconde o próximo.
@@ -72,10 +76,20 @@ export function Inicio({
     aoEntrar(normalizarCodigo(codigo), apelido)
   }
 
+  const motivoDeCriar = criando ? 'Abrindo a sala…' : motivoParaCriar(apelido, limite)
+
   const criarSala = () => {
+    // `AJU-35` — o limite escolhido vai no pedido; quem recusa é o servidor.
+    const limiteJogadores = limiteDigitado(limite)
+    if (limiteJogadores === null) return
+
     setCriando(true)
     setFalhaAoCriar(false)
-    fetch('/api/salas', { method: 'POST' })
+    fetch('/api/salas', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ limiteJogadores }),
+    })
       .then((resposta) => (resposta.ok ? resposta.json() : Promise.reject(new Error('falhou'))))
       .then((dados: { codigo: string }) => {
         setDispensado(erro)
@@ -96,7 +110,7 @@ export function Inicio({
               erro={dePorta}
               codigo={codigo}
               apelido={apelido}
-              criando={criando}
+              motivoDeCriar={motivoDeCriar}
               aoCriar={criarSala}
               aoVoltar={voltarAoFormulario}
             />
@@ -118,11 +132,8 @@ export function Inicio({
 
               {codigoInicial === '' && (
                 <>
-                  <Botao
-                    larguraTotal
-                    onClick={criarSala}
-                    motivo={criando ? 'Abrindo a sala…' : motivoParaCriar(apelido)}
-                  >
+                  <LimiteDaSala valor={limite} aoMudar={setLimite} />
+                  <Botao larguraTotal onClick={criarSala} motivo={motivoDeCriar}>
                     Criar uma sala
                   </Botao>
                   {falhaAoCriar && (
@@ -171,6 +182,46 @@ export function Inicio({
   )
 }
 
+/**
+ * `AJU-35`, `AJU-36`, `AJU-38` — quantas pessoas cabem na sala que se vai criar.
+ *
+ * Abre preenchido com o padrão, então quem não liga para isso continua criando a
+ * sala em duas interações: escrever o apelido e apertar o botão. A faixa vem do
+ * contrato (AD-011) e o campo trava no tamanho; quem recusa de fato é o servidor.
+ */
+function LimiteDaSala({ valor, aoMudar }: { valor: string; aoMudar(valor: string): void }) {
+  const serve = limiteDigitado(valor) !== null
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor="limite-da-sala" className="text-apoio font-medium text-texto">
+        Quantas pessoas cabem
+      </label>
+      <div className="flex items-center gap-3">
+        <input
+          id="limite-da-sala"
+          type="text"
+          inputMode="numeric"
+          value={valor}
+          maxLength={String(MAX_JOGADORES).length}
+          aria-invalid={!serve}
+          aria-describedby="limite-da-sala-apoio"
+          onChange={(evento) => aoMudar(evento.target.value)}
+          className={`h-12 w-20 rounded-controle border bg-superficie px-3.5 text-corpo focus:outline-none ${
+            serve ? 'border-controle-linha text-texto focus:border-acento' : 'border-risco text-texto'
+          }`}
+        />
+        <span
+          id="limite-da-sala-apoio"
+          className={`text-[12px] ${serve ? 'text-texto-3' : 'text-risco'}`}
+        >
+          De {MIN_JOGADORES} a {MAX_JOGADORES} pessoas.
+        </span>
+      </div>
+    </div>
+  )
+}
+
 /** `SALA-03`, `SALA-04` — recusas que ficam no próprio campo, sem trocar de tela. */
 function erroDoApelido(erro: ErroDeSala | null): string | undefined {
   if (erro === null) return undefined
@@ -190,7 +241,7 @@ function Apresentacao() {
           jogo disponível
         </span>
         <span className="text-[15px] font-medium text-texto">
-          Quem Sou Eu? · {MIN_JOGADORES} a 20 pessoas
+          Quem Sou Eu? · {MIN_JOGADORES} a {MAX_JOGADORES} pessoas
         </span>
         <p className="text-apoio text-texto-2">
           Cada um recebe uma carta que todos veem menos ele. As perguntas são no viva-voz; o site só
@@ -228,14 +279,14 @@ function PortaFechada({
   erro,
   codigo,
   apelido,
-  criando,
+  motivoDeCriar,
   aoCriar,
   aoVoltar,
 }: {
   erro: ErroDeSala
   codigo: string
   apelido: string
-  criando: boolean
+  motivoDeCriar: string | undefined
   aoCriar(): void
   aoVoltar(): void
 }) {
@@ -254,11 +305,7 @@ function PortaFechada({
         <p className="text-[15px] leading-relaxed text-texto-2">{explicacao}</p>
       </div>
       <div className="flex flex-col gap-2.5">
-        <Botao
-          larguraTotal
-          onClick={aoCriar}
-          motivo={criando ? 'Abrindo a sala…' : motivoParaCriar(apelido)}
-        >
+        <Botao larguraTotal onClick={aoCriar} motivo={motivoDeCriar}>
           {apelido.trim() === '' ? 'Criar uma sala' : `Criar uma sala como ${apelido.trim()}`}
         </Botao>
         <Botao larguraTotal variante="secundario" onClick={aoVoltar}>
@@ -284,7 +331,7 @@ const TEXTOS_DE_PORTA: Partial<
   SALA_CHEIA: {
     titulo: 'Essa sala está cheia',
     explicacao:
-      'São 20 jogadores no máximo. Se alguém sair, o seu lugar abre — pode tentar de novo.',
+      'Ela já bateu o tamanho que escolheram na criação. Se alguém sair, o seu lugar abre — pode tentar de novo.',
   },
   TOKEN_BANIDO: {
     titulo: 'Você foi removido desta sala',

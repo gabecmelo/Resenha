@@ -26,9 +26,6 @@ import type { PropsDaTela } from './tela'
  * de aviso (`VIS-04`).
  */
 
-/** `SALA-05` */
-const MAXIMO_DE_JOGADORES = 20
-
 export function Lobby({ projecao, enviar, aoSair }: PropsDaTela) {
   const { sala, eu, jogadores } = projecao
   const ativos = jogadores.filter((jogador) => jogador.situacao === 'ativo')
@@ -48,7 +45,8 @@ export function Lobby({ projecao, enviar, aoSair }: PropsDaTela) {
         </section>
 
         <section className="order-2 flex flex-col gap-3 lg:order-none lg:col-start-2 lg:row-span-3 lg:row-start-1">
-          <Titulo texto="Na sala" contagem={`${jogadores.length}/${MAXIMO_DE_JOGADORES}`} />
+          {/* `AJU-39` — a lotação é a desta sala, escolhida por quem a criou. */}
+          <Titulo texto="Na sala" contagem={`${jogadores.length}/${sala.limiteJogadores}`} />
           <ul className="flex flex-col">
             {jogadores.map((jogador) => (
               <LinhaDeJogador

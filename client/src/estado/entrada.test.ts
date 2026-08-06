@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
+  LIMITE_PADRAO,
   caminhoDaSala,
   codigoDaUrl,
+  limiteDigitado,
   linkDeConvite,
   motivoParaCriar,
   motivoParaEntrar,
@@ -67,27 +69,89 @@ describe('caminhoDaSala (AJU-33)', () => {
 
 describe('motivoParaCriar', () => {
   it('não tem motivo quando o apelido serve', () => {
-    expect(motivoParaCriar('Caê')).toBeUndefined()
+    expect(motivoParaCriar('Caê', LIMITE_PADRAO)).toBeUndefined()
   })
 
   it('pede o apelido quando o campo está vazio', () => {
-    expect(motivoParaCriar('')).toBe('Escreva um apelido para criar a sala.')
+    expect(motivoParaCriar('', LIMITE_PADRAO)).toBe('Escreva um apelido para criar a sala.')
   })
 
   it('trata apelido só de espaços como vazio', () => {
-    expect(motivoParaCriar('   ')).toBe('Escreva um apelido para criar a sala.')
+    expect(motivoParaCriar('   ', LIMITE_PADRAO)).toBe('Escreva um apelido para criar a sala.')
   })
 
   it('recusa apelido de 1 caractere', () => {
-    expect(motivoParaCriar('C')).toBe('Curto demais — mínimo 2 caracteres.')
+    expect(motivoParaCriar('C', LIMITE_PADRAO)).toBe('Curto demais — mínimo 2 caracteres.')
   })
 
   it('diz quantos caracteres passaram do máximo', () => {
-    expect(motivoParaCriar('Caetano das Neves Jr')).toBe('Passou 4 caracteres.')
+    expect(motivoParaCriar('Caetano das Neves Jr', LIMITE_PADRAO)).toBe('Passou 4 caracteres.')
   })
 
   it('usa o singular quando passou um caractere só', () => {
-    expect(motivoParaCriar('Caetano das Neves')).toBe('Passou 1 caractere.')
+    expect(motivoParaCriar('Caetano das Neves', LIMITE_PADRAO)).toBe('Passou 1 caractere.')
+  })
+
+  it('recusa o limite fora da faixa da sala (`AJU-38`)', () => {
+    expect(motivoParaCriar('Caê', '21')).toBe('A sala cabe de 2 a 20 pessoas.')
+  })
+
+  it('recusa o limite vazio', () => {
+    expect(motivoParaCriar('Caê', '')).toBe('A sala cabe de 2 a 20 pessoas.')
+  })
+
+  it('cobra o apelido antes do limite', () => {
+    expect(motivoParaCriar('', '99')).toBe('Escreva um apelido para criar a sala.')
+  })
+
+  it('aceita um limite escolhido dentro da faixa', () => {
+    expect(motivoParaCriar('Caê', '3')).toBeUndefined()
+  })
+})
+
+describe('limiteDigitado (AJU-35, AJU-38)', () => {
+  it('abre a criação já preenchida com o padrão de 20 (`AJU-36`)', () => {
+    expect(LIMITE_PADRAO).toBe('20')
+  })
+
+  it('lê o padrão como limite válido', () => {
+    expect(limiteDigitado(LIMITE_PADRAO)).toBe(20)
+  })
+
+  it('aceita o mínimo da partida', () => {
+    expect(limiteDigitado('2')).toBe(2)
+  })
+
+  it('aceita o teto do produto', () => {
+    expect(limiteDigitado('20')).toBe(20)
+  })
+
+  it('aceita um valor no meio da faixa, com espaços nas pontas', () => {
+    expect(limiteDigitado(' 6 ')).toBe(6)
+  })
+
+  it('recusa abaixo do mínimo da partida', () => {
+    expect(limiteDigitado('1')).toBeNull()
+  })
+
+  it('recusa acima do teto do produto', () => {
+    expect(limiteDigitado('21')).toBeNull()
+  })
+
+  it('recusa campo vazio', () => {
+    expect(limiteDigitado('')).toBeNull()
+  })
+
+  it('recusa valor com letra', () => {
+    expect(limiteDigitado('6a')).toBeNull()
+  })
+
+  it('recusa valor quebrado', () => {
+    expect(limiteDigitado('4.5')).toBeNull()
+  })
+
+  it('recusa valor negativo', () => {
+    expect(limiteDigitado('-3')).toBeNull()
   })
 })
 

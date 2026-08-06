@@ -7,7 +7,12 @@
  * (`HOST-01`, `ESCR-06` valem para todo botão desabilitado do produto).
  */
 
-import { ALFABETO_CODIGO, MIN_JOGADORES, TAMANHO_CODIGO } from '../../../shared/protocolo'
+import {
+  ALFABETO_CODIGO,
+  MAX_JOGADORES,
+  MIN_JOGADORES,
+  TAMANHO_CODIGO,
+} from '../../../shared/protocolo'
 
 /** `SALA-03` */
 export const MIN_APELIDO = 2
@@ -51,11 +56,40 @@ export function caminhoDaSala(codigo: string | null): string {
 }
 
 /**
+ * `AJU-35`, `AJU-36` — o limite com que a tela de criação abre. Vem do
+ * contrato: é o mesmo padrão que o servidor aplica a quem não escolhe nada.
+ */
+export const LIMITE_PADRAO = String(MAX_JOGADORES)
+
+/**
+ * `AJU-35`, `AJU-38` — quantas pessoas quem cria a sala pediu que coubessem,
+ * ou `null` quando o que está escrito não serve: vazio, com letra ou fora da
+ * faixa.
+ *
+ * A faixa vem do contrato (AD-011). Como no tempo por turno, isto não recusa
+ * nada de verdade — só evita mandar ao servidor o que já se sabe recusado.
+ */
+export function limiteDigitado(texto: string): number | null {
+  const limpo = texto.trim()
+  if (!/^\d+$/.test(limpo)) return null
+
+  const limite = Number(limpo)
+  if (limite < MIN_JOGADORES || limite > MAX_JOGADORES) return null
+  return limite
+}
+
+/**
  * Por que ainda não dá para criar a sala, ou `undefined` quando dá.
  * O texto vai direto para o botão: desabilitado sem motivo trava o grupo.
  */
-export function motivoParaCriar(apelido: string): string | undefined {
-  return motivoDoApelido(apelido, 'para criar a sala')
+export function motivoParaCriar(apelido: string, limite: string): string | undefined {
+  const doApelido = motivoDoApelido(apelido, 'para criar a sala')
+  if (doApelido !== undefined) return doApelido
+
+  if (limiteDigitado(limite) === null) {
+    return `A sala cabe de ${MIN_JOGADORES} a ${MAX_JOGADORES} pessoas.`
+  }
+  return undefined
 }
 
 /** Por que ainda não dá para entrar, ou `undefined` quando dá. */
