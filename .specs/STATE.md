@@ -82,6 +82,15 @@
 - **Date**: 2026-08-02
 - **Status**: active
 
+### AD-011
+- **Decision**: Constantes que o cliente precisa para desenhar a interface — mínimo de jogadores, faixa do tempo por turno, limite da sala — vivem em `shared/protocolo.ts` e são importadas **tanto** pelo servidor **quanto** pelo cliente. Nenhum desses números pode ser repetido no cliente.
+- **Reason**: A duplicação já causou um defeito real: o servidor passou a aceitar partida com 2 jogadores enquanto `Lobby.tsx` mantinha `MINIMO_PARA_INICIAR = 3` fixo, e a funcionalidade não chegou ao usuário. Um número que existe em dois lugares é um número que vai divergir.
+- **Trade-off**: Cria uma tensão real com AD-002. `MIN_JOGADORES` é regra de "Quem Sou Eu?", e `shared/` passa a hospedar uma constante de jogo. `shared/` não é `core`, então a letra do AD-002 não é violada — mas o espírito é esticado: com um segundo jogo, o contrato compartilhado acumularia constantes de cada um.
+- **Mitigação e direção futura**: Enquanto houver um jogo só, o custo é zero. Quando o segundo entrar, a saída correta **não** é multiplicar constantes em `shared/` — é a projeção passar a carregar a decisão pronta (ex.: `podeIniciar` com o motivo), que é o que AD-008 já manda: o cliente renderiza, não calcula. Reavaliar nesse momento.
+- **Scope**: `shared/protocolo.ts`, cliente e regras de jogo.
+- **Date**: 2026-08-05
+- **Status**: active
+
 ## Handoff
 
 - **Feature**: `quem-sou-eu` — `.specs/features/quem-sou-eu/`

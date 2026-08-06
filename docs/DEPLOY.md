@@ -48,7 +48,7 @@ Quatro detalhes que economizam tempo:
   navegador só existe em contexto seguro (HTTPS). O botão não quebra, só não faz nada —
   dite o código de 5 letras, que é justamente para isso que ele não usa `I`, `O`, `0`
   nem `1`.
-- **São necessárias 3 pessoas** para iniciar uma partida.
+- **São necessárias 2 pessoas** para iniciar uma partida.
 - **Duas abas do mesmo navegador são a mesma pessoa.** A identidade é um token no
   armazenamento do navegador — para simular várias pessoas numa máquina só, use
   navegadores diferentes ou uma janela anônima.
