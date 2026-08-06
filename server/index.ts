@@ -1,4 +1,6 @@
+import { MAX_JOGADORES } from '../shared/protocolo'
 import { gerarCodigo, normalizarCodigo } from './core/codigo'
+import { limiteDeEntrada } from './core/roster'
 import { SalaDeJogo } from './core/sala-do'
 import { quemSouEu } from './games/quem-sou-eu'
 import type { EstadoQuemSouEu } from './games/quem-sou-eu/regras'
@@ -31,7 +33,10 @@ export default {
     const url = new URL(request.url)
 
     if (url.pathname === '/api/salas' && request.method === 'POST') {
-      return criarSala(env)
+      // `AJU-38` — limite que não serve não abre sala; nada é sorteado.
+      const limite = limiteDeEntrada(await limitePedido(request))
+      if (!limite.ok) return Response.json({ erro: limite.erro }, { status: 400 })
+      return criarSala(env, Math.random, limite.valor)
     }
 
     const rota = ROTA_WS.exec(url.pathname)
@@ -42,17 +47,39 @@ export default {
 }
 
 /** `SALA-01` — sorteia um código livre e inicializa o Durable Object dele. */
-export async function criarSala(env: Env, aleatorio: () => number = Math.random): Promise<Response> {
+export async function criarSala(
+  env: Env,
+  aleatorio: () => number = Math.random,
+  limiteJogadores: number = MAX_JOGADORES,
+): Promise<Response> {
   for (let tentativa = 0; tentativa < TENTATIVAS_DE_CODIGO; tentativa += 1) {
     const codigo = gerarCodigo(aleatorio)
     const stub = env.SALA.get(env.SALA.idFromName(codigo))
-    const criada = await stub.fetch(`http://sala/criar?codigo=${codigo}`, { method: 'POST' })
+    const criada = await stub.fetch(
+      `http://sala/criar?codigo=${codigo}&limite=${limiteJogadores}`,
+      { method: 'POST' },
+    )
 
     if (criada.status === 201) return Response.json({ codigo }, { status: 201 })
     // 409: o código já é de uma sala viva. Sorteia outro.
   }
 
   return Response.json({ erro: 'CODIGO_INVALIDO' }, { status: 503 })
+}
+
+/**
+ * `AJU-35`, `AJU-36` — corpo ausente, ilegível ou sem o campo significa "não
+ * escolhi limite nenhum": a sala nasce com o padrão. Só um valor presente e
+ * ruim recusa a criação, e é `limiteDeEntrada` quem decide isso.
+ */
+async function limitePedido(request: Request): Promise<unknown> {
+  try {
+    const corpo: unknown = await request.json()
+    if (typeof corpo !== 'object' || corpo === null) return undefined
+    return (corpo as { limiteJogadores?: unknown }).limiteJogadores
+  } catch {
+    return undefined
+  }
 }
 
 /**

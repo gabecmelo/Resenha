@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { CONFIG_PADRAO, type Cor, type EstadoSala, type Jogador } from '../../shared/protocolo'
+import {
+  CONFIG_PADRAO,
+  MAX_JOGADORES,
+  type Cor,
+  type EstadoSala,
+  type Jogador,
+} from '../../shared/protocolo'
 import {
   CHAT_MAX_CARACTERES,
   CHAT_MAX_MENSAGENS,
@@ -29,6 +35,7 @@ function sala(): EstadoSala {
     codigo: 'ABCDE',
     fase: 'jogo',
     hostId: 'ana',
+    limiteJogadores: MAX_JOGADORES,
     jogadores: [{ ...ana }, { ...bia }],
     banidos: [],
     config: { ...CONFIG_PADRAO },

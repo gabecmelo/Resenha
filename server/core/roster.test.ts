@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   CONFIG_PADRAO,
+  MAX_JOGADORES,
+  MIN_JOGADORES,
   type EstadoSala,
   type Fase,
   type Jogador,
@@ -8,20 +10,21 @@ import {
 import {
   APELIDO_MAX,
   APELIDO_MIN,
-  MAX_JOGADORES,
   corLivre,
   entrar,
   expulsar,
+  limiteDeEntrada,
   migrarHost,
   reconectar,
   transferirHost,
 } from './roster'
 
-function sala(fase: Fase = 'lobby'): EstadoSala {
+function sala(fase: Fase = 'lobby', limiteJogadores = MAX_JOGADORES): EstadoSala {
   return {
     codigo: 'ABCDE',
     fase,
     hostId: '',
+    limiteJogadores,
     jogadores: [],
     banidos: [],
     config: { ...CONFIG_PADRAO },
@@ -164,6 +167,84 @@ describe('entrar — lotação da sala (SALA-05)', () => {
 
     expect(resultado).toEqual({ ok: false, erro: 'SALA_CHEIA' })
     expect(estado.jogadores).toHaveLength(20)
+  })
+})
+
+describe('entrar — lotação escolhida na criação (AJU-37)', () => {
+  it('aceita o último jogador que cabe no limite da sala', () => {
+    const estado = sala('lobby', 3)
+    entrarOk(estado, 'Ana')
+    entrarOk(estado, 'Bia')
+
+    const terceiro = entrar(estado, { id: 'j3', apelido: 'Caio', tokenHash: 'h3' }, 3_000)
+
+    expect(terceiro.ok).toBe(true)
+    expect(estado.jogadores).toHaveLength(3)
+  })
+
+  it('recusa quem chega depois do limite da sala, abaixo do teto do produto', () => {
+    const estado = sala('lobby', 3)
+    entrarOk(estado, 'Ana')
+    entrarOk(estado, 'Bia')
+    entrarOk(estado, 'Caio')
+
+    const quarto = entrar(estado, { id: 'j4', apelido: 'Duda', tokenHash: 'h4' }, 4_000)
+
+    expect(quarto).toEqual({ ok: false, erro: 'SALA_CHEIA' })
+    expect(estado.jogadores).toHaveLength(3)
+  })
+
+  it('recusa o terceiro numa sala criada para dois', () => {
+    const estado = sala('lobby', MIN_JOGADORES)
+    entrarOk(estado, 'Ana')
+    entrarOk(estado, 'Bia')
+
+    expect(entrar(estado, { id: 'j3', apelido: 'Caio', tokenHash: 'h3' }, 3_000)).toEqual({
+      ok: false,
+      erro: 'SALA_CHEIA',
+    })
+  })
+})
+
+describe('limiteDeEntrada — limite pedido na criação (AJU-35, AJU-36, AJU-38)', () => {
+  it('aplica o padrão de 20 quando nenhum limite é pedido', () => {
+    expect(limiteDeEntrada(undefined)).toEqual({ ok: true, valor: 20 })
+  })
+
+  it('aplica o padrão quando o campo vem nulo', () => {
+    expect(limiteDeEntrada(null)).toEqual({ ok: true, valor: MAX_JOGADORES })
+  })
+
+  it('aceita o mínimo da partida', () => {
+    expect(limiteDeEntrada(MIN_JOGADORES)).toEqual({ ok: true, valor: 2 })
+  })
+
+  it('aceita o teto do produto', () => {
+    expect(limiteDeEntrada(MAX_JOGADORES)).toEqual({ ok: true, valor: 20 })
+  })
+
+  it('aceita um valor no meio da faixa', () => {
+    expect(limiteDeEntrada(6)).toEqual({ ok: true, valor: 6 })
+  })
+
+  it('recusa limite abaixo do mínimo da partida', () => {
+    expect(limiteDeEntrada(MIN_JOGADORES - 1)).toEqual({ ok: false, erro: 'LIMITE_INVALIDO' })
+  })
+
+  it('recusa limite acima do teto do produto', () => {
+    expect(limiteDeEntrada(MAX_JOGADORES + 1)).toEqual({ ok: false, erro: 'LIMITE_INVALIDO' })
+  })
+
+  it('recusa limite não inteiro', () => {
+    expect(limiteDeEntrada(4.5)).toEqual({ ok: false, erro: 'LIMITE_INVALIDO' })
+  })
+
+  it('recusa limite que não é número', () => {
+    expect(limiteDeEntrada('6')).toEqual({ ok: false, erro: 'LIMITE_INVALIDO' })
+  })
+
+  it('recusa NaN', () => {
+    expect(limiteDeEntrada(Number.NaN)).toEqual({ ok: false, erro: 'LIMITE_INVALIDO' })
   })
 })
 

@@ -26,7 +26,14 @@ export function projetar(
   if (eu === undefined) throw new Error(`jogador fora da sala: ${paraJogador}`)
 
   const projecao: Projecao = {
-    sala: { codigo: sala.codigo, fase: sala.fase, hostId: sala.hostId, config: sala.config },
+    sala: {
+      codigo: sala.codigo,
+      fase: sala.fase,
+      hostId: sala.hostId,
+      config: sala.config,
+      // `AJU-39` — a lotação que a tela mostra é a desta sala.
+      limiteJogadores: sala.limiteJogadores,
+    },
     eu: {
       id: eu.id,
       ehHost: sala.hostId === eu.id,

@@ -6,6 +6,7 @@ import {
   type Fase,
   type Jogador,
   type JogadorId,
+  MAX_JOGADORES,
   type Projecao,
   type Situacao,
 } from '../../../shared/protocolo'
@@ -68,6 +69,7 @@ function salaDe(
     codigo: 'ABCDE',
     fase,
     hostId: 'a',
+    limiteJogadores: MAX_JOGADORES,
     jogadores: [
       jogador('a', 'ativo', 1_000),
       jogador('b', 'ativo', 2_000),

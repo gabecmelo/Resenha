@@ -13,11 +13,19 @@ interface Cliente {
   recebidas: Mensagem[]
 }
 
-async function criarPelaApi(): Promise<string> {
-  const resposta = await SELF.fetch('https://resenha.test/api/salas', { method: 'POST' })
+async function criarPelaApi(limiteJogadores?: number): Promise<string> {
+  const resposta = await postSalas(limiteJogadores === undefined ? undefined : { limiteJogadores })
   expect(resposta.status).toBe(201)
   const corpo = await resposta.json<{ codigo: string }>()
   return corpo.codigo
+}
+
+/** Corpo ausente é o cliente que não escolhe limite nenhum (`AJU-36`). */
+function postSalas(corpo?: unknown): Promise<Response> {
+  return SELF.fetch('https://resenha.test/api/salas', {
+    method: 'POST',
+    ...(corpo === undefined ? {} : { body: JSON.stringify(corpo) }),
+  })
 }
 
 async function abrir(codigo: string, token?: string): Promise<Cliente> {
@@ -132,6 +140,39 @@ describe('POST /api/salas', () => {
     expect((await lerSala(colidido))?.jogadores.map((j) => j.apelido)).toEqual(['Ana'])
   })
 
+  it('guarda na sala o limite escolhido na criação (`AJU-35`)', async () => {
+    const codigo = await criarPelaApi(3)
+
+    expect((await lerSala(codigo))?.limiteJogadores).toBe(3)
+  })
+
+  it('aplica o padrão de 20 quando a criação não traz limite (`AJU-36`)', async () => {
+    const codigo = await criarPelaApi()
+
+    expect((await lerSala(codigo))?.limiteJogadores).toBe(20)
+  })
+
+  it('recusa a criação com limite fora da faixa (`AJU-38`)', async () => {
+    const resposta = await postSalas({ limiteJogadores: 21 })
+
+    expect(resposta.status).toBe(400)
+    expect(await resposta.json()).toEqual({ erro: 'LIMITE_INVALIDO' })
+  })
+
+  it('recusa a criação com limite abaixo do mínimo da partida (`AJU-38`)', async () => {
+    const resposta = await postSalas({ limiteJogadores: 1 })
+
+    expect(resposta.status).toBe(400)
+    expect(await resposta.json()).toEqual({ erro: 'LIMITE_INVALIDO' })
+  })
+
+  it('recusa a criação com limite não inteiro (`AJU-38`)', async () => {
+    const resposta = await postSalas({ limiteJogadores: 4.5 })
+
+    expect(resposta.status).toBe(400)
+    expect(await resposta.json()).toEqual({ erro: 'LIMITE_INVALIDO' })
+  })
+
   it('não responde a GET na rota de criação', async () => {
     const resposta = await SELF.fetch('https://resenha.test/api/salas')
 
@@ -192,6 +233,52 @@ describe('GET /api/salas/:codigo/ws', () => {
     await assentar()
 
     expect(ultimaProjecao(volta).eu.id).toBe(ana.jogadorId)
+  })
+
+  it('recusa a quarta pessoa numa sala criada para três (`AJU-37`)', async () => {
+    const codigo = await criarPelaApi(3)
+    await entrar(codigo, 'Ana')
+    await entrar(codigo, 'Bia')
+    await entrar(codigo, 'Caio')
+
+    const quarta = await abrir(codigo)
+    await assentar()
+
+    expect(erros(quarta).map((e) => e.codigo)).toEqual(['SALA_CHEIA'])
+    expect(quarta.ws.readyState).not.toBe(WebSocket.READY_STATE_OPEN)
+  })
+
+  it('aceita quem já tem vaga numa sala pequena já no limite (`CONN-02`)', async () => {
+    const codigo = await criarPelaApi(2)
+    const ana = await entrar(codigo, 'Ana')
+    await entrar(codigo, 'Bia')
+
+    ana.ws.close()
+    await assentar()
+    const volta = await abrir(codigo, ana.token)
+    mandar(volta, { t: 'ola', token: ana.token })
+    await assentar()
+
+    expect(ultimaProjecao(volta).eu.id).toBe(ana.jogadorId)
+  })
+
+  it('projeta o limite daquela sala, não o teto do produto (`AJU-39`)', async () => {
+    const codigo = await criarPelaApi(4)
+
+    const ana = await entrar(codigo, 'Ana')
+
+    expect(ultimaProjecao(ana).sala.limiteJogadores).toBe(4)
+  })
+
+  it('não deixa o host alterar o limite de uma sala já criada (`AJU-40`)', async () => {
+    const codigo = await criarPelaApi(3)
+    const ana = await entrar(codigo, 'Ana')
+
+    mandar(ana, { t: 'configurar', config: { limiteJogadores: 20 } } as unknown as Comando)
+    await assentar()
+
+    expect((await lerSala(codigo))?.limiteJogadores).toBe(3)
+    expect(ultimaProjecao(ana).sala.limiteJogadores).toBe(3)
   })
 
   it('recusa no handshake o token de quem foi expulso (`CONN-04`, `HOST-02`)', async () => {

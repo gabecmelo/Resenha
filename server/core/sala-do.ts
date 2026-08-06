@@ -1,5 +1,6 @@
 import {
   CONFIG_PADRAO,
+  MAX_JOGADORES,
   type CodigoErro,
   type Comando,
   type EstadoSala,
@@ -10,7 +11,7 @@ import { aceitar, desvincular, difundir, enviar, jogadorDe, socketsDe, vincular 
 import { type JogoDaSala, avisar, despachar } from './despacho'
 import { carregar, destruir, salvar } from './estado'
 import { definir, reagendar, vencidos } from './prazos'
-import { MAX_JOGADORES, entrar, migrarHost, reconectar } from './roster'
+import { entrar, migrarHost, reconectar } from './roster'
 
 /** `HOST-04` — tempo de desconexão do host antes da migração automática. */
 export const MIGRACAO_HOST_MS = 30_000
@@ -41,6 +42,7 @@ const MENSAGENS_DE_ERRO: Record<CodigoErro, string> = {
   CHAT_VAZIO: 'Escreva alguma coisa antes de enviar.',
   CHAT_LIMITE_DE_TAXA: 'Calma no chat: espere um instante.',
   COMANDO_INVALIDO: 'Comando inválido.',
+  LIMITE_INVALIDO: 'O limite de jogadores não serve para esta sala.',
 }
 
 /**
@@ -65,7 +67,12 @@ export class SalaDeJogo<E> {
     const url = new URL(request.url)
 
     if (request.method === 'POST' && url.pathname === '/criar') {
-      return this.criar(url.searchParams.get('codigo') ?? '')
+      // `AJU-36` — sem limite pedido, a sala nasce com o padrão do produto.
+      const limite = url.searchParams.get('limite')
+      return this.criar(
+        url.searchParams.get('codigo') ?? '',
+        limite === null ? MAX_JOGADORES : Number(limite),
+      )
     }
     if (request.headers.get('Upgrade') !== 'websocket') {
       return new Response('esperado upgrade para websocket', { status: 426 })
@@ -78,7 +85,7 @@ export class SalaDeJogo<E> {
   // -------------------------------------------------------------------------
 
   /** `SALA-01` — 409 quando o código já é de uma sala viva (colisão). */
-  private async criar(codigo: string): Promise<Response> {
+  private async criar(codigo: string, limiteJogadores: number): Promise<Response> {
     if (await this.carregarSala()) return new Response('sala já existe', { status: 409 })
 
     const agora = Date.now()
@@ -87,6 +94,8 @@ export class SalaDeJogo<E> {
       fase: 'lobby',
       // O criador vira host ao entrar; até lá a sala não tem comando.
       hostId: '',
+      // `AJU-40` — gravado uma vez; nenhum comando o alcança depois.
+      limiteJogadores,
       jogadores: [],
       banidos: [],
       config: { ...CONFIG_PADRAO },
@@ -99,7 +108,7 @@ export class SalaDeJogo<E> {
     return new Response(null, { status: 201 })
   }
 
-  /** `SALA-05`, `SALA-06`, `CONN-04` — o que barra a conexão barra no handshake. */
+  /** `AJU-37`, `SALA-06`, `CONN-04` — o que barra a conexão barra no handshake. */
   private async conectar(token: string | null): Promise<Response> {
     const sala = await this.carregarSala()
     if (sala === null) return recusar('SALA_NAO_ENCONTRADA')
@@ -108,7 +117,7 @@ export class SalaDeJogo<E> {
     if (hash !== null && sala.banidos.includes(hash)) return recusar('TOKEN_BANIDO')
 
     const temVaga = hash !== null && sala.jogadores.some((j) => j.tokenHash === hash)
-    if (!temVaga && sala.jogadores.length >= MAX_JOGADORES) return recusar('SALA_CHEIA')
+    if (!temVaga && sala.jogadores.length >= sala.limiteJogadores) return recusar('SALA_CHEIA')
 
     return aceitar(this.ctx)
   }

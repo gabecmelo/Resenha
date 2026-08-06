@@ -30,6 +30,17 @@ export const TAMANHO_CODIGO = 5
  */
 export const MIN_JOGADORES = 2
 
+/**
+ * `AJU-35`, `AJU-38` — teto da faixa que quem cria a sala pode escolher, e
+ * padrão de quem não escolhe nada (`AJU-36`). É o limite do produto, não o
+ * limite de uma sala: cada sala guarda o seu em `EstadoSala.limiteJogadores`.
+ *
+ * Vive aqui pelo mesmo motivo de `MIN_JOGADORES` (AD-011): o servidor recusa
+ * com ele e a tela de criação desenha a faixa com ele. Coincide com o tamanho
+ * da paleta de `CORES` — não há vaga sem cor própria.
+ */
+export const MAX_JOGADORES = 20
+
 /** Identificador público e curto do jogador. Nunca é a credencial. */
 export type JogadorId = string
 
@@ -134,6 +145,12 @@ export interface EstadoSala<E = unknown> {
   codigo: string
   fase: Fase
   hostId: JogadorId
+  /**
+   * `AJU-35`, `AJU-37`, `AJU-40` — quantas pessoas cabem **nesta** sala.
+   * Escolhido na criação e imutável daí em diante: por isso não vive em
+   * `Config`, que o host reconfigura no lobby.
+   */
+  limiteJogadores: number
   /** Em ordem de entrada. */
   jogadores: Jogador[]
   /** Hashes de token expulsos (`HOST-02`, `CONN-04`). */
@@ -171,6 +188,8 @@ export type CodigoErro =
   | 'CHAT_VAZIO'
   | 'CHAT_LIMITE_DE_TAXA'
   | 'COMANDO_INVALIDO'
+  /** `AJU-38` — limite de jogadores pedido na criação da sala não serve. */
+  | 'LIMITE_INVALIDO'
 
 export type Resultado<T = void> = { ok: true; valor: T } | { ok: false; erro: CodigoErro }
 
@@ -212,7 +231,14 @@ export type Mensagem =
 // ---------------------------------------------------------------------------
 
 export interface Projecao {
-  sala: { codigo: string; fase: Fase; hostId: JogadorId; config: Config }
+  sala: {
+    codigo: string
+    fase: Fase
+    hostId: JogadorId
+    config: Config
+    /** `AJU-39` — a lotação exibida é a desta sala, não o teto do produto. */
+    limiteJogadores: number
+  }
   eu: {
     id: JogadorId
     ehHost: boolean

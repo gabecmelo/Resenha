@@ -1,6 +1,6 @@
 import { env, evictDurableObject, runInDurableObject } from 'cloudflare:test'
 import { describe, expect, it } from 'vitest'
-import { CONFIG_PADRAO, type EstadoSala } from '../../shared/protocolo'
+import { CONFIG_PADRAO, MAX_JOGADORES, type EstadoSala } from '../../shared/protocolo'
 import { carregar, destruir, salvar } from './estado'
 
 /**
@@ -19,6 +19,7 @@ function documento(codigo: string): EstadoSala<JogoDeTeste> {
     codigo,
     fase: 'jogo',
     hostId: 'j1',
+    limiteJogadores: MAX_JOGADORES,
     jogadores: [
       {
         id: 'j1',

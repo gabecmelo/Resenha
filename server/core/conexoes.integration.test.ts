@@ -1,12 +1,24 @@
 import { env, evictDurableObject, runInDurableObject } from 'cloudflare:test'
 import { describe, expect, it } from 'vitest'
-import { CONFIG_PADRAO, type JogadorId, type Mensagem, type Projecao } from '../../shared/protocolo'
+import {
+  CONFIG_PADRAO,
+  MAX_JOGADORES,
+  type JogadorId,
+  type Mensagem,
+  type Projecao,
+} from '../../shared/protocolo'
 import { difundir, jogadorDe, socketsDe, vincular } from './conexoes'
 
 /** Projeção mínima e distinguível por jogador — AD-008. */
 function projecaoDe(paraJogador: JogadorId): Projecao {
   return {
-    sala: { codigo: 'ABCDE', fase: 'lobby', hostId: 'j1', config: { ...CONFIG_PADRAO } },
+    sala: {
+      codigo: 'ABCDE',
+      fase: 'lobby',
+      hostId: 'j1',
+      config: { ...CONFIG_PADRAO },
+      limiteJogadores: MAX_JOGADORES,
+    },
     eu: {
       id: paraJogador,
       ehHost: paraJogador === 'j1',

@@ -1,5 +1,7 @@
 import {
   CORES,
+  MAX_JOGADORES,
+  MIN_JOGADORES,
   type Cor,
   type EstadoSala,
   type Jogador,
@@ -7,8 +9,6 @@ import {
   type Resultado,
 } from '../../shared/protocolo'
 
-/** `SALA-05` */
-export const MAX_JOGADORES = 20
 /** `SALA-03` */
 export const APELIDO_MIN = 2
 export const APELIDO_MAX = 16
@@ -20,6 +20,24 @@ export interface DadosDeEntrada {
   tokenHash: string
 }
 
+/**
+ * `AJU-35`, `AJU-36`, `AJU-38` — o limite com que a sala nasce, a partir do que
+ * veio na criação.
+ *
+ * Ausente e inválido são caminhos diferentes: quem não pediu limite nenhum
+ * recebe o padrão do produto; quem pediu um valor que não serve não abre sala.
+ */
+export function limiteDeEntrada(pedido: unknown): Resultado<number> {
+  if (pedido === undefined || pedido === null) return { ok: true, valor: MAX_JOGADORES }
+  if (typeof pedido !== 'number' || !Number.isInteger(pedido)) {
+    return { ok: false, erro: 'LIMITE_INVALIDO' }
+  }
+  if (pedido < MIN_JOGADORES || pedido > MAX_JOGADORES) {
+    return { ok: false, erro: 'LIMITE_INVALIDO' }
+  }
+  return { ok: true, valor: pedido }
+}
+
 /** `SALA-07` — primeira cor da paleta ainda não usada na sala. */
 export function corLivre(estado: EstadoSala): Cor {
   const usadas = new Set<string>(estado.jogadores.map((j) => j.cor))
@@ -29,7 +47,8 @@ export function corLivre(estado: EstadoSala): Cor {
 }
 
 /**
- * `SALA-03`, `SALA-04`, `SALA-05`, `SALA-07`, `SALA-09`, `SALA-10`, `CONN-04`.
+ * `SALA-03`, `SALA-04`, `SALA-07`, `SALA-09`, `SALA-10`, `CONN-04`.
+ * `AJU-37` — a lotação é a da sala, não o teto do produto.
  * Em caso de recusa a sala fica intocada.
  */
 export function entrar(
@@ -38,7 +57,7 @@ export function entrar(
   agora: number,
 ): Resultado<Jogador> {
   if (estado.banidos.includes(dados.tokenHash)) return { ok: false, erro: 'TOKEN_BANIDO' }
-  if (estado.jogadores.length >= MAX_JOGADORES) return { ok: false, erro: 'SALA_CHEIA' }
+  if (estado.jogadores.length >= estado.limiteJogadores) return { ok: false, erro: 'SALA_CHEIA' }
 
   const apelido = dados.apelido.trim()
   if (apelido.length < APELIDO_MIN || apelido.length > APELIDO_MAX) {

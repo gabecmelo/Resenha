@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { CONFIG_PADRAO, type EstadoSala, type Prazos } from '../../shared/protocolo'
+import {
+  CONFIG_PADRAO,
+  MAX_JOGADORES,
+  type EstadoSala,
+  type Prazos,
+} from '../../shared/protocolo'
 import { TIPOS_DE_PRAZO, definir, menorPrazo, vencidos } from './prazos'
 
 function sala(prazos: Partial<Prazos> = {}): EstadoSala {
@@ -7,6 +12,7 @@ function sala(prazos: Partial<Prazos> = {}): EstadoSala {
     codigo: 'ABCDE',
     fase: 'jogo',
     hostId: 'j1',
+    limiteJogadores: MAX_JOGADORES,
     jogadores: [],
     banidos: [],
     config: { ...CONFIG_PADRAO },
