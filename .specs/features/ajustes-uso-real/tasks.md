@@ -10,7 +10,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 
 **Spec**: `.specs/features/ajustes-uso-real/spec.md`
 **Spec pai**: `.specs/features/quem-sou-eu/spec.md` (atualizado: requisitos substituídos estão marcados)
-**Status**: Draft
+**Status**: Done — 19 tasks, validação **PASS** (`validation.md`)
 
 ## Test Coverage Matrix
 
@@ -536,7 +536,12 @@ Nenhuma ❌ VIOLATION.
 | `AJU-22`…`AJU-26` | T9, T11 |
 | `AJU-27`…`AJU-30` | T12, T13 |
 | `AJU-31`…`AJU-32` | T10 |
+| `AJU-33` | T17 |
+| `AJU-34` | T16 |
+| `AJU-35`…`AJU-40` | T18, T19 |
 
-**32 de 32 requisitos mapeados. Nenhum órfão.**
+**40 de 40 requisitos mapeados. Nenhum órfão.**
+
+> Esta tabela ficou dizendo "32 de 32" até o fim do Execute, enquanto o spec já tinha 40 — `AJU-33`…`AJU-40` e as tasks T16–T19 nasceram durante a execução e não foram propagados para cá. O Verifier apanhou a defasagem. A cobertura real estava completa; o documento de planejamento é que ficou para trás — que é a mesma armadilha descrita na lição abaixo, agora na forma "a tabela conferida uma vez não se reconfere sozinha".
 
 > **Lição desta rodada.** A cobertura original marcava `AJU-12` e `AJU-19` como cobertos por tasks de servidor, e a tabela fechou 32/32 mesmo assim. Requisito com metade no servidor e metade na tela precisa aparecer **nas duas** colunas — contagem fechada não é sinônimo de cobertura completa.

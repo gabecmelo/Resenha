@@ -32,6 +32,24 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: validation.md — CHAT-02, clausula 'avisar apenas o autor' sem assercao (server/core)
 - last seen: 2026-08-04T14:44:45Z
 
+### L-004 — Requisito que atravessa servidor e tela precisa de uma task em cada camada: com a projecao decidindo (AD-008), a metade de servidor passa nos testes sem o comportamento chegar ao usuario
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `tasks` · harmful: 0
+- features: ajustes-uso-real
+- evidence: validation.md obs.2 + spec.md:231 (AJU-33, AJU-34 nascidos no Execute) + tasks.md:542 (tasks)
+- last seen: 2026-08-06T02:29:46Z
+
+### L-005 — AC de aparencia ou de estado de tela precisa nomear o valor observavel que o cumpre (o rotulo exibido, a altura, o elemento renderizado), senao a camada L5 fica sem criterio verificavel
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `client` · harmful: 0
+- features: ajustes-uso-real
+- evidence: validation.md — AJU-05, AJU-27, AJU-29 sem resultado observavel definido (client)
+- last seen: 2026-08-06T02:29:56Z
+
+### L-006 — AC com duas clausulas so esta coberto quando as duas tem assercao propria: cobrir a clausula testavel e dar o AC por fechado esconde a outra
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `client` · harmful: 0
+- features: ajustes-uso-real
+- evidence: validation.md — AJU-23, clausula do cursor sem assercao (client)
+- last seen: 2026-08-06T02:29:56Z
+
 ## Quarantined (failed when applied — ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.

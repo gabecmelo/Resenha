@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 4,
+  "next_id": 7,
   "lessons": [
     {
       "id": "L-001",
@@ -58,6 +58,60 @@
       ],
       "created": "2026-08-04T14:44:45Z",
       "last_seen": "2026-08-04T14:44:45Z"
+    },
+    {
+      "id": "L-004",
+      "key": "ac_gap::requisito que atravessa servidor e tela precisa de uma task em cada camada com a projecao decidindo ad 008 a metade de servidor passa nos testes sem o comportamento chegar ao usuario",
+      "text": "Requisito que atravessa servidor e tela precisa de uma task em cada camada: com a projecao decidindo (AD-008), a metade de servidor passa nos testes sem o comportamento chegar ao usuario",
+      "signal": "ac_gap",
+      "scope": "tasks",
+      "status": "candidate",
+      "features": [
+        "ajustes-uso-real"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "validation.md obs.2 + spec.md:231 (AJU-33, AJU-34 nascidos no Execute) + tasks.md:542 (tasks)"
+      ],
+      "created": "2026-08-06T02:29:46Z",
+      "last_seen": "2026-08-06T02:29:46Z"
+    },
+    {
+      "id": "L-005",
+      "key": "spec_precision_gap::ac de aparencia ou de estado de tela precisa nomear o valor observavel que o cumpre o rotulo exibido a altura o elemento renderizado senao a camada l5 fica sem criterio verificavel",
+      "text": "AC de aparencia ou de estado de tela precisa nomear o valor observavel que o cumpre (o rotulo exibido, a altura, o elemento renderizado), senao a camada L5 fica sem criterio verificavel",
+      "signal": "spec_precision_gap",
+      "scope": "client",
+      "status": "candidate",
+      "features": [
+        "ajustes-uso-real"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "validation.md — AJU-05, AJU-27, AJU-29 sem resultado observavel definido (client)"
+      ],
+      "created": "2026-08-06T02:29:56Z",
+      "last_seen": "2026-08-06T02:29:56Z"
+    },
+    {
+      "id": "L-006",
+      "key": "spec_precision_gap::ac com duas clausulas so esta coberto quando as duas tem assercao propria cobrir a clausula testavel e dar o ac por fechado esconde a outra",
+      "text": "AC com duas clausulas so esta coberto quando as duas tem assercao propria: cobrir a clausula testavel e dar o AC por fechado esconde a outra",
+      "signal": "spec_precision_gap",
+      "scope": "client",
+      "status": "candidate",
+      "features": [
+        "ajustes-uso-real"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "validation.md — AJU-23, clausula do cursor sem assercao (client)"
+      ],
+      "created": "2026-08-06T02:29:56Z",
+      "last_seen": "2026-08-06T02:29:56Z"
     }
   ]
 }
