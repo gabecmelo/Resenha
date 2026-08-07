@@ -4,6 +4,7 @@ import {
   type Config,
   type JogadorId,
   type Projecao,
+  type PacoteResumo,
   TEMPO_TURNO_MAX_SEG,
   TEMPO_TURNO_MIN_SEG,
 } from '../../../shared/protocolo'
@@ -31,7 +32,14 @@ export function Lobby({ projecao, enviar, aoSair }: PropsDaTela) {
   const ativos = jogadores.filter((jogador) => jogador.situacao === 'ativo')
   const host = jogadores.find((jogador) => jogador.id === sala.hostId)
   // `AJU-34` — o mínimo vem do contrato, não de um número escrito nesta tela.
-  const motivoDeEspera = motivoParaIniciar(ativos.length)
+  let motivoDeEspera = motivoParaIniciar(ativos.length)
+  if (motivoDeEspera === undefined) {
+    if (sala.config.modoPacote === 'pacote' && !sala.config.pacoteId) {
+      motivoDeEspera = 'Escolha um pacote para iniciar.'
+    } else if (sala.config.modoPacote === 'personalizado') {
+      motivoDeEspera = 'Pacotes personalizados não estão disponíveis ainda.'
+    }
+  }
 
   return (
     <Shell
@@ -67,7 +75,7 @@ export function Lobby({ projecao, enviar, aoSair }: PropsDaTela) {
         </section>
 
         <section className="order-3 lg:order-none lg:col-start-1 lg:row-start-2">
-          <Regras config={sala.config} souHost={eu.ehHost} apelidoDoHost={host?.apelido} enviar={enviar} />
+          <Regras config={sala.config} pacotesDisponiveis={sala.pacotesDisponiveis} souHost={eu.ehHost} apelidoDoHost={host?.apelido} enviar={enviar} />
         </section>
 
         <section className="order-4 flex flex-col gap-3 lg:order-none lg:col-start-3 lg:row-span-3 lg:row-start-1">
@@ -247,13 +255,26 @@ const OPCOES_DE_ORDEM = [
   { valor: 'entrada', rotulo: 'Ordem de entrada' },
 ] as const
 
+const OPCOES_DE_MODO = [
+  { valor: 'livre', rotulo: 'Livre' },
+  { valor: 'pacote', rotulo: 'Pacotes' },
+  { valor: 'personalizado', rotulo: 'Personalizado' },
+] as const
+
+const OPCOES_DE_DISTRIBUICAO = [
+  { valor: 'aleatoria', rotulo: 'Aleatória' },
+  { valor: 'escolha', rotulo: 'Cada um escolhe' },
+] as const
+
 function Regras({
   config,
+  pacotesDisponiveis,
   souHost,
   apelidoDoHost,
   enviar,
 }: {
   config: Config
+  pacotesDisponiveis: PacoteResumo[] | undefined
   souHost: boolean
   apelidoDoHost: string | undefined
   enviar: PropsDaTela['enviar']
@@ -271,6 +292,63 @@ function Regras({
 
       {souHost ? (
         <div className="flex flex-col gap-4">
+          <Escolha
+            rotulo="Modo de jogo"
+            opcoes={OPCOES_DE_MODO}
+            atual={config.modoPacote}
+            aoEscolher={(modoPacote) => {
+              if (modoPacote === 'livre') {
+                enviar({ t: 'configurar', config: { modoPacote, pacoteId: null, modoDistribuicao: 'aleatoria' } })
+              } else {
+                enviar({ t: 'configurar', config: { modoPacote } })
+              }
+            }}
+          />
+
+          {config.modoPacote === 'pacote' && (
+            <div className="flex flex-col gap-4">
+              <fieldset className="flex flex-col gap-2">
+                <legend className="mb-2 text-apoio text-texto-2">Escolha um pacote</legend>
+                <div className="pacote-grid">
+                  {pacotesDisponiveis?.map((pacote) => (
+                    <button
+                      key={pacote.id}
+                      type="button"
+                      aria-pressed={config.pacoteId === pacote.id}
+                      onClick={() => enviar({ t: 'configurar', config: { pacoteId: pacote.id } })}
+                      className="pacote-card"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl">{pacote.emoji}</span>
+                        <h3 className="font-semibold text-texto">{pacote.nome}</h3>
+                      </div>
+                      <p className="text-miudo text-texto-2">{pacote.descricao}</p>
+                      <span className="mt-1 font-mono text-[10px] tracking-[0.1em] text-texto-3 uppercase">
+                        {pacote.quantidade} cartas
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+
+              {config.pacoteId !== null && (
+                <Escolha
+                  rotulo="Distribuição"
+                  opcoes={OPCOES_DE_DISTRIBUICAO}
+                  atual={config.modoDistribuicao}
+                  aoEscolher={(modoDistribuicao) => enviar({ t: 'configurar', config: { modoDistribuicao } })}
+                />
+              )}
+            </div>
+          )}
+
+          {config.modoPacote === 'personalizado' && (
+            <div className="pacote-fantasma">
+              <span className="text-3xl text-texto-3 opacity-50">🔒</span>
+              <span className="font-semibold text-texto-3">Crie seu pacote — Em breve</span>
+            </div>
+          )}
+
           <Escolha
             rotulo="Ordem dos turnos"
             opcoes={OPCOES_DE_ORDEM}
@@ -292,6 +370,13 @@ function Regras({
         </div>
       ) : (
         <dl className="flex flex-col">
+          <Leitura rotulo="Modo de jogo" valor={rotuloDe(OPCOES_DE_MODO, config.modoPacote)} />
+          {config.modoPacote === 'pacote' && config.pacoteId !== null && pacotesDisponiveis && (
+            <>
+              <Leitura rotulo="Pacote" valor={pacotesDisponiveis.find((p) => p.id === config.pacoteId)?.nome ?? '—'} />
+              <Leitura rotulo="Distribuição" valor={rotuloDe(OPCOES_DE_DISTRIBUICAO, config.modoDistribuicao)} />
+            </>
+          )}
           <Leitura rotulo="Ordem dos turnos" valor={rotuloDe(OPCOES_DE_ORDEM, config.ordemTurnos)} />
           <Leitura rotulo="Tempo por turno" valor={rotuloDoTempo(config.tempoTurnoSeg)} />
         </dl>

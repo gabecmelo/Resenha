@@ -9,6 +9,7 @@ import {
   MarcadorDeJogador,
   Modal,
   Shell,
+  BadgePacote,
 } from '../componentes'
 import type { PropsDaTela } from './tela'
 
@@ -71,6 +72,12 @@ export function Jogo({ projecao, enviar, aoSair }: PropsDaTela) {
       aoSair={aoSair}
     >
       <div className="flex flex-col gap-6">
+        {sala.pacote && (
+          <div className="flex justify-center sm:justify-start">
+            <BadgePacote pacote={sala.pacote} />
+          </div>
+        )}
+
         {eu.situacao === 'ativo' ? (
           <IndicadorDeVez
             ehSuaVez={ehMinhaVez}

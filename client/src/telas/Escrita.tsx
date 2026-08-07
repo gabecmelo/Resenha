@@ -118,26 +118,64 @@ export function Escrita({ projecao, enviar, aoSair }: PropsDaTela) {
                     </p>
                   </div>
 
-                  <CampoDeTexto
-                    rotulo={
-                      eu.pronto
-                        ? `A carta de ${eu.alvo.apelido} · trancada`
-                        : `A carta de ${eu.alvo.apelido}`
-                    }
-                    valor={rascunho}
-                    aoMudar={setRascunho}
-                    placeholder="Um nome…"
-                    dica={
-                      eu.pronto
-                        ? `${eu.alvo.apelido} não vê nada disso — só sabe que a carta já existe.`
-                        : 'Personagem, pessoa real, filme, livro, série ou música.'
-                    }
-                    limite={CARTA_MAX}
-                    travado={eu.pronto}
-                    aoTeclarEnter={() => {
-                      if (!eu.pronto && !vazio && !excedeu) marcarPronto()
-                    }}
-                  />
+                  {eu.opcoesPacote ? (
+                    <div className="flex flex-col gap-4">
+                      <div className="flex flex-col gap-2">
+                        <span className="font-mono text-[11px] tracking-[0.12em] text-texto-3 uppercase">
+                          {eu.pronto
+                            ? `A carta de ${eu.alvo.apelido} · trancada`
+                            : `A carta de ${eu.alvo.apelido}`}
+                        </span>
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                          {eu.opcoesPacote.map((opcao) => (
+                            <button
+                              key={opcao}
+                              type="button"
+                              aria-pressed={rascunho === opcao}
+                              disabled={eu.pronto}
+                              onClick={() => setRascunho(opcao)}
+                              className={`opcao-carta ${eu.pronto ? 'cursor-default opacity-60' : ''}`}
+                            >
+                              <span className="text-carta font-medium text-texto">{opcao}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {!eu.pronto && (
+                        <div className="flex items-center justify-center pt-2">
+                          <Botao
+                            variante="secundario"
+                            onClick={() => enviar({ t: 'sortearOutras' })}
+                            motivo={eu.jaSorteouOutras ? 'Você já sorteou outras uma vez.' : undefined}
+                          >
+                            Sortear outras opções
+                          </Botao>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <CampoDeTexto
+                      rotulo={
+                        eu.pronto
+                          ? `A carta de ${eu.alvo.apelido} · trancada`
+                          : `A carta de ${eu.alvo.apelido}`
+                      }
+                      valor={rascunho}
+                      aoMudar={setRascunho}
+                      placeholder="Um nome…"
+                      dica={
+                        eu.pronto
+                          ? `${eu.alvo.apelido} não vê nada disso — só sabe que a carta já existe.`
+                          : 'Personagem, pessoa real, filme, livro, série ou música.'
+                      }
+                      limite={CARTA_MAX}
+                      travado={eu.pronto}
+                      aoTeclarEnter={() => {
+                        if (!eu.pronto && !vazio && !excedeu) marcarPronto()
+                      }}
+                    />
+                  )}
 
                   {eu.pronto ? (
                     <div className="flex flex-col gap-2">
