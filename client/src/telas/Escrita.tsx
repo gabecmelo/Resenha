@@ -147,7 +147,7 @@ export function Escrita({ projecao, enviar, aoSair }: PropsDaTela) {
                           <Botao
                             variante="secundario"
                             onClick={() => enviar({ t: 'sortearOutras' })}
-                            motivo={eu.jaSorteouOutras ? 'Você já sorteou outras uma vez.' : undefined}
+                            motivo={eu.jaSorteouOutras ? 'Você já sorteou uma vez.' : undefined}
                           >
                             Sortear outras opções
                           </Botao>

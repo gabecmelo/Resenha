@@ -263,7 +263,7 @@ const OPCOES_DE_MODO = [
 
 const OPCOES_DE_DISTRIBUICAO = [
   { valor: 'aleatoria', rotulo: 'Aleatória' },
-  { valor: 'escolha', rotulo: 'Cada um escolhe' },
+  { valor: 'escolha', rotulo: 'Escolher pro colega' },
 ] as const
 
 function Regras({
@@ -309,6 +309,7 @@ function Regras({
         <div className="flex flex-col gap-4">
           <Escolha
             rotulo="Modo de jogo"
+            dica="Livre: cada um escreve o que quiser. Pacotes: temas pré-definidos do jogo."
             opcoes={OPCOES_DE_MODO}
             atual={config.modoPacote}
             aoEscolher={(modoPacote) => {
@@ -323,7 +324,10 @@ function Regras({
           {config.modoPacote === 'pacote' && (
             <div className="flex flex-col gap-4">
               <fieldset className="flex flex-col gap-2">
-                <legend className="mb-2 text-apoio text-texto-2">Pacote</legend>
+                <legend className="mb-2 text-apoio text-texto-2 flex items-center gap-2">
+                  Pacote
+                  <span className="flex items-center justify-center w-4 h-4 rounded-full border border-texto-3 text-[10px] text-texto-3 cursor-help" title="O tema de cartas selecionado para todos os jogadores.">?</span>
+                </legend>
                 {pacoteAtual ? (
                   <div className="flex items-center justify-between rounded-bloco border border-linha bg-superficie px-4 py-3">
                     <div className="flex items-center gap-3">
@@ -343,6 +347,7 @@ function Regras({
               {config.pacoteId !== null && (
                 <Escolha
                   rotulo="Distribuição"
+                  dica="Aleatória: o jogo sorteia a carta. Escolher: você recebe 5 opções do pacote e escolhe uma delas para seu colega."
                   opcoes={OPCOES_DE_DISTRIBUICAO}
                   atual={config.modoDistribuicao}
                   aoEscolher={(modoDistribuicao) => enviar({ t: 'configurar', config: { modoDistribuicao } })}
@@ -392,6 +397,7 @@ function Regras({
 
           <Escolha
             rotulo="Ordem dos turnos"
+            dica="Ordem de entrada: quem entrou primeiro na sala joga primeiro."
             opcoes={OPCOES_DE_ORDEM}
             atual={config.ordemTurnos}
             aoEscolher={(ordemTurnos) => enviar({ t: 'configurar', config: { ordemTurnos } })}
@@ -399,6 +405,7 @@ function Regras({
           <div className="flex flex-col gap-3">
             <Escolha
               rotulo="Tempo por turno"
+              dica="Tempo máximo que um jogador tem para adivinhar a carta na sua vez."
               opcoes={opcoesDeTempo}
               atual={tempoAtualVal}
               aoEscolher={(val) => {
@@ -529,18 +536,27 @@ function Leitura({ rotulo, valor }: { rotulo: string; valor: string }) {
 
 function Escolha<T>({
   rotulo,
+  dica,
   opcoes,
   atual,
   aoEscolher,
 }: {
   rotulo: string
+  dica?: string
   opcoes: ReadonlyArray<{ valor: T; rotulo: string }>
   atual: T
   aoEscolher(valor: T): void
 }) {
   return (
     <fieldset className="flex flex-col gap-2">
-      <legend className="mb-2 text-apoio text-texto-2">{rotulo}</legend>
+      <legend className="mb-2 text-apoio text-texto-2 flex items-center gap-2">
+        {rotulo}
+        {dica && (
+          <span className="flex items-center justify-center w-[14px] h-[14px] rounded-full border border-texto-3 text-[9px] font-bold text-texto-3 cursor-help opacity-70 hover:opacity-100 transition-opacity" title={dica}>
+            ?
+          </span>
+        )}
+      </legend>
       <div className="flex flex-wrap gap-2">
         {opcoes.map((opcao) => {
           const escolhida = opcao.valor === atual
