@@ -4,12 +4,13 @@ import { Botao } from './Botao'
 export interface PropsDoModal {
   titulo: string
   /** Uma frase dizendo o que vai acontecer. Em ação destrutiva, diz o que não dá para desfazer. */
-  descricao: string
-  rotuloConfirmar: string
+  descricao?: string
+  rotuloConfirmar?: string
   rotuloCancelar?: string
   /** Expulsar, encerrar: confirmação em vermelho, e o nome de quem é afetado no título. */
   destrutivo?: boolean
-  aoConfirmar(): void
+  children?: React.ReactNode
+  aoConfirmar?(): void
   aoCancelar(): void
 }
 
@@ -24,6 +25,7 @@ export function Modal({
   rotuloConfirmar,
   rotuloCancelar = 'Cancelar',
   destrutivo = false,
+  children,
   aoConfirmar,
   aoCancelar,
 }: PropsDoModal) {
@@ -47,18 +49,23 @@ export function Modal({
         aria-modal="true"
         aria-labelledby={idDoTitulo}
         onClick={(evento) => evento.stopPropagation()}
-        className="flex w-full max-w-[420px] flex-col gap-4 rounded-bloco bg-flutuante p-5 shadow-flutuante"
+        className="flex w-full max-w-[420px] max-h-full overflow-y-auto flex-col gap-4 rounded-bloco bg-flutuante p-5 shadow-flutuante"
       >
         <div className="flex flex-col gap-1.5">
           <h2 id={idDoTitulo} className="text-[20px] font-semibold tracking-tight text-texto">
             {titulo}
           </h2>
-          <p className="text-[15px] leading-relaxed text-texto-2">{descricao}</p>
+          {descricao && <p className="text-[15px] leading-relaxed text-texto-2">{descricao}</p>}
         </div>
+        
+        {children}
+
         <div className="flex flex-wrap gap-2.5">
-          <Botao variante={destrutivo ? 'destrutivoCheio' : 'primario'} onClick={aoConfirmar}>
-            {rotuloConfirmar}
-          </Botao>
+          {rotuloConfirmar && aoConfirmar && (
+            <Botao variante={destrutivo ? 'destrutivoCheio' : 'primario'} onClick={aoConfirmar}>
+              {rotuloConfirmar}
+            </Botao>
+          )}
           <Botao variante="secundario" onClick={aoCancelar}>
             {rotuloCancelar}
           </Botao>

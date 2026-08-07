@@ -10,12 +10,18 @@ const resumos = PACOTES.map(p => ({
   quantidade: p.quantidade
 }));
 
+const isRemote = process.argv.includes('--remote');
+
 function putKv(key: string, value: any) {
   const tmpFile = `temp_${key.replace(':', '_')}.json`;
   writeFileSync(tmpFile, JSON.stringify(value));
   try {
     console.log(`Gravando ${key}...`);
-    execSync(`npx wrangler kv key put "${key}" --binding=PACOTES_KV --path="${tmpFile}" --local`, { stdio: 'inherit' });
+    if (isRemote) {
+      execSync(`npx wrangler kv key put "${key}" --binding=PACOTES_KV --path="${tmpFile}"`, { stdio: 'inherit' });
+    } else {
+      execSync(`npx wrangler kv key put "${key}" --binding=PACOTES_KV --path="${tmpFile}" --local --persist-to="client/.wrangler/state/v3"`, { stdio: 'inherit' });
+    }
   } finally {
     unlinkSync(tmpFile);
   }

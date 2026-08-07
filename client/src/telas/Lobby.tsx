@@ -279,6 +279,21 @@ function Regras({
   apelidoDoHost: string | undefined
   enviar: PropsDaTela['enviar']
 }) {
+  const [modalPacotesAberto, setModalPacotesAberto] = useState(false)
+  const [modoTempo, setModoTempo] = useState<'preset' | 'personalizado'>(
+    ehTempoPersonalizado(config.tempoTurnoSeg) ? 'personalizado' : 'preset'
+  )
+
+  const pacoteAtual = pacotesDisponiveis?.find((p) => p.id === config.pacoteId)
+
+  const opcoesDeTempo = [
+    ...PRESETS_DE_TEMPO.map(p => ({ valor: p.valor === null ? 'sem-limite' : String(p.valor), rotulo: p.rotulo })),
+    { valor: 'personalizado', rotulo: 'Personalizado' }
+  ]
+  const tempoAtualVal = ehTempoPersonalizado(config.tempoTurnoSeg) || modoTempo === 'personalizado'
+    ? 'personalizado'
+    : (config.tempoTurnoSeg === null ? 'sem-limite' : String(config.tempoTurnoSeg));
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
@@ -308,27 +323,21 @@ function Regras({
           {config.modoPacote === 'pacote' && (
             <div className="flex flex-col gap-4">
               <fieldset className="flex flex-col gap-2">
-                <legend className="mb-2 text-apoio text-texto-2">Escolha um pacote</legend>
-                <div className="pacote-grid">
-                  {pacotesDisponiveis?.map((pacote) => (
-                    <button
-                      key={pacote.id}
-                      type="button"
-                      aria-pressed={config.pacoteId === pacote.id}
-                      onClick={() => enviar({ t: 'configurar', config: { pacoteId: pacote.id } })}
-                      className="pacote-card"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="text-2xl">{pacote.emoji}</span>
-                        <h3 className="font-semibold text-texto">{pacote.nome}</h3>
+                <legend className="mb-2 text-apoio text-texto-2">Pacote</legend>
+                {pacoteAtual ? (
+                  <div className="flex items-center justify-between rounded-bloco border border-linha bg-superficie px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl leading-none">{pacoteAtual.emoji}</span>
+                      <div className="flex flex-col">
+                        <span className="font-semibold text-texto leading-snug">{pacoteAtual.nome}</span>
+                        <span className="font-mono text-[10px] tracking-[0.1em] text-texto-3 uppercase">{pacoteAtual.quantidade} cartas</span>
                       </div>
-                      <p className="text-miudo text-texto-2">{pacote.descricao}</p>
-                      <span className="mt-1 font-mono text-[10px] tracking-[0.1em] text-texto-3 uppercase">
-                        {pacote.quantidade} cartas
-                      </span>
-                    </button>
-                  ))}
-                </div>
+                    </div>
+                    <Botao variante="secundario" onClick={() => setModalPacotesAberto(true)}>Mudar...</Botao>
+                  </div>
+                ) : (
+                  <Botao variante="secundario" onClick={() => setModalPacotesAberto(true)}>Selecionar pacote...</Botao>
+                )}
               </fieldset>
 
               {config.pacoteId !== null && (
@@ -338,6 +347,38 @@ function Regras({
                   atual={config.modoDistribuicao}
                   aoEscolher={(modoDistribuicao) => enviar({ t: 'configurar', config: { modoDistribuicao } })}
                 />
+              )}
+
+              {modalPacotesAberto && (
+                <Modal
+                  titulo="Escolha um pacote"
+                  descricao="Selecione o tema das cartas para esta partida."
+                  aoCancelar={() => setModalPacotesAberto(false)}
+                >
+                  <div className="pacote-grid">
+                    {pacotesDisponiveis?.map((pacote) => (
+                      <button
+                        key={pacote.id}
+                        type="button"
+                        aria-pressed={config.pacoteId === pacote.id}
+                        onClick={() => {
+                          enviar({ t: 'configurar', config: { pacoteId: pacote.id } })
+                          setModalPacotesAberto(false)
+                        }}
+                        className="pacote-card text-left"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-2xl">{pacote.emoji}</span>
+                          <h3 className="font-semibold text-texto">{pacote.nome}</h3>
+                        </div>
+                        <p className="text-miudo text-texto-2">{pacote.descricao}</p>
+                        <span className="mt-1 font-mono text-[10px] tracking-[0.1em] text-texto-3 uppercase">
+                          {pacote.quantidade} cartas
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </Modal>
               )}
             </div>
           )}
@@ -358,14 +399,23 @@ function Regras({
           <div className="flex flex-col gap-3">
             <Escolha
               rotulo="Tempo por turno"
-              opcoes={PRESETS_DE_TEMPO}
-              atual={config.tempoTurnoSeg}
-              aoEscolher={(tempoTurnoSeg) => enviar({ t: 'configurar', config: { tempoTurnoSeg } })}
+              opcoes={opcoesDeTempo}
+              atual={tempoAtualVal}
+              aoEscolher={(val) => {
+                if (val === 'personalizado') {
+                  setModoTempo('personalizado')
+                } else {
+                  setModoTempo('preset')
+                  enviar({ t: 'configurar', config: { tempoTurnoSeg: val === 'sem-limite' ? null : Number(val) } })
+                }
+              }}
             />
-            <TempoPersonalizado
-              atual={config.tempoTurnoSeg}
-              aoEscolher={(tempoTurnoSeg) => enviar({ t: 'configurar', config: { tempoTurnoSeg } })}
-            />
+            {(modoTempo === 'personalizado' || ehTempoPersonalizado(config.tempoTurnoSeg)) && (
+              <TempoPersonalizado
+                atual={config.tempoTurnoSeg}
+                aoEscolher={(tempoTurnoSeg) => enviar({ t: 'configurar', config: { tempoTurnoSeg } })}
+              />
+            )}
           </div>
         </div>
       ) : (
