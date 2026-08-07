@@ -5,6 +5,7 @@ import {
   type Comando,
   type EstadoSala,
   type JogadorId,
+  type PacoteResumo,
 } from '../../shared/protocolo'
 import * as chat from './chat'
 import { aceitar, desvincular, difundir, enviar, jogadorDe, socketsDe, vincular } from './conexoes'
@@ -61,8 +62,12 @@ const MENSAGENS_DE_ERRO: Record<CodigoErro, string> = {
  * (AD-002).
  */
 export class SalaDeJogo<E> {
+  private pacotesDisponiveis: PacoteResumo[] | null = null;
+  private pacotesCacheTimestamp = 0;
+
   constructor(
     protected readonly ctx: DurableObjectState,
+    protected readonly env: Env,
     protected readonly jogo: JogoDaSala<E>,
   ) {}
 
@@ -150,7 +155,7 @@ export class SalaDeJogo<E> {
       return
     }
 
-    const resultado = despachar(sala, this.jogo, autorId, comando, ambienteAgora())
+    const resultado = await despachar(sala, this.jogo, autorId, comando, ambienteAgora(), this.env)
     if (!resultado.ok) {
       enviar(ws, erro(resultado.erro))
       return
@@ -287,11 +292,36 @@ export class SalaDeJogo<E> {
     return carregar<E>(this.ctx.storage)
   }
 
-  /** AD-005 — grava, reagenda o alarme e difunde, nesta ordem. */
   private async confirmar(sala: EstadoSala<E>): Promise<void> {
     this.atualizarCicloDeVida(sala)
     await this.persistir(sala)
-    difundir(this.ctx, (paraJogador) => this.jogo.projetar(sala.jogo, sala, paraJogador))
+
+    let pacotes: PacoteResumo[] | undefined = undefined;
+    if (sala.fase === 'lobby' && sala.config.modoPacote === 'pacote') {
+      pacotes = await this.getPacotesDisponiveis();
+    }
+
+    difundir(this.ctx, (paraJogador) => {
+      const projecao = this.jogo.projetar(sala.jogo, sala, paraJogador);
+      if (pacotes) {
+        projecao.sala.pacotesDisponiveis = pacotes;
+      }
+      return projecao;
+    });
+  }
+
+  private async getPacotesDisponiveis(): Promise<PacoteResumo[]> {
+    const agora = Date.now();
+    if (this.pacotesDisponiveis === null || agora - this.pacotesCacheTimestamp > 60_000) {
+      try {
+        const pacotes = await this.env.PACOTES_KV.get<PacoteResumo[]>('pacotes:indice', 'json');
+        this.pacotesDisponiveis = pacotes ?? [];
+        this.pacotesCacheTimestamp = agora;
+      } catch {
+        this.pacotesDisponiveis = [];
+      }
+    }
+    return this.pacotesDisponiveis;
   }
 
   /**

@@ -57,29 +57,31 @@ const SEM_EFEITOS: Efeitos = { removidos: [] }
  * e a recusa de ações de quem está apenas aguardando). Em caso de recusa a
  * sala fica exatamente como estava.
  */
-export function despachar<E>(
+export async function despachar<E>(
   sala: EstadoSala<E>,
   jogo: JogoDaSala<E>,
   autorId: JogadorId,
   comando: Comando,
   ambiente: Ambiente,
-): Resultado<Efeitos> {
+  env?: Env,
+): Promise<Resultado<Efeitos>> {
   const autor = sala.jogadores.find((j) => j.id === autorId)
   if (autor === undefined) return { ok: false, erro: 'JOGADOR_NAO_ENCONTRADO' }
 
-  const resultado = executar(sala, jogo, autor, comando, ambiente)
+  const resultado = await executar(sala, jogo, autor, comando, ambiente, env)
   // `CONN-08` — só ação de jogador adia a expiração por ociosidade.
   if (resultado.ok) sala.ultimaAcaoEm = ambiente.agora
   return resultado
 }
 
-function executar<E>(
+async function executar<E>(
   sala: EstadoSala<E>,
   jogo: JogoDaSala<E>,
   autor: Jogador,
   comando: Comando,
   ambiente: Ambiente,
-): Resultado<Efeitos> {
+  env?: Env,
+): Promise<Resultado<Efeitos>> {
   switch (comando.t) {
     // O handshake é da casca do Durable Object: ele emite o token e vincula o
     // socket antes de existir autor para despachar.
@@ -90,7 +92,7 @@ function executar<E>(
     case 'configurar':
       return configurar(sala, autor, comando.config)
     case 'iniciar':
-      return iniciar(sala, jogo, autor, ambiente)
+      return await iniciar(sala, jogo, autor, ambiente, env)
     case 'expulsar':
       return expulsar(sala, jogo, autor, comando.jogadorId, ambiente)
     case 'transferirHost':
@@ -149,6 +151,7 @@ function configurar<E>(
   if (!configValida(parcial)) return { ok: false, erro: 'COMANDO_INVALIDO' }
 
   sala.config = {
+    ...sala.config,
     ordemTurnos: parcial.ordemTurnos ?? sala.config.ordemTurnos,
     tempoTurnoSeg:
       parcial.tempoTurnoSeg === undefined ? sala.config.tempoTurnoSeg : parcial.tempoTurnoSeg,
@@ -188,21 +191,58 @@ function configValida(parcial: Partial<Config>): boolean {
 }
 
 /** `ESCR-01`, `HOST-01` — lobby → escrita. */
-function iniciar<E>(
+async function iniciar<E>(
   sala: EstadoSala<E>,
   jogo: JogoDaSala<E>,
   autor: Jogador,
   ambiente: Ambiente,
-): Resultado<Efeitos> {
+  env?: Env,
+): Promise<Resultado<Efeitos>> {
   if (autor.id !== sala.hostId) return { ok: false, erro: 'SEM_AUTORIDADE' }
   if (sala.fase !== 'lobby') return { ok: false, erro: 'FASE_INVALIDA' }
 
-  const rodada = jogo.iniciarRodada(sala.jogadores, ambiente)
+  let pacote = undefined;
+  if (sala.config.modoPacote === 'pacote') {
+    if (!sala.config.pacoteId) return { ok: false, erro: 'PACOTE_NAO_ENCONTRADO' }
+    if (!env) return { ok: false, erro: 'PACOTE_INDISPONIVEL' }
+    
+    try {
+      const p = await env.PACOTES_KV.get<{ id: string, nome: string, emoji: string, cartas: string[] }>(`pacote:${sala.config.pacoteId}`, 'json');
+      if (!p) return { ok: false, erro: 'PACOTE_NAO_ENCONTRADO' }
+      pacote = p;
+    } catch {
+      return { ok: false, erro: 'PACOTE_INDISPONIVEL' }
+    }
+  }
+
+  const ctx: ContextoDeSala = {
+    fase: sala.fase,
+    hostId: sala.hostId,
+    config: sala.config,
+    jogadores: sala.jogadores,
+    autorId: autor.id,
+  }
+  const rodada = jogo.iniciarRodada(ctx, ambiente, pacote)
   if (!rodada.ok) return { ok: false, erro: rodada.erro }
 
   sala.jogo = rodada.valor
-  sala.fase = 'escrita'
-  chat.registrarSistema(sala, 'O host iniciou a partida.', ambiente.agora)
+  sala.fase = rodada.faseSeguinte ?? 'escrita'
+  
+  if (rodada.eventos && rodada.eventos.length > 0) {
+    for (const ev of rodada.eventos) {
+      chat.registrarSistema(sala, ev.texto, ambiente.agora)
+    }
+  } else {
+    chat.registrarSistema(sala, 'O host iniciou a partida.', ambiente.agora)
+  }
+
+  if (rodada.prazos) {
+    for (const tipo of TIPOS_DE_PRAZO) {
+      const quando = rodada.prazos[tipo]
+      if (quando !== undefined) definir(sala, tipo, quando)
+    }
+  }
+
   return { ok: true, valor: SEM_EFEITOS }
 }
 
