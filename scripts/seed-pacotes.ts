@@ -15,7 +15,7 @@ function putKv(key: string, value: any) {
   writeFileSync(tmpFile, JSON.stringify(value));
   try {
     console.log(`Gravando ${key}...`);
-    execSync(`npx wrangler kv:key put --binding=PACOTES_KV "${key}" --path="${tmpFile}" --local`, { stdio: 'inherit' });
+    execSync(`npx wrangler kv key put "${key}" --binding=PACOTES_KV --path="${tmpFile}" --local`, { stdio: 'inherit' });
   } finally {
     unlinkSync(tmpFile);
   }
