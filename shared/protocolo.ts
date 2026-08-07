@@ -359,9 +359,17 @@ export type ResultadoReducer<E> =
     }
   | { ok: false; erro: CodigoErro }
 
+export type ResultadoInicio<E> =
+  | { ok: true; valor: E; faseSeguinte?: Fase; prazos?: Partial<Prazos>; eventos?: EventoDeJogo[] }
+  | { ok: false; erro: CodigoErro }
+
 /** Contrato de três funções puras entre o `core` e um jogo (AD-009). */
 export interface ModuloDeJogo<E, C> {
-  iniciarRodada(jogadores: Jogador[], ambiente: Ambiente): Resultado<E>
+  iniciarRodada(
+    ctx: ContextoDeSala,
+    ambiente: Ambiente,
+    pacote?: { id: string; nome: string; emoji: string; cartas: readonly string[] }
+  ): ResultadoInicio<E>
   reduzir(estado: E, ctx: ContextoDeSala, comando: C, ambiente: Ambiente): ResultadoReducer<E>
   /** `estado` é `null` no lobby, quando ainda não há partida. */
   projetar(estado: E | null, sala: EstadoSala<E>, paraJogador: JogadorId): Projecao

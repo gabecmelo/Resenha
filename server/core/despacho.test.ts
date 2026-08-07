@@ -47,13 +47,13 @@ function salaEmLobby(quantidade = 3): EstadoSala<EstadoQuemSouEu> {
   }
 }
 
-async function salaEmEscrita(quantidade = 3): EstadoSala<EstadoQuemSouEu> {
+async function salaEmEscrita(quantidade = 3): Promise<EstadoSala<EstadoQuemSouEu>> {
   const sala = salaEmLobby(quantidade)
   await despachar(sala, quemSouEu, 'j1', { t: 'iniciar' }, AMBIENTE)
   return sala
 }
 
-async function salaEmJogo(quantidade = 3): EstadoSala<EstadoQuemSouEu> {
+async function salaEmJogo(quantidade = 3): Promise<EstadoSala<EstadoQuemSouEu>> {
   const sala = await salaEmEscrita(quantidade)
   for (const jogador of sala.jogadores) {
     await despachar(sala, quemSouEu, jogador.id, { t: 'escreverCarta', texto: 'Chapolin' }, AMBIENTE)

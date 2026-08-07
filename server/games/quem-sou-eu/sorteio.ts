@@ -41,3 +41,50 @@ export function embaralhar(ids: readonly JogadorId[], aleatorio: () => number): 
   }
   return copia
 }
+
+/**
+ * PKT-08, PKT-10 — sorteia N cartas únicas de um pacote.
+ */
+export function sortearCartasDoPacote(
+  cartas: readonly string[],
+  n: number,
+  aleatorio: () => number,
+): string[] {
+  const embaralhadas = embaralharCartas(cartas, aleatorio)
+  return embaralhadas.slice(0, n)
+}
+
+/**
+ * PKT-11, PKT-13, PKT-28 — sorteia opções exclusivas para cada jogador.
+ * Se não houver cartas suficientes para qtdOpcoes por jogador, distribui
+ * o máximo possível de forma igualitária (PKT-28).
+ */
+export function sortearOpcoesPorJogador(
+  cartas: readonly string[],
+  jogadores: readonly JogadorId[],
+  qtdOpcoes: number,
+  aleatorio: () => number,
+): Record<JogadorId, string[]> {
+  const maxPorJogador = Math.floor(cartas.length / jogadores.length)
+  const qtdReal = Math.min(qtdOpcoes, maxPorJogador)
+
+  const cartasSorteadas = sortearCartasDoPacote(cartas, qtdReal * jogadores.length, aleatorio)
+  
+  const opcoes: Record<JogadorId, string[]> = {}
+  for (let i = 0; i < jogadores.length; i += 1) {
+    const jogador = jogadores[i]
+    opcoes[jogador] = cartasSorteadas.slice(i * qtdReal, (i + 1) * qtdReal)
+  }
+  return opcoes
+}
+
+function embaralharCartas(cartas: readonly string[], aleatorio: () => number): string[] {
+  const copia = [...cartas]
+  for (let i = copia.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(aleatorio() * (i + 1))
+    const trocado = copia[i]
+    copia[i] = copia[j]
+    copia[j] = trocado
+  }
+  return copia
+}

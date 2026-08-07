@@ -6,10 +6,11 @@ import {
   type ContextoDeSala,
   type Jogador,
   type JogadorId,
-  type Resultado,
+  type ResultadoInicio,
   type ResultadoReducer,
+  type ModoDistribuicao,
 } from '../../../shared/protocolo'
-import { embaralhar, sortearAlvos } from './sorteio'
+import { embaralhar, sortearAlvos, sortearCartasDoPacote, sortearOpcoesPorJogador } from './sorteio'
 
 /** `ESCR-03` */
 export const CARTA_MAX_CARACTERES = 60
@@ -46,6 +47,18 @@ export interface EstadoQuemSouEu {
   reveladoParaTodos: boolean
   /** `NOTA-02` — privado por jogador. */
   notas: Record<JogadorId, string>
+  
+  /** PKT-18, PKT-23 — pacote em uso na partida */
+  pacoteId?: string
+  pacoteNome?: string
+  pacoteEmoji?: string
+  modoDistribuicao?: ModoDistribuicao
+  /** PKT-11 — opções sorteadas por jogador no modo "Cada um escolhe" */
+  opcoesPorJogador?: Record<JogadorId, string[]>
+  /** PKT-15, PKT-16 — flag que impede re-sortear opções mais de uma vez */
+  jaSorteouOutras?: Record<JogadorId, boolean>
+  /** PKT-33 — cartas não distribuídas para o sortear outras */
+  cartasRestantesPacote?: string[]
 }
 
 /** Avisos que o `core` entrega ao jogo; não são comandos de cliente. */
@@ -66,6 +79,7 @@ type TipoDeComandoDeJogo =
   | 'encerrar'
   | 'novaPartida'
   | 'notas'
+  | 'sortearOutras'
 
 export type ComandoQuemSouEu = Extract<Comando, { t: TipoDeComandoDeJogo }> | EventoDeSala
 
@@ -87,19 +101,63 @@ export function estadoVazio(): EstadoQuemSouEu {
 /**
  * `ESCR-01`, `AJU-06` — sorteia os alvos entre os jogadores ativos.
  * Recusa abaixo de 2 ativos; jogadores `aguardando` ficam de fora (`SALA-10`).
+ * 
+ * PKT-08, PKT-11 — se houver pacote, distribui as cartas. Pode pular para 'jogo' se aleatória.
  */
 export function iniciarRodada(
-  jogadores: Jogador[],
+  ctx: ContextoDeSala,
   ambiente: Ambiente,
-): Resultado<EstadoQuemSouEu> {
-  const ativos = jogadores.filter((j) => j.situacao === 'ativo')
+  pacote?: { id: string; nome: string; emoji: string; cartas: readonly string[] }
+): ResultadoInicio<EstadoQuemSouEu> {
+  const ativos = jogadoresAtivos(ctx)
   if (ativos.length < MIN_JOGADORES) return { ok: false, erro: 'JOGADORES_INSUFICIENTES' }
+
+  if (pacote && pacote.cartas.length < ativos.length) {
+    return { ok: false, erro: 'PACOTE_INSUFICIENTE' }
+  }
 
   const estado = estadoVazio()
   estado.atribuicoes = sortearAlvos(
     ativos.map((j) => j.id),
     ambiente.aleatorio,
   )
+
+  if (pacote) {
+    estado.pacoteId = pacote.id
+    estado.pacoteNome = pacote.nome
+    estado.pacoteEmoji = pacote.emoji
+    estado.modoDistribuicao = ctx.config.modoDistribuicao
+    estado.opcoesPorJogador = {}
+    estado.jaSorteouOutras = {}
+
+    if (ctx.config.modoDistribuicao === 'aleatoria') {
+      const cartasSorteadas = sortearCartasDoPacote(pacote.cartas, ativos.length, ambiente.aleatorio)
+      let i = 0
+      for (const jogador of ativos) {
+        const alvo = estado.atribuicoes[jogador.id]
+        estado.cartas[alvo] = cartasSorteadas[i]
+        estado.prontos.push(jogador.id)
+        i++
+      }
+
+      const ids = ativos.map((j) => j.id)
+      estado.ordem = ctx.config.ordemTurnos === 'sorteada' ? embaralhar(ids, ambiente.aleatorio) : ids
+      estado.vezDe = estado.ordem[0] ?? null
+
+      return {
+        ok: true,
+        valor: estado,
+        eventos: [{ texto: 'A partida começou.' }],
+        prazos: { turno: prazoDoTurno(ctx.config, ambiente.agora) },
+        faseSeguinte: 'jogo'
+      }
+    } else {
+      estado.opcoesPorJogador = sortearOpcoesPorJogador(pacote.cartas, ativos.map(j => j.id), 5, ambiente.aleatorio)
+      const distribuidas = new Set(Object.values(estado.opcoesPorJogador).flat())
+      estado.cartasRestantesPacote = pacote.cartas.filter((c) => !distribuidas.has(c))
+    }
+  }
+
   return { ok: true, valor: estado }
 }
 
@@ -131,6 +189,8 @@ export function reduzir(
       return responderDeclaracao(estado, ctx, comando.aceita, ambiente)
     case 'notas':
       return escreverNotas(estado, ctx, comando.texto)
+    case 'sortearOutras':
+      return sortearOutras(estado, ctx, ambiente)
     case 'encerrar':
       return encerrar(estado, ctx)
     case 'novaPartida':
@@ -165,6 +225,14 @@ function escreverCarta(
   const carta = normalizarCarta(texto)
   if (carta.length === 0 || carta.length > CARTA_MAX_CARACTERES) {
     return { ok: false, erro: 'CARTA_INVALIDA' }
+  }
+
+  // PKT-14: se modo é "escolha", valida que a carta está entre as opções
+  if (estado.modoDistribuicao === 'escolha' && estado.opcoesPorJogador) {
+    const minhasOpcoes = estado.opcoesPorJogador[ctx.autorId] || []
+    if (!minhasOpcoes.includes(carta)) {
+      return { ok: false, erro: 'CARTA_INVALIDA' }
+    }
   }
 
   const novo = clonar(estado)
@@ -240,6 +308,40 @@ function cancelar(ctx: ContextoDeSala): ResultadoReducer<EstadoQuemSouEu> {
     faseSeguinte: 'lobby',
     promoverAguardando: true,
   }
+}
+
+/** PKT-15, PKT-16, PKT-33 */
+function sortearOutras(
+  estado: EstadoQuemSouEu,
+  ctx: ContextoDeSala,
+  ambiente: Ambiente
+): ResultadoReducer<EstadoQuemSouEu> {
+  if (ctx.fase !== 'escrita') return { ok: false, erro: 'FASE_INVALIDA' }
+  if (estado.modoDistribuicao !== 'escolha') return { ok: false, erro: 'COMANDO_INVALIDO' }
+  if (estado.jaSorteouOutras?.[ctx.autorId]) return { ok: false, erro: 'COMANDO_INVALIDO' }
+  if (estado.prontos.includes(ctx.autorId)) return { ok: false, erro: 'COMANDO_INVALIDO' }
+  if (!estado.cartasRestantesPacote) return { ok: false, erro: 'COMANDO_INVALIDO' }
+
+  const novo = clonar(estado)
+  
+  // Sorteia novas opções dentre as restantes
+  // Precisamos garantir opções exclusivas se possível, mas aqui apenas esse jogador está sorteando
+  // Se não houver 5, pega o máximo que tiver
+  const restantes = embaralhar(estado.cartasRestantesPacote, ambiente.aleatorio)
+  const pegas = restantes.slice(0, 5)
+  const sobraram = restantes.slice(5)
+
+  if (novo.opcoesPorJogador) {
+    novo.opcoesPorJogador[ctx.autorId] = pegas
+  }
+  
+  if (!novo.jaSorteouOutras) {
+    novo.jaSorteouOutras = {}
+  }
+  novo.jaSorteouOutras[ctx.autorId] = true
+  novo.cartasRestantesPacote = sobraram
+
+  return { ok: true, estado: novo, eventos: [], prazos: {} }
 }
 
 // ---------------------------------------------------------------------------
