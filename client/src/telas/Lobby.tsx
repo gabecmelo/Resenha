@@ -247,6 +247,27 @@ function LinhaDeJogador({
 }
 
 // ---------------------------------------------------------------------------
+// Componentes Auxiliares
+// ---------------------------------------------------------------------------
+
+function DicaBotao({ aberta, aoAlternar }: { aberta: boolean; aoAlternar: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={aoAlternar}
+      title="Mostrar dica"
+      className={`flex items-center justify-center w-[14px] h-[14px] rounded-full border text-[9px] font-bold cursor-pointer transition-all ${
+        aberta
+          ? 'border-acento text-acento opacity-100'
+          : 'border-texto-3 text-texto-3 opacity-70 hover:opacity-100'
+      }`}
+    >
+      ?
+    </button>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Regras da partida (`CFG-01`…`CFG-06`)
 // ---------------------------------------------------------------------------
 
@@ -283,6 +304,7 @@ function Regras({
   const [modoTempo, setModoTempo] = useState<'preset' | 'personalizado'>(
     ehTempoPersonalizado(config.tempoTurnoSeg) ? 'personalizado' : 'preset'
   )
+  const [dicaPacoteAberta, setDicaPacoteAberta] = useState(false)
 
   const pacoteAtual = pacotesDisponiveis?.find((p) => p.id === config.pacoteId)
 
@@ -326,8 +348,11 @@ function Regras({
               <fieldset className="flex flex-col gap-2">
                 <legend className="mb-2 text-apoio text-texto-2 flex items-center gap-2">
                   Pacote
-                  <span className="flex items-center justify-center w-4 h-4 rounded-full border border-texto-3 text-[10px] text-texto-3 cursor-help" title="O tema de cartas selecionado para todos os jogadores.">?</span>
+                  <DicaBotao aberta={dicaPacoteAberta} aoAlternar={() => setDicaPacoteAberta(!dicaPacoteAberta)} />
                 </legend>
+                {dicaPacoteAberta && (
+                  <p className="text-xs text-texto-3 mb-1 -mt-1 leading-snug">O tema de cartas selecionado para todos os jogadores.</p>
+                )}
                 {pacoteAtual ? (
                   <div className="flex items-center justify-between rounded-bloco border border-linha bg-superficie px-4 py-3">
                     <div className="flex items-center gap-3">
@@ -547,16 +572,19 @@ function Escolha<T>({
   atual: T
   aoEscolher(valor: T): void
 }) {
+  const [dicaAberta, setDicaAberta] = useState(false)
+
   return (
     <fieldset className="flex flex-col gap-2">
       <legend className="mb-2 text-apoio text-texto-2 flex items-center gap-2">
         {rotulo}
         {dica && (
-          <span className="flex items-center justify-center w-[14px] h-[14px] rounded-full border border-texto-3 text-[9px] font-bold text-texto-3 cursor-help opacity-70 hover:opacity-100 transition-opacity" title={dica}>
-            ?
-          </span>
+          <DicaBotao aberta={dicaAberta} aoAlternar={() => setDicaAberta(!dicaAberta)} />
         )}
       </legend>
+      {dicaAberta && dica && (
+        <p className="text-xs text-texto-3 mb-1 -mt-1 leading-snug">{dica}</p>
+      )}
       <div className="flex flex-wrap gap-2">
         {opcoes.map((opcao) => {
           const escolhida = opcao.valor === atual
