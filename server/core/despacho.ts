@@ -208,8 +208,15 @@ async function iniciar<E>(
     
     try {
       const p = await env.PACOTES_KV.get<{ id: string, nome: string, emoji: string, cartas: string[] }>(`pacote:${sala.config.pacoteId}`, 'json');
-      if (!p) return { ok: false, erro: 'PACOTE_NAO_ENCONTRADO' }
-      pacote = p;
+      if (p) {
+        pacote = p;
+      } else {
+        // Fallback para dev local
+        const { PACOTES } = await import('../games/quem-sou-eu/pacotes-dados');
+        const estatico = PACOTES.find(p => p.id === sala.config.pacoteId);
+        if (!estatico) return { ok: false, erro: 'PACOTE_NAO_ENCONTRADO' }
+        pacote = estatico;
+      }
     } catch {
       return { ok: false, erro: 'PACOTE_INDISPONIVEL' }
     }

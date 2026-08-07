@@ -315,7 +315,19 @@ export class SalaDeJogo<E> {
     if (this.pacotesDisponiveis === null || agora - this.pacotesCacheTimestamp > 60_000) {
       try {
         const pacotes = await this.env.PACOTES_KV.get<PacoteResumo[]>('pacotes:indice', 'json');
-        this.pacotesDisponiveis = pacotes ?? [];
+        if (pacotes && pacotes.length > 0) {
+          this.pacotesDisponiveis = pacotes;
+        } else {
+          // Fallback para ambiente local de dev onde o miniflare pode não ter lido o SQLite do script
+          const { PACOTES } = await import('../games/quem-sou-eu/pacotes-dados');
+          this.pacotesDisponiveis = PACOTES.map(p => ({
+            id: p.id,
+            nome: p.nome,
+            descricao: p.descricao,
+            emoji: p.emoji,
+            quantidade: p.quantidade
+          }));
+        }
         this.pacotesCacheTimestamp = agora;
       } catch {
         this.pacotesDisponiveis = [];
