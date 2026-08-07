@@ -11,6 +11,18 @@
 
 export type Fase = 'lobby' | 'escrita' | 'jogo' | 'encerrada'
 
+export type ModoPacote = 'livre' | 'pacote' | 'personalizado'
+export type ModoDistribuicao = 'aleatoria' | 'escolha'
+
+export interface PacoteResumo {
+  id: string
+  emoji: string
+  nome: string
+  descricao: string
+  quantidade: number
+}
+
+
 /**
  * `SALA-01` — formato do código da sala. Alfabeto sem os caracteres ambíguos ao
  * ditar em voz alta (`I`, `O`, e por consequência os dígitos `0` e `1`, que não
@@ -93,12 +105,21 @@ export interface Config {
   ordemTurnos: 'sorteada' | 'entrada'
   /** `CFG-03`, `JOGO-08` — `null` significa "sem limite". */
   tempoTurnoSeg: number | null
+  /** `PKT-01` */
+  modoPacote: ModoPacote
+  /** `PKT-03` - só relevante se modoPacote === 'pacote' */
+  pacoteId: string | null
+  /** `PKT-03` */
+  modoDistribuicao: ModoDistribuicao
 }
 
 /** Padrões de uma sala recém-criada (`CFG-05`). */
 export const CONFIG_PADRAO: Config = {
   ordemTurnos: 'sorteada',
   tempoTurnoSeg: null,
+  modoPacote: 'livre',
+  pacoteId: null,
+  modoDistribuicao: 'aleatoria',
 }
 
 /**
@@ -190,6 +211,9 @@ export type CodigoErro =
   | 'COMANDO_INVALIDO'
   /** `AJU-38` — limite de jogadores pedido na criação da sala não serve. */
   | 'LIMITE_INVALIDO'
+  | 'PACOTE_NAO_ENCONTRADO'
+  | 'PACOTE_INDISPONIVEL'
+  | 'PACOTE_INSUFICIENTE'
 
 export type Resultado<T = void> = { ok: true; valor: T } | { ok: false; erro: CodigoErro }
 
@@ -207,6 +231,7 @@ export type Comando =
   | { t: 'comecar' }
   | { t: 'escreverCarta'; texto: string }
   | { t: 'marcarPronto'; pronto: boolean }
+  | { t: 'sortearOutras' }
   | { t: 'passarVez' }
   | { t: 'pularVez' }
   | { t: 'declararDescobri' }
@@ -238,6 +263,10 @@ export interface Projecao {
     config: Config
     /** `AJU-39` — a lotação exibida é a desta sala, não o teto do produto. */
     limiteJogadores: number
+    /** `PKT-18` - pacotes disponíveis quando no lobby */
+    pacotesDisponiveis?: PacoteResumo[]
+    /** `PKT-23` - pacote selecionado, visível durante o jogo */
+    pacote?: PacoteResumo
   }
   eu: {
     id: JogadorId
@@ -253,6 +282,10 @@ export interface Projecao {
     notas: string
     /** Presente APENAS após `DESC-04` ou `FIM-02` (`JOGO-02`). */
     minhaCarta?: string
+    /** `PKT-12` */
+    opcoesPacote?: string[]
+    /** `PKT-16` */
+    jaSorteouOutras?: boolean
   }
   jogadores: Array<{
     id: JogadorId

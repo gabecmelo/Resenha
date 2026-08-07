@@ -152,6 +152,9 @@ function configurar<E>(
     ordemTurnos: parcial.ordemTurnos ?? sala.config.ordemTurnos,
     tempoTurnoSeg:
       parcial.tempoTurnoSeg === undefined ? sala.config.tempoTurnoSeg : parcial.tempoTurnoSeg,
+    modoPacote: parcial.modoPacote ?? sala.config.modoPacote,
+    pacoteId: parcial.pacoteId === undefined ? sala.config.pacoteId : parcial.pacoteId,
+    modoDistribuicao: parcial.modoDistribuicao ?? sala.config.modoDistribuicao,
   }
   return { ok: true, valor: SEM_EFEITOS }
 }
@@ -171,6 +174,15 @@ function configValida(parcial: Partial<Config>): boolean {
   if (segundos !== undefined && segundos !== null) {
     if (!Number.isInteger(segundos)) return false
     if (segundos < TEMPO_TURNO_MIN_SEG || segundos > TEMPO_TURNO_MAX_SEG) return false
+  }
+  if (parcial.modoPacote !== undefined && !['livre', 'pacote', 'personalizado'].includes(parcial.modoPacote)) {
+    return false
+  }
+  if (parcial.modoDistribuicao !== undefined && !['aleatoria', 'escolha'].includes(parcial.modoDistribuicao)) {
+    return false
+  }
+  if (parcial.pacoteId !== undefined && typeof parcial.pacoteId !== 'string' && parcial.pacoteId !== null) {
+    return false
   }
   return true
 }

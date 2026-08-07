@@ -43,6 +43,9 @@ const MENSAGENS_DE_ERRO: Record<CodigoErro, string> = {
   CHAT_LIMITE_DE_TAXA: 'Calma no chat: espere um instante.',
   COMANDO_INVALIDO: 'Comando inválido.',
   LIMITE_INVALIDO: 'O limite de jogadores não serve para esta sala.',
+  PACOTE_NAO_ENCONTRADO: 'Pacote não encontrado.',
+  PACOTE_INDISPONIVEL: 'Não foi possível carregar o pacote no momento.',
+  PACOTE_INSUFICIENTE: 'Pacote não tem cartas suficientes para esta quantidade de jogadores.',
 }
 
 /**
