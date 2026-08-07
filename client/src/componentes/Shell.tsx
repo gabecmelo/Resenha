@@ -1,6 +1,7 @@
 import { type ReactNode, useState } from 'react'
 import { linkDeConvite } from '../estado/entrada'
 import { AlternadorDeTema } from './AlternadorDeTema'
+import { LogoResenha } from './LogoResenha'
 import { Modal } from './Modal'
 
 export interface PropsDoShell {
@@ -31,7 +32,8 @@ export function Shell({ codigo, legenda, aoSair, children }: PropsDoShell) {
     <div className="flex min-h-dvh flex-col bg-fundo">
       <header className="sticky top-0 z-30 border-b border-linha bg-fundo">
         <div className="mx-auto flex h-14 w-full max-w-[1280px] items-center gap-2 px-4 sm:h-15 sm:gap-3">
-          <span className="flex h-11 flex-none items-center text-[15px] font-semibold tracking-tight text-texto">
+          <span className="flex h-11 flex-none items-center gap-2 text-[15px] font-semibold tracking-tight text-texto">
+            <LogoResenha tamanho={22} />
             Resenha
           </span>
 

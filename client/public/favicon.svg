@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <style>
+    .verso { fill: #2a7a5e; }
+    .frente { fill: #ffffff; stroke: #1b1917; }
+    @media (prefers-color-scheme: dark) {
+      .verso { fill: #34936f; }
+      .frente { fill: #121312; stroke: #f4f1ec; }
+    }
+  </style>
+  <rect class="verso" x="20" y="12" width="30" height="38" rx="6" transform="rotate(9 35 31)" />
+  <rect class="frente" x="12.5" y="15.5" width="29" height="37" rx="6" stroke-width="3.5" transform="rotate(-8 27 34)" />
+</svg>
