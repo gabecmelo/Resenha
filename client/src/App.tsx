@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+﻿import { useMemo, useState } from 'react'
 import { ProvedorDeConexao, useConexao } from './estado/conexao'
 import { caminhoDaSala, codigoDaUrl } from './estado/entrada'
 import { criarSessao, reentradaAutomatica } from './estado/sessao'
@@ -12,27 +12,29 @@ import { Lobby } from './telas/Lobby'
 /**
  * A raiz do app.
  *
- * Não existe roteador nem estado de navegação próprio: enquanto não há sala, a
- * tela é o Início; a partir da primeira projeção quem manda é `sala.fase`
- * (AD-008). Cada tentativa de entrar remonta o provedor, então "Entrar" sempre
- * significa uma conexão nova, com o apelido que está no campo agora.
+ * NÃ£o existe roteador nem estado de navegaÃ§Ã£o prÃ³prio: enquanto nÃ£o hÃ¡ sala, a
+ * tela Ã© o InÃ­cio; a partir da primeira projeÃ§Ã£o quem manda Ã© `sala.fase`
+ * (AD-008). Cada tentativa de entrar remonta o provedor, entÃ£o "Entrar" sempre
+ * significa uma conexÃ£o nova, com o apelido que estÃ¡ no campo agora.
  *
- * `AJU-01` — quando o código está na URL e existe sessão guardada para aquela
- * sala, a primeira tentativa já nasce pronta: o formulário nunca chega a
+ * `AJU-01` â€” quando o cÃ³digo estÃ¡ na URL e existe sessÃ£o guardada para aquela
+ * sala, a primeira tentativa jÃ¡ nasce pronta: o formulÃ¡rio nunca chega a
  * aparecer.
  *
- * `AJU-33` — e o código só está na URL para todo mundo porque entrar numa sala,
- * por qualquer caminho, escreve o endereço dela aqui.
+ * `AJU-33` â€” e o cÃ³digo sÃ³ estÃ¡ na URL para todo mundo porque entrar numa sala,
+ * por qualquer caminho, escreve o endereÃ§o dela aqui.
  */
 
 interface Tentativa {
   codigo: string
   apelido: string
-  /** Muda a cada tentativa e força o provedor a reconectar do zero. */
+  /** Muda a cada tentativa e forÃ§a o provedor a reconectar do zero. */
   numero: number
 }
 
-export function App() {
+export import { inicializarAudio, ativarSom, somEstaAtivo } from './sons';
+function App() {
+  useEffect(() => { const handleFirstClick = () => { inicializarAudio(); document.removeEventListener('click', handleFirstClick); }; document.addEventListener('click', handleFirstClick); return () => document.removeEventListener('click', handleFirstClick); }, []);
   const codigoDoLink = useMemo(() => codigoDaUrl(window.location.pathname), [])
   const [tentativa, setTentativa] = useState<Tentativa | null>(() => {
     const volta = reentradaAutomatica(codigoDoLink, criarSessao())
@@ -74,9 +76,9 @@ export function App() {
 }
 
 /**
- * `AJU-33` — troca o endereço exibido sem recarregar a página: o socket, a
- * projeção e o estado do React seguem intactos. É `replaceState` de propósito —
- * o app não tem histórico de navegação para o botão "voltar" percorrer.
+ * `AJU-33` â€” troca o endereÃ§o exibido sem recarregar a pÃ¡gina: o socket, a
+ * projeÃ§Ã£o e o estado do React seguem intactos. Ã‰ `replaceState` de propÃ³sito â€”
+ * o app nÃ£o tem histÃ³rico de navegaÃ§Ã£o para o botÃ£o "voltar" percorrer.
  */
 function irPara(caminho: string) {
   if (window.location.pathname !== caminho) window.history.replaceState(null, '', caminho)
@@ -98,7 +100,7 @@ function Sala({
     aoDesistir()
   }
 
-  // Já dentro da sala, o estado da conexão vira tela: a mesa que está no ar
+  // JÃ¡ dentro da sala, o estado da conexÃ£o vira tela: a mesa que estÃ¡ no ar
   // seria uma foto velha, e a vaga continua guardada (`CONN-03`).
   if (projecao !== null) {
     if (estado === 'expirada') {
@@ -113,8 +115,8 @@ function Sala({
     if (estado === 'reconectando') return <Reconectando />
   }
 
-  // Antes da primeira projeção: a conexão em andamento tem tela própria e as
-  // recusas de entrada voltam para o Início, onde o formulário está.
+  // Antes da primeira projeÃ§Ã£o: a conexÃ£o em andamento tem tela prÃ³pria e as
+  // recusas de entrada voltam para o InÃ­cio, onde o formulÃ¡rio estÃ¡.
   if (projecao === null) {
     if (erro === null && estado !== 'expirada') {
       return <Conectando codigo={tentativa.codigo} />
@@ -131,8 +133,8 @@ function Sala({
     )
   }
 
-  // A tela exibida deriva da fase que veio na projeção — não existe rota nem
-  // estado de navegação próprio (AD-008).
+  // A tela exibida deriva da fase que veio na projeÃ§Ã£o â€” nÃ£o existe rota nem
+  // estado de navegaÃ§Ã£o prÃ³prio (AD-008).
   switch (projecao.sala.fase) {
     case 'lobby':
       return <Lobby projecao={projecao} enviar={enviar} aoSair={deixarSala} />
@@ -144,3 +146,4 @@ function Sala({
       return <Encerrada projecao={projecao} enviar={enviar} aoSair={deixarSala} />
   }
 }
+
