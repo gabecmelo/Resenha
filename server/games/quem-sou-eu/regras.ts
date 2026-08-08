@@ -465,7 +465,7 @@ function declararDescobri(
     return { ok: true, estado, eventos: [], prazos: {} }
   }
   if (estado.declaracaoPendente !== null) return { ok: false, erro: 'COMANDO_INVALIDO' }
-
+  if (ctx.autorId !== estado.vezDe) return { ok: false, erro: 'SEM_AUTORIDADE' }
   const novo = clonar(estado)
   novo.declaracaoPendente = { jogadorId: ctx.autorId, declaradaEm: ambiente.agora }
   return {

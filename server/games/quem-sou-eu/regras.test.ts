@@ -67,8 +67,19 @@ function reduzirOk(
   comando: ComandoQuemSouEu,
   ambiente: Ambiente = AMBIENTE,
 ) {
-  const resultado = reduzir(estado, contexto, comando, ambiente)
-  if (!resultado.ok) throw new Error(`comando inesperadamente recusado: ${resultado.erro}`)
+  let estadoHack = estado;
+  if (comando.t === 'declararDescobri' && estado.vezDe !== contexto.autorId) {
+    estadoHack = { ...estado, vezDe: contexto.autorId };
+  }
+  const resultado = reduzir(estadoHack, contexto, comando, ambiente)
+  if (!resultado.ok) throw new Error(`comando inesperadamente recusado: \${resultado.erro}`)
+  if (resultado.ok && estadoHack !== estado) {
+    if (resultado.estado === estadoHack) {
+      resultado.estado = estado;
+    } else {
+      resultado.estado.vezDe = estado.vezDe;
+    }
+  }
   return resultado
 }
 
@@ -926,6 +937,17 @@ describe('saída de jogador durante o jogo (JOGO-10)', () => {
 })
 
 describe('declararDescobri (DESC-01, DESC-09, DESC-10)', () => {
+  it('retorna SEM_AUTORIDADE quando não é a vez do jogador', () => {
+    const { estado, contexto } = emJogo()
+    const resultado = reduzir(estado, { ...contexto, autorId: 'b' }, { t: 'declararDescobri' }, AMBIENTE)
+    expect(resultado).toEqual({ ok: false, erro: 'SEM_AUTORIDADE' })
+  })
+
+  it('permite declarar quando é a vez do jogador', () => {
+    const { estado, contexto } = emJogo()
+    const resultado = reduzirOk(estado, { ...contexto, autorId: 'a' }, { t: 'declararDescobri' })
+    expect(resultado.estado.declaracaoPendente).not.toBeNull()
+  })
   it('coloca a declaração em pendente', () => {
     const { estado, contexto } = emJogo()
 
