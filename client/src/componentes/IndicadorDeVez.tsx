@@ -143,11 +143,11 @@ export function IndicadorDeVez({
  * atrasado faria um turno de 30s começar em `0:31`.
  */
 function useRestante(prazoTurno: number | null, duracaoSeg: number | null): number | null {
-  const [agora, setAgora] = useState(() => Date.now())
+  const [agora, setAgora] = useState(() => getAgora())
 
   useEffect(() => {
     if (prazoTurno === null) return
-    const relogio = setInterval(() => setAgora(Date.now()), 500)
+    const relogio = setInterval(() => setAgora(getAgora()), 500)
     return () => clearInterval(relogio)
   }, [prazoTurno])
 

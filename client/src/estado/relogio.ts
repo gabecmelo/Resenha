@@ -53,3 +53,11 @@ export function fracaoRestante(restanteMs: number | null, duracaoSeg: number | n
   if (restanteMs === null || duracaoSeg === null || duracaoSeg <= 0) return 0
   return Math.min(restanteMs / (duracaoSeg * 1000), 1)
 }
+
+let _offset = 0
+export function setOffset(offset: number) {
+  _offset = offset
+}
+export function getAgora() {
+  return Date.now() + _offset
+}

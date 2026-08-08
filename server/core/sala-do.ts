@@ -303,6 +303,7 @@ export class SalaDeJogo<E> {
 
     difundir(this.ctx, (paraJogador) => {
       const projecao = this.jogo.projetar(sala.jogo, sala, paraJogador);
+      projecao.servidorAgora = Date.now();
       if (pacotes) {
         projecao.sala.pacotesDisponiveis = pacotes;
       }
