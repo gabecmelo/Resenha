@@ -1,4 +1,4 @@
-import { type RefObject, useRef, useState } from 'react'
+﻿import { type RefObject, useRef, useState } from 'react'
 import type { JogadorId, Projecao } from '../../../shared/protocolo'
 import {
   BlocoDeNotas,
@@ -14,18 +14,18 @@ import {
 import type { PropsDaTela } from './tela'
 
 /**
- * O tabuleiro (`JOGO-01`, `JOGO-03`…`JOGO-11`, `DESC-01`…`DESC-07`).
+ * O tabuleiro (`JOGO-01`, `JOGO-03`â€¦`JOGO-11`, `DESC-01`â€¦`DESC-07`).
  *
- * A mesa é a tela: a lista de cartas ocupa tudo e o resto é barra. A sua carta
- * fica no lugar de sempre, entre as outras, selada — o produto inteiro existe
+ * A mesa Ã© a tela: a lista de cartas ocupa tudo e o resto Ã© barra. A sua carta
+ * fica no lugar de sempre, entre as outras, selada â€” o produto inteiro existe
  * para desenhar exatamente isso.
  *
- * Nada aqui decide de quem é a vez, quem confirma ou quem pode agir: tudo isso
- * chega pronto na projeção (AD-008). O que a tela calcula por conta própria é só
- * o que falta do relógio, a partir do instante absoluto que veio no payload.
+ * Nada aqui decide de quem Ã© a vez, quem confirma ou quem pode agir: tudo isso
+ * chega pronto na projeÃ§Ã£o (AD-008). O que a tela calcula por conta prÃ³pria Ã© sÃ³
+ * o que falta do relÃ³gio, a partir do instante absoluto que veio no payload.
  */
 
-/** Acima disto a mesa vira lista enxuta — é o caso de 20 em 360px (`VIS-02`). */
+/** Acima disto a mesa vira lista enxuta â€” Ã© o caso de 20 em 360px (`VIS-02`). */
 const MESA_CHEIA = 8
 
 type Ficha = Projecao['jogadores'][number]
@@ -41,16 +41,16 @@ export function Jogo({ projecao, enviar, aoSair }: PropsDaTela) {
   const minhaFicha = jogadores.find((jogador) => jogador.id === eu.id)
   const ehMinhaVez = jogo?.vezDe === eu.id
   const compacta = ativos.length > MESA_CHEIA
-  // `AJU-12` — quem está no rodízio vem na projeção; a tela não recalcula regra
-  // nenhuma (AD-008). Sobrando um, não há para quem passar a vez.
+  // `AJU-12` â€” quem estÃ¡ no rodÃ­zio vem na projeÃ§Ã£o; a tela nÃ£o recalcula regra
+  // nenhuma (AD-008). Sobrando um, nÃ£o hÃ¡ para quem passar a vez.
   const sozinhoNoRodizio = jogo !== undefined && jogo.ordem.length === 1
 
   const minhaLinha = useRef<HTMLLIElement>(null)
   const [confirmandoEncerrar, setConfirmandoEncerrar] = useState(false)
 
-  // `DESC-05` — a negativa não vira estado na projeção: o servidor descarta a
-  // declaração e segue. O que a tela sabe é a transição entre duas projeções —
-  // havia uma declaração minha pendente, agora não há e eu não descobri.
+  // `DESC-05` â€” a negativa nÃ£o vira estado na projeÃ§Ã£o: o servidor descarta a
+  // declaraÃ§Ã£o e segue. O que a tela sabe Ã© a transiÃ§Ã£o entre duas projeÃ§Ãµes â€”
+  // havia uma declaraÃ§Ã£o minha pendente, agora nÃ£o hÃ¡ e eu nÃ£o descobri.
   const declaracaoAtual = jogo?.declaracaoPendente?.jogadorId ?? null
   const [declaracaoAnterior, setDeclaracaoAnterior] = useState(declaracaoAtual)
   const [negada, setNegada] = useState(false)
@@ -68,7 +68,7 @@ export function Jogo({ projecao, enviar, aoSair }: PropsDaTela) {
   return (
     <Shell
       codigo={sala.codigo}
-      legenda={`Partida em andamento · ${ativos.length} na mesa`}
+      legenda={`Partida em andamento Â· ${ativos.length} na mesa`}
       aoSair={aoSair}
     >
       <div className="flex flex-col gap-6">
@@ -111,7 +111,7 @@ export function Jogo({ projecao, enviar, aoSair }: PropsDaTela) {
 
             {negada && <DeclaracaoNegada />}
 
-            {/* `DESC-04` — a partir da confirmação a carta existe no payload dele. */}
+            {/* `DESC-04` â€” a partir da confirmaÃ§Ã£o a carta existe no payload dele. */}
             {eu.minhaCarta !== undefined && <VoceEra texto={eu.minhaCarta} />}
 
             <Mesa
@@ -143,7 +143,7 @@ export function Jogo({ projecao, enviar, aoSair }: PropsDaTela) {
           </section>
 
           <section className="flex flex-col gap-5">
-            {/* `NOTA-01`, `NOTA-02` — só o dono vê; a projeção nunca traz as de outro. */}
+            {/* `NOTA-01`, `NOTA-02` â€” sÃ³ o dono vÃª; a projeÃ§Ã£o nunca traz as de outro. */}
             <BlocoDeNotas texto={eu.notas} aoMudar={(texto) => enviar({ t: 'notas', texto })} />
             <ChatDaMesa
               mensagens={projecao.chat}
@@ -153,11 +153,11 @@ export function Jogo({ projecao, enviar, aoSair }: PropsDaTela) {
         </div>
       </div>
 
-      {/* `HOST-07` — encerrar revela a carta de todo mundo; confirma antes. */}
+      {/* `HOST-07` â€” encerrar revela a carta de todo mundo; confirma antes. */}
       {confirmandoEncerrar && (
         <Modal
           titulo="Encerrar a partida?"
-          descricao="As cartas de todo mundo são reveladas e a mesa volta para o lobby. Quem ainda não descobriu vai ver a sua."
+          descricao="As cartas de todo mundo sÃ£o reveladas e a mesa volta para o lobby. Quem ainda nÃ£o descobriu vai ver a sua."
           rotuloConfirmar="Encerrar e revelar tudo"
           rotuloCancelar="Continuar jogando"
           destrutivo
@@ -172,7 +172,7 @@ export function Jogo({ projecao, enviar, aoSair }: PropsDaTela) {
   )
 }
 
-/** `JOGO-01` — as testas de todo mundo, e a sua no meio delas. */
+/** `JOGO-01` â€” as testas de todo mundo, e a sua no meio delas. */
 function Mesa({
   jogadores,
   euId,
@@ -196,7 +196,7 @@ function Mesa({
         <h2 className="font-mono text-[11px] tracking-[0.12em] text-texto-3 uppercase">
           {jogadores.length} na mesa
         </h2>
-        {/* `VIS-02` — com a mesa cheia, achar a própria carta não pode ser rolar no escuro. */}
+        {/* `VIS-02` â€” com a mesa cheia, achar a prÃ³pria carta nÃ£o pode ser rolar no escuro. */}
         {compacta && (
           <button
             type="button"
@@ -237,10 +237,10 @@ function Mesa({
 }
 
 /**
- * `JOGO-04`, `JOGO-05`, `DESC-01`, `FIM-01` — o que dá para fazer agora.
+ * `JOGO-04`, `JOGO-05`, `DESC-01`, `FIM-01` â€” o que dÃ¡ para fazer agora.
  *
- * `AJU-12` — restando um no rodízio, passar e pular a vez somem: passar a vez
- * para si mesmo é operação sem efeito, e o servidor já ignora o avanço.
+ * `AJU-12` â€” restando um no rodÃ­zio, passar e pular a vez somem: passar a vez
+ * para si mesmo Ã© operaÃ§Ã£o sem efeito, e o servidor jÃ¡ ignora o avanÃ§o.
  */
 function Acoes({
   jaDescobriu,
@@ -269,26 +269,26 @@ function Acoes({
     <div className="flex flex-col gap-2.5 border-t border-linha pt-5">
       {!jaDescobriu &&
         (souDeclarante ? (
-          <Botao larguraTotal motivo="Só quem confirma pode responder à sua declaração.">
-            Declaração enviada · aguardando
+          <Botao larguraTotal motivo="SÃ³ quem confirma pode responder Ã  sua declaraÃ§Ã£o.">
+            DeclaraÃ§Ã£o enviada Â· aguardando
           </Botao>
         ) : (
           <Botao
             larguraTotal
             onClick={() => enviar({ t: 'declararDescobri' })}
-            // `DESC-10` — uma declaração por vez; dizer isso é melhor que
+            // `DESC-10` â€” uma declaraÃ§Ã£o por vez; dizer isso Ã© melhor que
             // deixar o toque cair no vazio.
             motivo={
               apelidoDeQuemDeclarou === undefined
                 ? undefined
-                : `${apelidoDeQuemDeclarou} declarou primeiro. Assim que responderem, é sua vez de declarar.`
+                : `${apelidoDeQuemDeclarou} declarou primeiro. Assim que responderem, Ã© sua vez de declarar.`
             }
           >
             Descobri!
           </Botao>
         ))}
 
-      {/* `JOGO-04` — passar a vez é de quem está na vez. */}
+      {/* `JOGO-04` â€” passar a vez Ã© de quem estÃ¡ na vez. */}
       {ehMinhaVez && !sozinhoNoRodizio && (
         <Botao larguraTotal variante="secundario" onClick={() => enviar({ t: 'passarVez' })}>
           Passei a vez
@@ -297,17 +297,17 @@ function Acoes({
 
       <p className="text-[12px] leading-snug text-texto-3">
         {jaDescobriu
-          ? 'Você já descobriu. Fique na mesa e responda as perguntas dos outros — sem entregar nada.'
+          ? 'VocÃª jÃ¡ descobriu. Fique na mesa e responda as perguntas dos outros â€” sem entregar nada.'
           : sozinhoNoRodizio && ehMinhaVez
-            ? 'Você é o último sem descobrir. A vez é sua até declarar, sem relógio e sem passar.'
+            ? 'VocÃª Ã© o Ãºltimo sem descobrir. A vez Ã© sua atÃ© declarar, sem relÃ³gio e sem passar.'
             : ehMinhaVez
               ? semRelogio
-                ? 'Sem relógio, a vez só passa quando você passar.'
+                ? 'Sem relÃ³gio, a vez sÃ³ passa quando vocÃª passar.'
                 : 'Fale o palpite em voz alta antes de clicar em Descobri!.'
-              : 'Responda em voz alta quando a pergunta vier. Declarar não depende da sua vez.'}
+              : 'Responda em voz alta quando a pergunta vier. Declarar nÃ£o depende da sua vez.'}
       </p>
 
-      {/* `VIS-04` — ação de host não existe na tela de quem não é host. */}
+      {/* `VIS-04` â€” aÃ§Ã£o de host nÃ£o existe na tela de quem nÃ£o Ã© host. */}
       {souHost && (
         <div className="mt-1 flex flex-col gap-2.5 border-t border-linha pt-4">
           {apelidoDaVez !== undefined && !ehMinhaVez && !sozinhoNoRodizio && (
@@ -325,25 +325,25 @@ function Acoes({
 }
 
 // ---------------------------------------------------------------------------
-// As três visões de uma declaração pendente (`DESC-01`…`DESC-05`)
+// As trÃªs visÃµes de uma declaraÃ§Ã£o pendente (`DESC-01`â€¦`DESC-05`)
 // ---------------------------------------------------------------------------
 
-/** Quem declarou: a carta continua selada até alguém responder. */
+/** Quem declarou: a carta continua selada atÃ© alguÃ©m responder. */
 function AguardandoConfirmacao() {
   return (
     <div className="flex flex-col gap-1.5 rounded-bloco border border-aviso-linha bg-aviso-suave p-4">
       <span className="animacao-pulso font-mono text-[11px] tracking-[0.12em] text-aviso uppercase">
-        aguardando confirmação
+        aguardando confirmaÃ§Ã£o
       </span>
       <p className="text-[15px] leading-relaxed text-texto-2">
-        Você declarou que descobriu. Alguém da mesa vai confirmar ou negar — sua carta continua
-        selada até lá.
+        VocÃª declarou que descobriu. AlguÃ©m da mesa vai confirmar ou negar â€” sua carta continua
+        selada atÃ© lÃ¡.
       </p>
     </div>
   )
 }
 
-/** `DESC-02`, `DESC-03` — quem decide vê a carta e as duas saídas. */
+/** `DESC-02`, `DESC-03` â€” quem decide vÃª a carta e as duas saÃ­das. */
 function DecisaoDoConfirmador({
   declarante,
   aoResponder,
@@ -370,7 +370,7 @@ function DecisaoDoConfirmador({
       </span>
 
       <p className="text-apoio leading-relaxed text-texto-2">
-        O palpite foi falado em voz alta. A carta de {declarante.apelido} é{' '}
+        O palpite foi falado em voz alta. A carta de {declarante.apelido} Ã©{' '}
         <strong className="font-semibold text-texto">{declarante.carta}</strong>. Acertou?
       </p>
 
@@ -384,65 +384,65 @@ function DecisaoDoConfirmador({
   )
 }
 
-/** `DESC-01` — os demais só recebem o anúncio; não decidem nada. */
+/** `DESC-01` â€” os demais sÃ³ recebem o anÃºncio; nÃ£o decidem nada. */
 function AnuncioDeDeclaracao({ apelido }: { apelido: string }) {
   return (
     <div className="flex items-center gap-2.5 rounded-painel border border-aviso-linha bg-aviso-suave px-3.5 py-3">
       <span aria-hidden="true" className="animacao-pulso h-2 w-2 flex-none rounded-pilula bg-aviso" />
       <p className="text-apoio leading-snug text-texto-2">
         <strong className="font-semibold text-texto">{apelido}</strong> declarou que descobriu. A
-        mesa está conferindo.
+        mesa estÃ¡ conferindo.
       </p>
     </div>
   )
 }
 
-/** `DESC-05` — negar não custa nada a quem declarou, e a tela precisa dizer isso. */
+/** `DESC-05` â€” negar nÃ£o custa nada a quem declarou, e a tela precisa dizer isso. */
 function DeclaracaoNegada() {
   return (
     <div className="flex flex-col gap-1.5 rounded-bloco border border-risco-linha bg-risco-suave p-4">
       <span className="font-mono text-[11px] tracking-[0.12em] text-risco uppercase">
-        não era essa
+        nÃ£o era essa
       </span>
       <p className="text-[15px] leading-relaxed text-texto-2">
-        Negaram seu palpite. Nada mudou: você não perdeu a vez nem ganhou penalidade. Pergunte mais
+        Negaram seu palpite. Nada mudou: vocÃª nÃ£o perdeu a vez nem ganhou penalidade. Pergunte mais
         e declare de novo quando quiser.
       </p>
     </div>
   )
 }
 
-/** `DESC-04` — a carta que estava na sua testa a partida inteira. */
+/** `DESC-04` â€” a carta que estava na sua testa a partida inteira. */
 function VoceEra({ texto }: { texto: string }) {
   return (
     <div className="flex flex-col gap-2 rounded-bloco bg-acento p-5">
       <span className="font-mono text-[11px] tracking-[0.12em] text-acento-contraste/75 uppercase">
-        você era
+        vocÃª era
       </span>
       <span className="text-titulo text-balance text-acento-contraste">{texto}</span>
       <p className="text-apoio leading-relaxed text-acento-contraste/80">
-        Fique na mesa e ajude os outros — sem entregar nada.
+        Fique na mesa e ajude os outros â€” sem entregar nada.
       </p>
     </div>
   )
 }
 
-/** `SALA-10` — entrou depois do sorteio: assiste esta e joga a próxima. */
+/** `SALA-10` â€” entrou depois do sorteio: assiste esta e joga a prÃ³xima. */
 function Espectador() {
   return (
     <div className="flex flex-col gap-2 rounded-bloco border border-linha bg-superficie p-5">
-      <h2 className="text-titulo text-texto">Você entra na próxima</h2>
+      <h2 className="text-titulo text-texto">VocÃª entra na prÃ³xima</h2>
       <p className="text-[15px] leading-relaxed text-texto-2">
-        Ninguém escreveu uma carta para você nesta rodada. Assista, converse no chat — quando esta
-        partida acabar você entra automaticamente.
+        NinguÃ©m escreveu uma carta para vocÃª nesta rodada. Assista, converse no chat â€” quando esta
+        partida acabar vocÃª entra automaticamente.
       </p>
     </div>
   )
 }
 
 /**
- * `CHAT-01`, `CHAT-04` — o chat é apoio, não canal principal. No celular ele
- * começa recolhido para não disputar espaço com a mesa; a partir de `lg` ele
+ * `CHAT-01`, `CHAT-04` â€” o chat Ã© apoio, nÃ£o canal principal. No celular ele
+ * comeÃ§a recolhido para nÃ£o disputar espaÃ§o com a mesa; a partir de `lg` ele
  * mora na coluna lateral e fica sempre aberto.
  */
 function ChatDaMesa({
@@ -463,7 +463,7 @@ function ChatDaMesa({
         className="flex min-h-11 cursor-pointer items-center justify-between gap-3 rounded-painel bg-superficie-2 px-3.5 py-3 text-left lg:hidden"
       >
         <span className="font-mono text-[11px] tracking-[0.1em] text-texto-3 uppercase">
-          chat{mensagens.length > 0 && ` · ${mensagens.length}`}
+          chat{mensagens.length > 0 && ` Â· ${mensagens.length}`}
         </span>
         <span className="text-miudo font-medium text-acento">{aberto ? 'recolher' : 'abrir'}</span>
       </button>
@@ -478,3 +478,4 @@ function ChatDaMesa({
     </div>
   )
 }
+
