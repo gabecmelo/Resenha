@@ -281,6 +281,54 @@ describe('alvo e carta escrita (ESCR-02, ESCR-04)', () => {
 
     expect(projecao.jogadores.filter((j) => j.pronto).map((j) => j.id)).toEqual(['a', 'b'])
   })
+
+  describe('com pacote (PKT-12, PKT-23, PKT-24)', () => {
+    it('projeta as opções do pacote para o próprio jogador', () => {
+      const jogo = jogoDe({
+        pacoteId: 'filmes',
+        pacoteNome: 'Filmes',
+        pacoteEmoji: '🎬',
+        opcoesPorJogador: { a: ['Matrix', 'Titanic', 'Avatar'] },
+      })
+      const sala = salaDe('escrita', { jogo })
+
+      const projecao = projetar(jogo, sala, 'a')
+
+      expect(projecao.eu.opcoesPacote).toEqual(['Matrix', 'Titanic', 'Avatar'])
+      // Outros não veem as minhas opções
+      expect(projetar(jogo, sala, 'b').eu.opcoesPacote).toBeUndefined()
+    })
+
+    it('projeta o status de jaSorteouOutras para o jogador', () => {
+      const jogo = jogoDe({
+        pacoteId: 'filmes',
+        jaSorteouOutras: { a: true },
+      })
+      const sala = salaDe('escrita', { jogo })
+
+      expect(projetar(jogo, sala, 'a').eu.jaSorteouOutras).toBe(true)
+      expect(projetar(jogo, sala, 'b').eu.jaSorteouOutras).toBe(false)
+    })
+
+    it('projeta o pacote da sala se estiver configurado', () => {
+      const jogo = jogoDe({
+        pacoteId: 'filmes',
+        pacoteNome: 'Filmes',
+        pacoteEmoji: '🎬',
+      })
+      const sala = salaDe('jogo', { jogo })
+
+      const projecao = projetar(jogo, sala, 'a')
+
+      expect(projecao.sala.pacote).toEqual({
+        id: 'filmes',
+        nome: 'Filmes',
+        emoji: '🎬',
+        descricao: '',
+        quantidade: 0,
+      })
+    })
+  })
 })
 
 describe('bloco de notas (NOTA-01, NOTA-02)', () => {

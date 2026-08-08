@@ -50,6 +50,24 @@ export function projetar(
 
   if (estado === null) return projecao
 
+  if (estado.pacoteId) {
+    projecao.sala.pacote = {
+      id: estado.pacoteId,
+      nome: estado.pacoteNome ?? '',
+      emoji: estado.pacoteEmoji ?? '',
+      descricao: '',
+      quantidade: 0,
+    }
+  }
+
+  if (estado.opcoesPorJogador?.[paraJogador]) {
+    projecao.eu.opcoesPacote = estado.opcoesPorJogador[paraJogador]
+  }
+
+  if (estado.jaSorteouOutras) {
+    projecao.eu.jaSorteouOutras = estado.jaSorteouOutras[paraJogador] ?? false
+  }
+
   // `ESCR-02` — o alvo e a carta que este jogador escreveu. O sorteio sem ponto
   // fixo garante que o alvo nunca é ele mesmo, então isto não revela a própria.
   const alvoId = estado.atribuicoes[paraJogador]

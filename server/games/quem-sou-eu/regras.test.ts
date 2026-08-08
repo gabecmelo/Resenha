@@ -43,10 +43,22 @@ function ctx(over: Partial<ContextoDeSala> = {}): ContextoDeSala {
   }
 }
 
-function rodadaDe(jogadores: Jogador[]): EstadoQuemSouEu {
-  const resultado = iniciarRodada(jogadores, AMBIENTE)
+function rodadaDe(
+  jogadores: Jogador[],
+  over: Partial<ContextoDeSala> = {},
+  pacote?: { id: string; nome: string; emoji: string; cartas: readonly string[] }
+): EstadoQuemSouEu {
+  const resultado = iniciarRodada(ctx({ jogadores, ...over }), AMBIENTE, pacote)
   if (!resultado.ok) throw new Error(`rodada inesperadamente recusada: ${resultado.erro}`)
   return resultado.valor
+}
+
+function rodadaDeResultado(
+  jogadores: Jogador[],
+  over: Partial<ContextoDeSala> = {},
+  pacote?: { id: string; nome: string; emoji: string; cartas: readonly string[] }
+) {
+  return iniciarRodada(ctx({ jogadores, ...over }), AMBIENTE, pacote)
 }
 
 function reduzirOk(
@@ -83,7 +95,7 @@ function emJogo(over: Partial<ContextoDeSala> = {}) {
 
 describe('iniciarRodada (ESCR-01, AJU-06, AJU-08)', () => {
   it('recusa iniciar com apenas 1 jogador ativo', () => {
-    const resultado = iniciarRodada([jogador('a')], AMBIENTE)
+    const resultado = rodadaDeResultado([jogador('a')])
 
     expect(resultado).toEqual({ ok: false, erro: 'JOGADORES_INSUFICIENTES' })
   })
@@ -133,9 +145,8 @@ describe('iniciarRodada (ESCR-01, AJU-06, AJU-08)', () => {
   })
 
   it('recusa quando os ativos são menos de 2, mesmo com jogadores aguardando na sala', () => {
-    const resultado = iniciarRodada(
-      [jogador('a'), jogador('b', 'aguardando'), jogador('c', 'aguardando')],
-      AMBIENTE,
+    const resultado = rodadaDeResultado(
+      [jogador('a'), jogador('b', 'aguardando'), jogador('c', 'aguardando')]
     )
 
     expect(resultado).toEqual({ ok: false, erro: 'JOGADORES_INSUFICIENTES' })
@@ -151,6 +162,51 @@ describe('iniciarRodada (ESCR-01, AJU-06, AJU-08)', () => {
       vezDe: estado.vezDe,
       reveladoParaTodos: estado.reveladoParaTodos,
     }).toEqual({ cartas: {}, prontos: [], ordem: [], vezDe: null, reveladoParaTodos: false })
+  })
+})
+
+describe('iniciarRodada com pacote (PKT-08, PKT-09, PKT-11)', () => {
+  const pacoteMock = {
+    id: 'filmes',
+    nome: 'Filmes',
+    emoji: '🎬',
+    cartas: ['Matrix', 'Titanic', 'Avatar', 'Alien', 'Shrek'],
+  }
+
+  it('recusa pacote com menos cartas do que jogadores ativos (PKT-09)', () => {
+    const pequeno = { ...pacoteMock, cartas: ['Matrix'] }
+    const resultado = rodadaDeResultado([jogador('a'), jogador('b')], {}, pequeno)
+    expect(resultado).toEqual({ ok: false, erro: 'PACOTE_INSUFICIENTE' })
+  })
+
+  it('com distribuição aleatória, pula a fase de escrita e preenche cartas (PKT-08, PKT-10)', () => {
+    const estado = rodadaDe(
+      [jogador('a'), jogador('b'), jogador('c')],
+      { config: { ...CONFIG_PADRAO, modoDistribuicao: 'aleatoria' } },
+      pacoteMock
+    )
+    
+    // As cartas foram preenchidas e os jogadores marcados como prontos
+    expect(Object.keys(estado.cartas)).toHaveLength(3)
+    expect(estado.prontos.sort()).toEqual(['a', 'b', 'c'])
+    expect(estado.vezDe).not.toBeNull()
+  })
+
+  it('com distribuição escolha, gera opcoesPorJogador e vai para escrita (PKT-11)', () => {
+    const estado = rodadaDe(
+      [jogador('a'), jogador('b'), jogador('c')],
+      { config: { ...CONFIG_PADRAO, modoDistribuicao: 'escolha' } },
+      pacoteMock
+    )
+    
+    expect(Object.keys(estado.cartas)).toHaveLength(0)
+    expect(estado.prontos).toEqual([])
+    
+    // Todos recebem opções (são 5 cartas no pacote e 3 jogadores)
+    // Pela lógica, distribuirá 1 opção para cada, já que 5 / 3 = 1
+    expect(estado.opcoesPorJogador?.['a']).toHaveLength(1)
+    expect(estado.opcoesPorJogador?.['b']).toHaveLength(1)
+    expect(estado.opcoesPorJogador?.['c']).toHaveLength(1)
   })
 })
 
@@ -249,6 +305,43 @@ describe('escreverCarta (ESCR-03)', () => {
 
     expect(resultado).toEqual({ ok: false, erro: 'COMANDO_INVALIDO' })
   })
+
+  describe('com pacote (PKT-14)', () => {
+    const pacoteMock = {
+      id: 'filmes',
+      nome: 'Filmes',
+      emoji: '🎬',
+      cartas: ['Matrix', 'Titanic', 'Avatar', 'Alien', 'Shrek', 'Rocky', 'Terminator'],
+    }
+
+    it('aceita carta se estiver entre as opções do jogador', () => {
+      const estado = rodadaDe(
+        ctx().jogadores,
+        { config: { ...CONFIG_PADRAO, modoDistribuicao: 'escolha' } },
+        pacoteMock
+      )
+      const opcaoValida = estado.opcoesPorJogador!['a'][0]
+
+      const resultado = reduzir(estado, ctx(), { t: 'escreverCarta', texto: opcaoValida }, AMBIENTE)
+      expect(resultado.ok).toBe(true)
+      if (resultado.ok) {
+        expect(resultado.estado.cartas[estado.atribuicoes['a']]).toBe(opcaoValida)
+      }
+    })
+
+    it('recusa carta se não estiver entre as opções do jogador', () => {
+      const estado = rodadaDe(
+        ctx().jogadores,
+        { config: { ...CONFIG_PADRAO, modoDistribuicao: 'escolha' } },
+        pacoteMock
+      )
+      // A string a seguir nunca estará nas opções sorteadas,
+      // a menos que haja muito poucas cartas e ela foi sorteada.
+      // O mock tem 7 cartas. 3 jogadores * 1 opção = 3 sorteadas.
+      const resultado = reduzir(estado, ctx(), { t: 'escreverCarta', texto: 'A Bela e a Fera' }, AMBIENTE)
+      expect(resultado).toEqual({ ok: false, erro: 'CARTA_INVALIDA' })
+    })
+  })
 })
 
 describe('marcarPronto (ESCR-04, ESCR-05)', () => {
@@ -321,6 +414,62 @@ describe('marcarPronto (ESCR-04, ESCR-05)', () => {
     const { eventos } = reduzirOk(comCarta, ctx(), { t: 'marcarPronto', pronto: true })
 
     expect(eventos).toEqual([])
+  })
+})
+
+describe('sortearOutras (PKT-15, PKT-16, PKT-33)', () => {
+  const pacoteMock = {
+    id: 'filmes',
+    nome: 'Filmes',
+    emoji: '🎬',
+    cartas: Array.from({ length: 20 }, (_, i) => `Filme ${i + 1}`),
+  }
+
+  function setupEscolha() {
+    return rodadaDe(
+      ctx().jogadores,
+      { config: { ...CONFIG_PADRAO, modoDistribuicao: 'escolha' } },
+      pacoteMock
+    )
+  }
+
+  it('substitui as 5 opções do jogador por 5 novas do pacote (PKT-15, PKT-33)', () => {
+    const estado = setupEscolha()
+    const opcoesAntigas = estado.opcoesPorJogador!['a']
+
+    const { estado: novo } = reduzirOk(estado, ctx(), { t: 'sortearOutras' })
+
+    const opcoesNovas = novo.opcoesPorJogador!['a']
+    expect(opcoesNovas).toHaveLength(5)
+    expect(opcoesNovas).not.toEqual(opcoesAntigas)
+    // Marca que já sorteou
+    expect(novo.jaSorteouOutras?.['a']).toBe(true)
+    // As cartas restantes do pacote devem diminuir em 5
+    expect(novo.cartasRestantesPacote?.length).toBe(estado.cartasRestantesPacote!.length - 5)
+  })
+
+  it('recusa se o jogador já tiver sorteado outras opções (PKT-16)', () => {
+    const estado = setupEscolha()
+    const primeiroSorteio = reduzirOk(estado, ctx(), { t: 'sortearOutras' }).estado
+
+    const resultado = reduzir(primeiroSorteio, ctx(), { t: 'sortearOutras' }, AMBIENTE)
+    expect(resultado).toEqual({ ok: false, erro: 'COMANDO_INVALIDO' })
+  })
+
+  it('recusa se o jogador já estiver PRONTO', () => {
+    const estado = setupEscolha()
+    const opcao = estado.opcoesPorJogador!['a'][0]
+    const comCarta = reduzirOk(estado, ctx(), { t: 'escreverCarta', texto: opcao }).estado
+    const pronto = reduzirOk(comCarta, ctx(), { t: 'marcarPronto', pronto: true }).estado
+
+    const resultado = reduzir(pronto, ctx(), { t: 'sortearOutras' }, AMBIENTE)
+    expect(resultado).toEqual({ ok: false, erro: 'COMANDO_INVALIDO' })
+  })
+
+  it('recusa se a distribuição não for "escolha"', () => {
+    const estado = rodadaDe(ctx().jogadores) // Livre
+    const resultado = reduzir(estado, ctx(), { t: 'sortearOutras' }, AMBIENTE)
+    expect(resultado).toEqual({ ok: false, erro: 'COMANDO_INVALIDO' })
   })
 })
 

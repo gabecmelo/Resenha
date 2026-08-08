@@ -366,7 +366,7 @@ describe('hibernação (AD-005, `CONN-05`)', () => {
       Object.keys(instancia as unknown as Record<string, unknown>),
     )
 
-    expect(campos.sort()).toEqual(['ctx', 'jogo'])
+    expect(campos.sort()).toEqual(['ctx', 'env', 'jogo', 'pacotesCacheTimestamp', 'pacotesDisponiveis'].sort())
   })
 })
 

@@ -188,3 +188,46 @@
     animation: none;
   }
 }
+
+@layer components {
+  .pacote-grid {
+    @apply grid w-full grid-cols-1 gap-4 sm:grid-cols-2;
+  }
+
+  .pacote-card {
+    @apply relative flex cursor-pointer flex-col items-start gap-2 overflow-hidden rounded-bloco border border-linha bg-superficie p-4 text-left transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)];
+  }
+
+  .pacote-card::before {
+    @apply absolute inset-0 content-[''] bg-gradient-to-br from-acento/5 to-transparent opacity-0 transition-opacity duration-300;
+  }
+
+  .pacote-card:hover {
+    @apply -translate-y-0.5 border-controle-linha shadow-flutuante;
+  }
+
+  .pacote-card:hover::before {
+    @apply opacity-100;
+  }
+
+  .pacote-card[aria-pressed="true"] {
+    @apply border-acento bg-acento-suave shadow-md ring-1 ring-acento;
+  }
+
+  .pacote-fantasma {
+    @apply relative flex select-none flex-col items-center justify-center gap-3 rounded-bloco border-2 border-dashed border-linha-suave bg-superficie/50 p-6 text-center;
+  }
+
+  .opcao-carta {
+    @apply relative flex w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-carta border-2 border-linha bg-superficie p-6 text-center transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)];
+  }
+
+  .opcao-carta:hover {
+    @apply -translate-y-1 border-acento-linha bg-superficie-2 shadow-flutuante;
+  }
+
+  .opcao-carta[aria-pressed="true"] {
+    @apply scale-[1.02] border-acento bg-acento-suave shadow-flutuante ring-2 ring-acento ring-offset-2 ring-offset-fundo;
+  }
+}
+

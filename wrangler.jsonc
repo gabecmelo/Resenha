@@ -21,6 +21,13 @@
     ]
   },
 
+  "kv_namespaces": [
+    {
+      "binding": "PACOTES_KV",
+      "id": "0082f242712644febc35abf65ac11b7c"
+    }
+  ],
+
   // ATENÇÃO: `new_sqlite_classes` é obrigatório e imutável. Trocar por
   // `new_classes` cria o namespace com o storage legado de chave-valor, que é
   // irreversível e indisponível no plano free — exigiria recriar o namespace

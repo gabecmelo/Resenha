@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { JogadorId } from '../../../shared/protocolo'
-import { sortearAlvos } from './sorteio'
+import { sortearAlvos, sortearCartasDoPacote, sortearOpcoesPorJogador } from './sorteio'
 
 const REPETICOES = 500
 
@@ -101,5 +101,58 @@ describe('sortearAlvos — aleatoriedade injetada (AD-002, ESCR-01)', () => {
     }
 
     expect(distintas.size).toBeGreaterThan(1)
+  })
+})
+
+describe('sortearCartasDoPacote (PKT-08, PKT-10)', () => {
+  const cartas = Array.from({ length: 50 }, (_, i) => `Carta ${i + 1}`)
+
+  it('retorna N cartas únicas', () => {
+    const sorteadas = sortearCartasDoPacote(cartas, 5, Math.random)
+    expect(sorteadas).toHaveLength(5)
+    expect(new Set(sorteadas).size).toBe(5)
+  })
+
+  it('usa a fonte de aleatoriedade injetada', () => {
+    const primeiro = sortearCartasDoPacote(cartas, 5, fonteFixa(42))
+    const segundo = sortearCartasDoPacote(cartas, 5, fonteFixa(42))
+    expect(segundo).toEqual(primeiro)
+  })
+})
+
+describe('sortearOpcoesPorJogador (PKT-11, PKT-13, PKT-28)', () => {
+  const cartas = Array.from({ length: 50 }, (_, i) => `Carta ${i + 1}`)
+  const jogadores = ids(4)
+
+  it('distribui as opções exclusivas por jogador', () => {
+    const opcoes = sortearOpcoesPorJogador(cartas, jogadores, 5, Math.random)
+    
+    const todasOpcoes = Object.values(opcoes).flat()
+    expect(todasOpcoes).toHaveLength(20)
+    expect(new Set(todasOpcoes).size).toBe(20) // Nenhuma repetida
+
+    for (const jogador of jogadores) {
+      expect(opcoes[jogador]).toHaveLength(5)
+    }
+  })
+
+  it('lida com PKT-28: reduz as opções quando não há cartas suficientes', () => {
+    // 10 cartas, 4 jogadores, pedindo 5 opções -> max é 2 por jogador
+    const poucasCartas = Array.from({ length: 10 }, (_, i) => `Carta ${i + 1}`)
+    const opcoes = sortearOpcoesPorJogador(poucasCartas, jogadores, 5, Math.random)
+
+    const todasOpcoes = Object.values(opcoes).flat()
+    expect(todasOpcoes).toHaveLength(8) // 2 * 4
+    expect(new Set(todasOpcoes).size).toBe(8)
+
+    for (const jogador of jogadores) {
+      expect(opcoes[jogador]).toHaveLength(2)
+    }
+  })
+
+  it('usa a fonte de aleatoriedade injetada', () => {
+    const primeiro = sortearOpcoesPorJogador(cartas, jogadores, 5, fonteFixa(42))
+    const segundo = sortearOpcoesPorJogador(cartas, jogadores, 5, fonteFixa(42))
+    expect(segundo).toEqual(primeiro)
   })
 })

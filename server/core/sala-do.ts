@@ -5,6 +5,7 @@ import {
   type Comando,
   type EstadoSala,
   type JogadorId,
+  type PacoteResumo,
 } from '../../shared/protocolo'
 import * as chat from './chat'
 import { aceitar, desvincular, difundir, enviar, jogadorDe, socketsDe, vincular } from './conexoes'
@@ -43,6 +44,9 @@ const MENSAGENS_DE_ERRO: Record<CodigoErro, string> = {
   CHAT_LIMITE_DE_TAXA: 'Calma no chat: espere um instante.',
   COMANDO_INVALIDO: 'Comando inválido.',
   LIMITE_INVALIDO: 'O limite de jogadores não serve para esta sala.',
+  PACOTE_NAO_ENCONTRADO: 'Pacote não encontrado.',
+  PACOTE_INDISPONIVEL: 'Não foi possível carregar o pacote no momento.',
+  PACOTE_INSUFICIENTE: 'Pacote não tem cartas suficientes para esta quantidade de jogadores.',
 }
 
 /**
@@ -58,8 +62,12 @@ const MENSAGENS_DE_ERRO: Record<CodigoErro, string> = {
  * (AD-002).
  */
 export class SalaDeJogo<E> {
+  private pacotesDisponiveis: PacoteResumo[] | null = null;
+  private pacotesCacheTimestamp = 0;
+
   constructor(
     protected readonly ctx: DurableObjectState,
+    protected readonly env: Env,
     protected readonly jogo: JogoDaSala<E>,
   ) {}
 
@@ -147,7 +155,7 @@ export class SalaDeJogo<E> {
       return
     }
 
-    const resultado = despachar(sala, this.jogo, autorId, comando, ambienteAgora())
+    const resultado = await despachar(sala, this.jogo, autorId, comando, ambienteAgora(), this.env)
     if (!resultado.ok) {
       enviar(ws, erro(resultado.erro))
       return
@@ -284,11 +292,48 @@ export class SalaDeJogo<E> {
     return carregar<E>(this.ctx.storage)
   }
 
-  /** AD-005 — grava, reagenda o alarme e difunde, nesta ordem. */
   private async confirmar(sala: EstadoSala<E>): Promise<void> {
     this.atualizarCicloDeVida(sala)
     await this.persistir(sala)
-    difundir(this.ctx, (paraJogador) => this.jogo.projetar(sala.jogo, sala, paraJogador))
+
+    let pacotes: PacoteResumo[] | undefined = undefined;
+    if (sala.fase === 'lobby' && sala.config.modoPacote === 'pacote') {
+      pacotes = await this.getPacotesDisponiveis();
+    }
+
+    difundir(this.ctx, (paraJogador) => {
+      const projecao = this.jogo.projetar(sala.jogo, sala, paraJogador);
+      if (pacotes) {
+        projecao.sala.pacotesDisponiveis = pacotes;
+      }
+      return projecao;
+    });
+  }
+
+  private async getPacotesDisponiveis(): Promise<PacoteResumo[]> {
+    const agora = Date.now();
+    if (this.pacotesDisponiveis === null || agora - this.pacotesCacheTimestamp > 60_000) {
+      try {
+        const pacotes = await this.env.PACOTES_KV.get<PacoteResumo[]>('pacotes:indice', 'json');
+        if (pacotes && pacotes.length > 0) {
+          this.pacotesDisponiveis = pacotes;
+        } else {
+          // Fallback para ambiente local de dev onde o miniflare pode não ter lido o SQLite do script
+          const { PACOTES } = await import('../games/quem-sou-eu/pacotes-dados');
+          this.pacotesDisponiveis = PACOTES.map(p => ({
+            id: p.id,
+            nome: p.nome,
+            descricao: p.descricao,
+            emoji: p.emoji,
+            quantidade: p.quantidade
+          }));
+        }
+        this.pacotesCacheTimestamp = agora;
+      } catch {
+        this.pacotesDisponiveis = [];
+      }
+    }
+    return this.pacotesDisponiveis;
   }
 
   /**

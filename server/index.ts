@@ -11,8 +11,8 @@ import type { EstadoQuemSouEu } from './games/quem-sou-eu/regras'
  * `games/`. Trocar de jogo é trocar esta classe.
  */
 export class SalaDurableObject extends SalaDeJogo<EstadoQuemSouEu> {
-  constructor(ctx: DurableObjectState) {
-    super(ctx, quemSouEu)
+  constructor(ctx: DurableObjectState, env: Env) {
+    super(ctx, env, quemSouEu)
   }
 }
 
