@@ -61,7 +61,7 @@ export function Carta({
         ehVoce
           ? 'border-acento bg-acento-suave'
           : ehAVezDele
-            ? 'border-acento-linha bg-superficie'
+            ? 'border-acento bg-acento-suave shadow-md ring-2 ring-acento/50'
             : apagada
               ? 'border-linha bg-superficie-2'
               : 'border-linha bg-superficie'
@@ -74,12 +74,12 @@ export function Carta({
         <span
           className={`truncate font-mono tracking-[0.1em] uppercase ${
             compacta ? 'text-[9px]' : 'text-[10px]'
-          } ${ehVoce || ehAVezDele || descobriu ? 'text-acento' : 'text-texto-3'}`}
+          } ${ehVoce || ehAVezDele || descobriu ? 'text-acento' : 'text-texto-3'} ${ehAVezDele ? 'font-bold' : ''}`}
         >
           {apelido}
           {ehVoce && ' · você'}
           {ehHost && ' · host'}
-          {ehAVezDele && ' · perguntando'}
+          {ehAVezDele && ' · perguntando...'}
           {descobriu && ' · descobriu'}
           {!conectado && ' · desconectado'}
         </span>
