@@ -120,6 +120,7 @@ export function Jogo({ projecao, enviar, aoSair }: PropsDaTela) {
               hostId={sala.hostId}
               vezDe={jogo?.vezDe ?? null}
               compacta={compacta}
+              declaracaoAtual={declaracaoAtual}
               refDaMinha={minhaLinha}
               aoIrParaMinha={() =>
                 minhaLinha.current?.scrollIntoView({ block: 'center', behavior: 'smooth' })
@@ -182,6 +183,7 @@ function Mesa({
   hostId,
   vezDe,
   compacta,
+  declaracaoAtual,
   refDaMinha,
   aoIrParaMinha,
 }: {
@@ -190,6 +192,7 @@ function Mesa({
   hostId: JogadorId
   vezDe: JogadorId | null
   compacta: boolean
+  declaracaoAtual: JogadorId | null
   refDaMinha: RefObject<HTMLLIElement | null>
   aoIrParaMinha(): void
 }) {
@@ -219,7 +222,7 @@ function Mesa({
         {jogadores.map((jogador) => {
           const souEu = jogador.id === euId
           return (
-            <li key={jogador.id} ref={souEu ? refDaMinha : undefined} className="min-w-0">
+            <li key={jogador.id} ref={souEu ? refDaMinha : undefined} className={`min-w-0 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${jogador.id === declaracaoAtual ? 'animacao-flash' : ''}`}>
               <Carta
                 apelido={jogador.apelido}
                 cor={jogador.cor}

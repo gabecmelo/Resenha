@@ -231,3 +231,13 @@
   }
 }
 
+
+@keyframes flash-atencao {
+  0% { transform: scale(1); filter: brightness(1); }
+  20% { transform: scale(1.05); filter: brightness(1.2); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+
+.animacao-flash {
+  animation: flash-atencao 600ms cubic-bezier(0.16, 1, 0.3, 1);
+}
