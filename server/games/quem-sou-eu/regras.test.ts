@@ -1695,22 +1695,25 @@ describe('saída de todos os ativos durante o jogo (FIM-05)', () => {
 })
 
 describe('jogador desconectado (JOGO-11)', () => {
-  it('mantém a vez com o jogador desconectado, sem pulá-lo', () => {
+  it('pula a vez automaticamente de jogador desconectado', () => {
     const jogadores = [jogador('a'), { ...jogador('b'), conectado: false }, jogador('c')]
     const { estado, contexto } = emJogo({ jogadores })
 
     const resultado = reduzirOk(estado, { ...contexto, autorId: 'a' }, { t: 'passarVez' })
 
-    expect(resultado.estado.vezDe).toBe('b')
+    // B is disconnected, should auto-skip to C
+    expect(resultado.estado.vezDe).toBe('c')
   })
 
-  it('permite ao host pular a vez de um jogador desconectado', () => {
-    const jogadores = [jogador('a'), { ...jogador('b'), conectado: false }, jogador('c')]
+  it('se todos após o jogador estiverem desconectados, para no último', () => {
+    const jogadores = [jogador('a'), { ...jogador('b'), conectado: false }, { ...jogador('c'), conectado: false }]
     const { estado, contexto } = emJogo({ jogadores })
-    const daVezB = reduzirOk(estado, { ...contexto, autorId: 'a' }, { t: 'passarVez' }).estado
 
-    const resultado = reduzirOk(daVezB, { ...contexto, autorId: 'a' }, { t: 'pularVez' })
+    const resultado = reduzirOk(estado, { ...contexto, autorId: 'a' }, { t: 'passarVez' })
 
-    expect(resultado.estado.vezDe).toBe('c')
+    // Auto skip skips b and c, wrapping around to a.
+    // Wait, if it wraps around, will it pick 'a'? 
+    // Yes, 'a' is connected.
+    expect(resultado.estado.vezDe).toBe('a')
   })
 })

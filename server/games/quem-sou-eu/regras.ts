@@ -404,7 +404,18 @@ function comVezAvancada(
   }
 
   const novo = clonar(estado)
-  novo.vezDe = proximoDaOrdem(novo.ordem, novo.vezDe)
+  
+  let proximo = proximoDaOrdem(novo.ordem, novo.vezDe)
+  let tentados = 1
+  while (proximo !== null && tentados < novo.ordem.length) {
+    const j = ctx.jogadores.find(x => x.id === proximo)
+    if (j && j.conectado) {
+      break
+    }
+    proximo = proximoDaOrdem(novo.ordem, proximo)
+    tentados++
+  }
+  novo.vezDe = proximo
 
   return {
     ok: true,
