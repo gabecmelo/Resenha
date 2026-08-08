@@ -365,7 +365,10 @@ function Regras({
                     <Botao variante="secundario" onClick={() => setModalPacotesAberto(true)}>Mudar...</Botao>
                   </div>
                 ) : (
-                  <Botao variante="secundario" onClick={() => setModalPacotesAberto(true)}>Selecionar pacote...</Botao>
+                  <div className="flex items-center justify-between rounded-bloco border border-dashed border-linha-suave bg-superficie px-4 py-3">
+                    <span className="text-[15px] text-texto-2">Nenhum pacote selecionado</span>
+                    <Botao variante="secundario" onClick={() => setModalPacotesAberto(true)}>Selecionar...</Botao>
+                  </div>
                 )}
               </fieldset>
 
@@ -453,10 +456,10 @@ function Regras({
       ) : (
         <dl className="flex flex-col">
           <Leitura rotulo="Modo de jogo" valor={rotuloDe(OPCOES_DE_MODO, config.modoPacote)} />
-          {config.modoPacote === 'pacote' && config.pacoteId !== null && pacotesDisponiveis && (
+          {config.modoPacote === 'pacote' && pacotesDisponiveis && (
             <>
-              <Leitura rotulo="Pacote" valor={pacotesDisponiveis.find((p) => p.id === config.pacoteId)?.nome ?? '—'} />
-              <Leitura rotulo="Distribuição" valor={rotuloDe(OPCOES_DE_DISTRIBUICAO, config.modoDistribuicao)} />
+              <Leitura rotulo="Pacote" valor={config.pacoteId !== null ? (pacotesDisponiveis.find((p) => p.id === config.pacoteId)?.nome ?? '—') : 'Nenhum pacote selecionado'} />
+              {config.pacoteId !== null && (<Leitura rotulo="Distribuição" valor={rotuloDe(OPCOES_DE_DISTRIBUICAO, config.modoDistribuicao)} />)}
             </>
           )}
           <Leitura rotulo="Ordem dos turnos" valor={rotuloDe(OPCOES_DE_ORDEM, config.ordemTurnos)} />
