@@ -497,11 +497,16 @@ function responderDeclaracao(
 
   // `DESC-05` — descartada sem revelar; o jogador pode declarar de novo.
   if (!aceita) {
+    const avancado = comVezAvancada(novo, ctx, ambiente)
+    if (!avancado.ok) return avancado
     return {
       ok: true,
-      estado: novo,
-      eventos: [{ texto: `Ainda não: ${apelido} não descobriu.` }],
-      prazos: {},
+      estado: avancado.estado,
+      eventos: [
+        { texto: `Ainda não: ${apelido} não descobriu.` },
+        ...(avancado.eventos || [])
+      ],
+      prazos: avancado.prazos,
     }
   }
 

@@ -1252,7 +1252,9 @@ describe('negar a declaração (DESC-05)', () => {
       aceita: false,
     })
 
-    expect(resultado.eventos).toEqual([{ texto: 'Ainda não: B não descobriu.' }])
+    expect(resultado.eventos).toEqual(
+      expect.arrayContaining([{ texto: 'Ainda não: B não descobriu.' }])
+    )
   })
 })
 
