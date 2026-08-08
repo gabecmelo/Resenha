@@ -509,13 +509,13 @@ describe('expulsar (`HOST-02`)', () => {
     expect(sala.banidos).toEqual(['hash-3'])
   })
 
-  it('descarta as cartas e sorteia alvos novos quando a saída é na escrita (`ESCR-07`)', async () => {
+  it('preserva as cartas e sorteia alvos novos quando a saída é na escrita (`ESCR-07`)', async () => {
     const sala = await salaEmEscrita(4)
     await despachar(sala, quemSouEu, 'j2', { t: 'escreverCarta', texto: 'Chaves' }, AMBIENTE)
 
     await despachar(sala, quemSouEu, 'j1', { t: 'expulsar', jogadorId: 'j4' }, AMBIENTE)
 
-    expect(sala.jogo?.cartas).toEqual({})
+    expect(sala.jogo?.cartas[sala.jogo?.atribuicoes['j2']]).toBe('Chaves')
     expect(Object.keys(sala.jogo?.atribuicoes ?? {}).sort()).toEqual(['j1', 'j2', 'j3'])
   })
 })

@@ -674,10 +674,31 @@ function saiuJogador(
       ambiente.aleatorio,
     )
     novo.notas = { ...estado.notas }
+    
+    for (const j of restantes) {
+      const oldTarget = estado.atribuicoes[j.id]
+      const newTarget = novo.atribuicoes[j.id]
+      if (oldTarget && estado.cartas[oldTarget] !== undefined) {
+        novo.cartas[newTarget] = estado.cartas[oldTarget]
+      }
+      if (estado.prontos.includes(j.id)) {
+        novo.prontos.push(j.id)
+      }
+    }
+
+    if (estado.opcoesPorJogador) {
+      novo.opcoesPorJogador = {}
+      for (const j of restantes) {
+        if (estado.opcoesPorJogador[j.id]) {
+          novo.opcoesPorJogador[j.id] = estado.opcoesPorJogador[j.id]
+        }
+      }
+    }
+
     return {
       ok: true,
       estado: novo,
-      eventos: [{ texto: 'Um jogador saiu. Novos alvos foram sorteados e as cartas, descartadas.' }],
+      eventos: [{ texto: 'Um jogador saiu. Novos alvos foram sorteados, mas as cartas escritas foram preservadas.' }],
       prazos: {},
     }
   }

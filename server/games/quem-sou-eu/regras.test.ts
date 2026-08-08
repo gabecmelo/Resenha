@@ -570,7 +570,7 @@ describe('cancelar (ESCR-09, ESCR-10)', () => {
 describe('saída de jogador durante a escrita (ESCR-07, ESCR-08)', () => {
   const quatro = [jogador('a'), jogador('b'), jogador('c'), jogador('d')]
 
-  it('descarta todas as cartas escritas', () => {
+  it('preserva as cartas escritas e os redireciona aos novos alvos', () => {
     const pronto = todosEscrevemEProntos(rodadaDe(quatro), ctx({ jogadores: quatro }))
     const restantes = [jogador('a'), jogador('b'), jogador('c')]
 
@@ -579,7 +579,10 @@ describe('saída de jogador durante a escrita (ESCR-07, ESCR-08)', () => {
       jogadorId: 'd',
     })
 
-    expect(resultado.estado.cartas).toEqual({})
+    const atrib = resultado.estado.atribuicoes
+    expect(resultado.estado.cartas[atrib['a']]).toBe('carta de a')
+    expect(resultado.estado.cartas[atrib['b']]).toBe('carta de b')
+    expect(resultado.estado.cartas[atrib['c']]).toBe('carta de c')
   })
 
   it('sorteia novos alvos entre os ativos restantes', () => {
@@ -603,7 +606,7 @@ describe('saída de jogador durante a escrita (ESCR-07, ESCR-08)', () => {
     })
   })
 
-  it('zera todos os PRONTO', () => {
+  it('mantem os jogadores PRONTO', () => {
     const pronto = todosEscrevemEProntos(rodadaDe(quatro), ctx({ jogadores: quatro }))
     const restantes = [jogador('a'), jogador('b'), jogador('c')]
 
@@ -612,7 +615,7 @@ describe('saída de jogador durante a escrita (ESCR-07, ESCR-08)', () => {
       jogadorId: 'd',
     })
 
-    expect(resultado.estado.prontos).toEqual([])
+    expect(resultado.estado.prontos).toEqual(['a', 'b', 'c'])
   })
 
   it('redistribui, sem cancelar, quando ainda sobram 2 ativos (AJU-07)', () => {
@@ -672,7 +675,7 @@ describe('saída de jogador durante a escrita (ESCR-07, ESCR-08)', () => {
 })
 
 describe('entrada de jogador durante a escrita (ESCR-10)', () => {
-  it('não redistribui os alvos nem zera os PRONTO', () => {
+  it('não redistribui os alvos', () => {
     const pronto = todosEscrevemEProntos(rodadaDe(ctx().jogadores), ctx())
     const jogadores = [...ctx().jogadores, jogador('d', 'aguardando')]
 
