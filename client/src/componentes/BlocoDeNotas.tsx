@@ -1,3 +1,4 @@
+import { Modal } from './Modal'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   chegouDoServidor,
