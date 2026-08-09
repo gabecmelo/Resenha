@@ -98,9 +98,11 @@ export function Jogo({ projecao, enviar, aoSair }: PropsDaTela) {
       aoSair={aoSair}
     >
       <div className="flex flex-col gap-6">
-        {sala.pacote && (
-          <div className="flex justify-center sm:justify-start">
-            <BadgePacote pacote={sala.pacote} />
+        {sala.pacotesSelecionados && sala.pacotesSelecionados.length > 0 && (
+          <div className="flex flex-wrap justify-center gap-2 sm:justify-start">
+            {sala.pacotesSelecionados.map((pacote) => (
+              <BadgePacote key={pacote.id} pacote={pacote} />
+            ))}
           </div>
         )}
 

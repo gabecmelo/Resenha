@@ -433,7 +433,7 @@ T16 → T17 → T18
 
 ---
 
-### T15: Badge mostra todos os pacotes selecionados
+### T15: Badge mostra todos os pacotes selecionados ✅ Done
 
 **What**: `Jogo.tsx` e `Encerrada.tsx` renderizam um `BadgePacote` por item de `sala.pacotesSelecionados` (mapeando o array), em vez de um badge único.
 **Where**: `client/src/telas/Jogo.tsx`, `client/src/telas/Encerrada.tsx`
