@@ -286,7 +286,7 @@ T16 → T17 → T18
 
 ---
 
-### T9: `projecao.ts` projeta `pacotesSelecionados`
+### T9: `projecao.ts` projeta `pacotesSelecionados` ✅ Done — server-side typecheck (`npx tsc -p tsconfig.server.json --noEmit`) volta a ficar limpo
 
 **What**: `server/games/quem-sou-eu/projecao.ts` monta `sala.pacotesSelecionados` (array de `PacoteResumo`) a partir de `estado.pacotesSelecionados`, substituindo a projeção singular de hoje.
 **Where**: `server/games/quem-sou-eu/projecao.ts`

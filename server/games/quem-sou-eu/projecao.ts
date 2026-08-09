@@ -51,14 +51,14 @@ export function projetar(
 
   if (estado === null) return projecao
 
-  if (estado.pacoteId) {
-    projecao.sala.pacote = {
-      id: estado.pacoteId,
-      nome: estado.pacoteNome ?? '',
-      emoji: estado.pacoteEmoji ?? '',
+  if (estado.pacotesSelecionados && estado.pacotesSelecionados.length > 0) {
+    projecao.sala.pacotesSelecionados = estado.pacotesSelecionados.map((p) => ({
+      id: p.id,
+      nome: p.nome,
+      emoji: p.emoji,
       descricao: '',
       quantidade: 0,
-    }
+    }))
   }
 
   if (estado.opcoesPorJogador?.[paraJogador]) {
