@@ -335,7 +335,7 @@ T16 → T17 → T18
 
 ---
 
-### T11: Grid de pacotes responsivo
+### T11: Grid de pacotes responsivo ✅ Done
 
 **What**: `.pacote-grid` em `client/src/index.css` passa de `grid-cols-1 sm:grid-cols-2` para 2 colunas (`<640px`), 3 colunas (`640–1023px`), 5 colunas (`≥1024px`). `.pacote-card` não muda.
 **Where**: `client/src/index.css`

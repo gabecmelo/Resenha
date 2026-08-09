@@ -191,7 +191,7 @@
 
 @layer components {
   .pacote-grid {
-    @apply grid w-full grid-cols-1 gap-4 sm:grid-cols-2;
+    @apply grid w-full grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5;
   }
 
   .pacote-card {
