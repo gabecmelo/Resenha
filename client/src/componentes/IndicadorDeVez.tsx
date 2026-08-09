@@ -8,7 +8,8 @@ import {
   getAgora,
 } from '../estado/relogio'
 import { MarcadorDeJogador } from './MarcadorDeJogador'
-import { tocarTempoAcabando } from '../sons'
+import { tocarTempoAcabando, tocarTickContagem } from '../sons'
+import { useRef } from 'react'
 
 export interface PropsDoIndicador {
   ehSuaVez: boolean
@@ -44,11 +45,22 @@ export function IndicadorDeVez({
   const restante = useRestante(prazoTurno, duracaoSeg)
   const acabando = ehSuaVez && estaAcabando(restante)
 
+  const segundos = restante === null ? null : Math.ceil(restante / 1000)
+  const ultimoSegundoTocado = useRef<number | null>(null)
+
   useEffect(() => {
-    if (acabando) {
-      tocarTempoAcabando();
+    if (ehSuaVez && segundos !== null) {
+      if (segundos === 10 && ultimoSegundoTocado.current !== 10) {
+        tocarTempoAcabando()
+        ultimoSegundoTocado.current = 10
+      } else if (segundos <= 5 && segundos > 0 && ultimoSegundoTocado.current !== segundos) {
+        tocarTickContagem()
+        ultimoSegundoTocado.current = segundos
+      }
+    } else if (!ehSuaVez) {
+      ultimoSegundoTocado.current = null
     }
-  }, [acabando]);
+  }, [ehSuaVez, segundos])
 
   return (
     <section

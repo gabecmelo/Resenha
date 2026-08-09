@@ -97,7 +97,13 @@ export function tocarAcertou() {
 
 export function tocarTempoAcabando() {
   if (!somAtivo) return;
-  tocarTom(800, 'square', 0.05, 0.05);
+  tocarTom(800, 'square', 0.1, 0.05);
+  setTimeout(() => tocarTom(1000, 'square', 0.1, 0.05), 150);
+}
+
+export function tocarTickContagem() {
+  if (!somAtivo) return;
+  tocarTom(900, 'square', 0.05, 0.05);
 }
 
 export function _resetParaTestes() {
