@@ -11,6 +11,7 @@ import {
 import type { CodigoErro, Comando, Mensagem, Projecao } from '../../../shared/protocolo'
 import { criarBackoff, criarSessao, deveReconectarAoAparecer, tokenFoiRecusado } from './sessao'
 import { setOffset } from './relogio'
+import { tocarEntrada } from '../sons'
 
 /**
  * Socket único da aplicação (`CONN-01`, `CONN-03`).
@@ -125,6 +126,10 @@ export function ProvedorDeConexao({ codigo, apelido, children }: PropsDoProvedor
           backoff.zerar()
           setErro(null)
           setEstado('conectado')
+          // `FBK-03` — dispara uma vez por entrada/reconexão bem-sucedida da
+          // própria conexão; o servidor só manda `entrou` neste ponto, nunca
+          // em `projecao` subsequente.
+          tocarEntrada()
           return
         }
 

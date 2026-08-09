@@ -507,7 +507,7 @@ T16 → T17 → T18
 
 ---
 
-### T18: Som de entrada na conexão
+### T18: Som de entrada na conexão ✅ Done
 
 **What**: `client/src/estado/conexao.tsx` chama `tocarEntrada()` na primeira projeção recebida com sucesso após um `entrar`/`reconectar` bem-sucedido (a própria conexão do jogador, não a entrada de terceiros).
 **Where**: `client/src/estado/conexao.tsx`
