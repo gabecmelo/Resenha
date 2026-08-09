@@ -1,4 +1,5 @@
-import { useId, type ButtonHTMLAttributes } from 'react'
+import { useId, type ButtonHTMLAttributes, type MouseEvent } from 'react'
+import { tocarClique } from '../sons'
 
 const VARIANTES = {
   primario: 'bg-acento border-acento text-acento-contraste font-semibold hover:bg-acento-forte',
@@ -25,10 +26,17 @@ export function Botao({
   motivo,
   larguraTotal = false,
   className = '',
+  onClick,
   ...props
 }: PropsDoBotao) {
   const idDoMotivo = useId()
   const desabilitado = motivo !== undefined
+
+  /** `FBK-01`, `FBK-02` — som só no clique de um botão habilitado. */
+  const aoClicar = (evento: MouseEvent<HTMLButtonElement>) => {
+    if (!desabilitado) tocarClique()
+    onClick?.(evento)
+  }
 
   return (
     <span
@@ -38,12 +46,13 @@ export function Botao({
         type="button"
         disabled={desabilitado}
         aria-describedby={desabilitado ? idDoMotivo : undefined}
-        className={`min-h-11 rounded-controle border px-5 text-[15px] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acento ${
+        onClick={aoClicar}
+        className={`min-h-11 rounded-controle border px-5 text-[15px] transition-[color,background-color,border-color,transform] duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acento ${
           larguraTotal ? 'w-full' : ''
         } ${
           desabilitado
             ? 'cursor-not-allowed border-linha bg-superficie-2 font-semibold text-texto-apagado'
-            : `cursor-pointer ${VARIANTES[variante]}`
+            : `cursor-pointer motion-safe:active:scale-[0.97] ${VARIANTES[variante]}`
         } ${className}`}
         {...props}
       />

@@ -482,7 +482,7 @@ T16 → T17 → T18
 
 ---
 
-### T17: `Botao.tsx` toca clique e aplica micro-transição
+### T17: `Botao.tsx` toca clique e aplica micro-transição ✅ Done
 
 **What**: O `onClick` interno do `Botao` chama `tocarClique()` antes do `onClick` do consumidor, só quando não desabilitado. Classe de micro-transição de toque (`active:scale-[0.97]` ou equivalente, desfazendo em <150ms) adicionada à `className` base, suprimida via `@media (prefers-reduced-motion: reduce)` (já existe em `index.css`).
 **Where**: `client/src/componentes/Botao.tsx`
