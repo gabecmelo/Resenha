@@ -311,7 +311,7 @@ T16 → T17 → T18
 
 ---
 
-### T10: `Modal.tsx` ganha variante de largura
+### T10: `Modal.tsx` ganha variante de largura ✅ Done
 
 **What**: Nova prop `largura?: 'padrao' | 'larga'` (default `'padrao'`, preserva `max-w-[420px]`); `'larga'` usa uma largura maior para acomodar o grid de pacotes. Nenhum outro uso de `Modal` no produto muda de comportamento.
 **Where**: `client/src/componentes/Modal.tsx`
