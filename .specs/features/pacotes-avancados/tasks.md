@@ -383,7 +383,7 @@ T16 → T17 → T18
 
 ---
 
-### T13: Seletor de dificuldade no lobby
+### T13: Seletor de dificuldade no lobby ✅ Done
 
 **What**: Três toggles (Fácil/Médio/Difícil), todos marcados por padrão quando `modoPacote` vira `'pacote'`. Desmarcar a última dificuldade ativa é bloqueado com `Botao.motivo`. Não-host vê em modo somente-leitura.
 **Where**: `client/src/telas/Lobby.tsx`

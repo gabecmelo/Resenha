@@ -2,6 +2,7 @@ import { Fragment, useState } from 'react'
 import {
   MIN_JOGADORES,
   type Config,
+  type Dificuldade,
   type JogadorId,
   type Projecao,
   type PacoteResumo,
@@ -287,6 +288,12 @@ const OPCOES_DE_DISTRIBUICAO = [
   { valor: 'escolha', rotulo: 'Escolher pro colega' },
 ] as const
 
+const OPCOES_DE_DIFICULDADE: ReadonlyArray<{ valor: Dificuldade; rotulo: string }> = [
+  { valor: 'facil', rotulo: 'Fácil' },
+  { valor: 'medio', rotulo: 'Médio' },
+  { valor: 'dificil', rotulo: 'Difícil' },
+]
+
 function Regras({
   config,
   pacotesDisponiveis,
@@ -371,6 +378,31 @@ function Regras({
                     <Botao variante="secundario" onClick={() => setModalPacotesAberto(true)}>Selecionar...</Botao>
                   </div>
                 )}
+              </fieldset>
+
+              <fieldset className="flex flex-col gap-2">
+                <legend className="mb-2 text-apoio text-texto-2">Dificuldade</legend>
+                <div className="flex flex-wrap gap-2">
+                  {OPCOES_DE_DIFICULDADE.map((opcao) => {
+                    const marcado = config.dificuldades.includes(opcao.valor)
+                    const ehUltimaAtiva = marcado && config.dificuldades.length === 1
+                    return (
+                      <Botao
+                        key={opcao.valor}
+                        variante={marcado ? 'primario' : 'secundario'}
+                        motivo={ehUltimaAtiva ? 'Pelo menos um nível precisa estar marcado' : undefined}
+                        onClick={() => {
+                          const dificuldades = marcado
+                            ? config.dificuldades.filter((d) => d !== opcao.valor)
+                            : [...config.dificuldades, opcao.valor]
+                          enviar({ t: 'configurar', config: { dificuldades } })
+                        }}
+                      >
+                        {opcao.rotulo}
+                      </Botao>
+                    )
+                  })}
+                </div>
               </fieldset>
 
               {config.pacoteIds.length > 0 && (
@@ -475,6 +507,12 @@ function Regras({
                         .join(', ')
                     : 'Nenhum pacote selecionado'
                 }
+              />
+              <Leitura
+                rotulo="Dificuldade"
+                valor={OPCOES_DE_DIFICULDADE.filter((o) => config.dificuldades.includes(o.valor))
+                  .map((o) => o.rotulo)
+                  .join(', ')}
               />
               {config.pacoteIds.length > 0 && (<Leitura rotulo="Distribuição" valor={rotuloDe(OPCOES_DE_DISTRIBUICAO, config.modoDistribuicao)} />)}
             </>
