@@ -195,9 +195,7 @@ export function Jogo({ projecao, enviar, aoSair }: PropsDaTela) {
           aoCancelar={() => setConfirmandoEncerrar(false)}
         />
       )}
-      {eu.situacao === 'ativo' && (
-        <BlocoDeNotas texto={eu.notas} aoMudar={(texto) => enviar({ t: 'notas', texto })} />
-      )}
+
     </Shell>
   )
 }
