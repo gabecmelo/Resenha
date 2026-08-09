@@ -106,6 +106,19 @@ export function tocarTickContagem() {
   tocarTom(900, 'square', 0.05, 0.05);
 }
 
+/** `FBK-01` — clique curto e discreto em qualquer botão habilitado. */
+export function tocarClique() {
+  if (!somAtivo) return;
+  tocarTom(500, 'sine', 0.04, 0.06);
+}
+
+/** `FBK-03` — entrada de jogador na sala; timbre distinto dos demais sons. */
+export function tocarEntrada() {
+  if (!somAtivo) return;
+  tocarTom(523, 'triangle', 0.1, 0.15);
+  setTimeout(() => tocarTom(784, 'triangle', 0.2, 0.15), 90);
+}
+
 export function _resetParaTestes() {
   audioCtx = null;
   somAtivo = false;

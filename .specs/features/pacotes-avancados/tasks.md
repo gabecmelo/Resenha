@@ -456,7 +456,7 @@ T16 → T17 → T18
 
 ---
 
-### T16: Novos sons — clique e entrada
+### T16: Novos sons — clique e entrada ✅ Done
 
 **What**: `tocarClique()` e `tocarEntrada()` em `client/src/sons.ts`, seguindo o molde de `tocarChatMensagem`/`tocarSuaVez` (tom curto via `tocarTom`, checa `somAtivo`).
 **Where**: `client/src/sons.ts`, `client/src/sons.test.ts`
