@@ -285,9 +285,7 @@ describe('alvo e carta escrita (ESCR-02, ESCR-04)', () => {
   describe('com pacote (PKT-12, PKT-23, PKT-24)', () => {
     it('projeta as opções do pacote para o próprio jogador', () => {
       const jogo = jogoDe({
-        pacoteId: 'filmes',
-        pacoteNome: 'Filmes',
-        pacoteEmoji: '🎬',
+        pacotesSelecionados: [{ id: 'filmes', nome: 'Filmes', emoji: '🎬' }],
         opcoesPorJogador: { a: ['Matrix', 'Titanic', 'Avatar'] },
       })
       const sala = salaDe('escrita', { jogo })
@@ -301,7 +299,7 @@ describe('alvo e carta escrita (ESCR-02, ESCR-04)', () => {
 
     it('projeta o status de jaSorteouOutras para o jogador', () => {
       const jogo = jogoDe({
-        pacoteId: 'filmes',
+        pacotesSelecionados: [{ id: 'filmes', nome: 'Filmes', emoji: '🎬' }],
         jaSorteouOutras: { a: true },
       })
       const sala = salaDe('escrita', { jogo })
@@ -309,24 +307,46 @@ describe('alvo e carta escrita (ESCR-02, ESCR-04)', () => {
       expect(projetar(jogo, sala, 'a').eu.jaSorteouOutras).toBe(true)
       expect(projetar(jogo, sala, 'b').eu.jaSorteouOutras).toBe(false)
     })
+  })
 
-    it('projeta o pacote da sala se estiver configurado', () => {
+  describe('pacotesSelecionados na sala (T9, `PKT2-07`)', () => {
+    it('projeta um único pacote selecionado, na fase jogo', () => {
       const jogo = jogoDe({
-        pacoteId: 'filmes',
-        pacoteNome: 'Filmes',
-        pacoteEmoji: '🎬',
+        pacotesSelecionados: [{ id: 'filmes', nome: 'Filmes', emoji: '🎬' }],
       })
       const sala = salaDe('jogo', { jogo })
 
       const projecao = projetar(jogo, sala, 'a')
 
-      expect(projecao.sala.pacote).toEqual({
-        id: 'filmes',
-        nome: 'Filmes',
-        emoji: '🎬',
-        descricao: '',
-        quantidade: 0,
+      expect(projecao.sala.pacotesSelecionados).toEqual([
+        { id: 'filmes', nome: 'Filmes', emoji: '🎬', descricao: '', quantidade: 0 },
+      ])
+    })
+
+    it('projeta todos os pacotes selecionados, não só o primeiro, na fase encerrada (`PKT2-07`)', () => {
+      const jogo = jogoDe({
+        pacotesSelecionados: [
+          { id: 'filmes', nome: 'Filmes', emoji: '🎬' },
+          { id: 'anime', nome: 'Anime', emoji: '🍥' },
+        ],
       })
+      const sala = salaDe('encerrada', { jogo })
+
+      const projecao = projetar(jogo, sala, 'a')
+
+      expect(projecao.sala.pacotesSelecionados).toEqual([
+        { id: 'filmes', nome: 'Filmes', emoji: '🎬', descricao: '', quantidade: 0 },
+        { id: 'anime', nome: 'Anime', emoji: '🍥', descricao: '', quantidade: 0 },
+      ])
+    })
+
+    it('não projeta pacotesSelecionados quando modoPacote não é pacote (mesma regra de `PKT-25`)', () => {
+      const jogo = jogoDe()
+      const sala = salaDe('jogo', { jogo })
+
+      const projecao = projetar(jogo, sala, 'a')
+
+      expect(projecao.sala.pacotesSelecionados).toBeUndefined()
     })
   })
 })

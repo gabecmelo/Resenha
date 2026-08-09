@@ -1,6 +1,6 @@
 import { execSync } from 'child_process';
 import { writeFileSync, unlinkSync } from 'fs';
-import { PACOTES } from '../server/games/quem-sou-eu/pacotes-dados';
+import { PACOTES } from '../shared/pacotes-dados';
 
 const resumos = PACOTES.map(p => ({
   id: p.id,

@@ -320,7 +320,7 @@ export class SalaDeJogo<E> {
           this.pacotesDisponiveis = pacotes;
         } else {
           // Fallback para ambiente local de dev onde o miniflare pode não ter lido o SQLite do script
-          const { PACOTES } = await import('../games/quem-sou-eu/pacotes-dados');
+          const { PACOTES } = await import('../../shared/pacotes-dados');
           this.pacotesDisponiveis = PACOTES.map(p => ({
             id: p.id,
             nome: p.nome,

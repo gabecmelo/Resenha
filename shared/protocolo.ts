@@ -4,6 +4,7 @@
  * Importado por `client/` e por `server/`. Não contém regra de jogo nem código
  * de plataforma: só tipos.
  */
+import type { PacoteCompleto } from './pacotes-dados'
 
 // ---------------------------------------------------------------------------
 // Sala
@@ -100,6 +101,9 @@ export interface Jogador {
   situacao: Situacao
 }
 
+/** `PKT2-01`…`PKT2-04` — nível de dificuldade de uma carta de pacote. */
+export type Dificuldade = 'facil' | 'medio' | 'dificil'
+
 export interface Config {
   /** `CFG-01` */
   ordemTurnos: 'sorteada' | 'entrada'
@@ -107,8 +111,10 @@ export interface Config {
   tempoTurnoSeg: number | null
   /** `PKT-01` */
   modoPacote: ModoPacote
-  /** `PKT-03` - só relevante se modoPacote === 'pacote' */
-  pacoteId: string | null
+  /** `PKT2-05` — substitui o antigo `pacoteId` único. Vazio = nenhum selecionado. Só relevante se `modoPacote === 'pacote'`. */
+  pacoteIds: string[]
+  /** `PKT2-01` — níveis de dificuldade ativos. Nunca pode ficar vazio quando `modoPacote === 'pacote'` (`PKT2-03`). */
+  dificuldades: Dificuldade[]
   /** `PKT-03` */
   modoDistribuicao: ModoDistribuicao
 }
@@ -118,7 +124,8 @@ export const CONFIG_PADRAO: Config = {
   ordemTurnos: 'sorteada',
   tempoTurnoSeg: null,
   modoPacote: 'livre',
-  pacoteId: null,
+  pacoteIds: [],
+  dificuldades: ['facil', 'medio', 'dificil'],
   modoDistribuicao: 'aleatoria',
 }
 
@@ -266,8 +273,8 @@ export interface Projecao {
     limiteJogadores: number
     /** `PKT-18` - pacotes disponíveis quando no lobby */
     pacotesDisponiveis?: PacoteResumo[]
-    /** `PKT-23` - pacote selecionado, visível durante o jogo */
-    pacote?: PacoteResumo
+    /** `PKT2-07` — todos os pacotes selecionados, visíveis durante o jogo. Substitui o antigo `pacote` único. */
+    pacotesSelecionados?: PacoteResumo[]
   }
   eu: {
     id: JogadorId
@@ -369,7 +376,7 @@ export interface ModuloDeJogo<E, C> {
   iniciarRodada(
     ctx: ContextoDeSala,
     ambiente: Ambiente,
-    pacote?: { id: string; nome: string; emoji: string; cartas: readonly string[] }
+    pacotes?: PacoteCompleto[]
   ): ResultadoInicio<E>
   reduzir(estado: E, ctx: ContextoDeSala, comando: C, ambiente: Ambiente): ResultadoReducer<E>
   /** `estado` é `null` no lobby, quando ainda não há partida. */

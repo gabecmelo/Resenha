@@ -1,11 +1,13 @@
 ﻿import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { 
-  inicializarAudio, 
-  ativarSom, 
-  somEstaAtivo, 
-  tocarSuaVez, 
+import {
+  inicializarAudio,
+  ativarSom,
+  somEstaAtivo,
+  tocarSuaVez,
   tocarChatMensagem,
-  _resetParaTestes 
+  tocarClique,
+  tocarEntrada,
+  _resetParaTestes
 } from './sons';
 
 describe('sons', () => {
@@ -40,7 +42,9 @@ describe('sons', () => {
     };
 
     vi.stubGlobal('window', {
-      AudioContext: vi.fn(() => mockAudioContext),
+      AudioContext: vi.fn(function () {
+        return mockAudioContext;
+      }),
       matchMedia: vi.fn(() => ({ matches: false })),
       localStorage: {
         getItem: vi.fn(() => 'true'),
@@ -78,5 +82,34 @@ describe('sons', () => {
     inicializarAudio();
     tocarChatMensagem();
     expect(mockAudioContext.createOscillator).toHaveBeenCalled();
+  });
+
+  it('tocarClique deve tocar um tom curto quando o som esta ativo (FBK-01)', () => {
+    inicializarAudio();
+    tocarClique();
+    expect(mockAudioContext.createOscillator).toHaveBeenCalled();
+    expect(mockOscillator.frequency.setValueAtTime).toHaveBeenCalledWith(500, 0);
+  });
+
+  it('tocarClique nao deve tocar nada quando o som esta desativado (FBK-04)', () => {
+    inicializarAudio();
+    ativarSom(false);
+    tocarClique();
+    expect(mockAudioContext.createOscillator).not.toHaveBeenCalled();
+  });
+
+  it('tocarEntrada deve tocar um tom distinto dos demais sons quando ativo (FBK-03)', () => {
+    inicializarAudio();
+    tocarEntrada();
+    expect(mockAudioContext.createOscillator).toHaveBeenCalled();
+    expect(mockOscillator.frequency.setValueAtTime).toHaveBeenCalledWith(523, 0);
+    expect(mockOscillator.type).toBe('triangle');
+  });
+
+  it('tocarEntrada nao deve tocar nada quando o som esta desativado (FBK-04)', () => {
+    inicializarAudio();
+    ativarSom(false);
+    tocarEntrada();
+    expect(mockAudioContext.createOscillator).not.toHaveBeenCalled();
   });
 });

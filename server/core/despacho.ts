@@ -3,6 +3,7 @@ import type {
   Comando,
   Config,
   ContextoDeSala,
+  Dificuldade,
   EstadoSala,
   Jogador,
   JogadorId,
@@ -11,6 +12,7 @@ import type {
   ResultadoReducer,
 } from '../../shared/protocolo'
 import { TEMPO_TURNO_MAX_SEG, TEMPO_TURNO_MIN_SEG } from '../../shared/protocolo'
+import type { PacoteCompleto } from '../../shared/pacotes-dados'
 import * as chat from './chat'
 import { TIPOS_DE_PRAZO, definir } from './prazos'
 import { expulsar as expulsarDoRoster, migrarHost, transferirHost } from './roster'
@@ -156,7 +158,8 @@ function configurar<E>(
     tempoTurnoSeg:
       parcial.tempoTurnoSeg === undefined ? sala.config.tempoTurnoSeg : parcial.tempoTurnoSeg,
     modoPacote: parcial.modoPacote ?? sala.config.modoPacote,
-    pacoteId: parcial.pacoteId === undefined ? sala.config.pacoteId : parcial.pacoteId,
+    pacoteIds: parcial.pacoteIds ?? sala.config.pacoteIds,
+    dificuldades: parcial.dificuldades ?? sala.config.dificuldades,
     modoDistribuicao: parcial.modoDistribuicao ?? sala.config.modoDistribuicao,
   }
   return { ok: true, valor: SEM_EFEITOS }
@@ -184,10 +187,50 @@ function configValida(parcial: Partial<Config>): boolean {
   if (parcial.modoDistribuicao !== undefined && !['aleatoria', 'escolha'].includes(parcial.modoDistribuicao)) {
     return false
   }
-  if (parcial.pacoteId !== undefined && typeof parcial.pacoteId !== 'string' && parcial.pacoteId !== null) {
-    return false
+  if (parcial.pacoteIds !== undefined) {
+    if (!Array.isArray(parcial.pacoteIds)) return false
+    if (parcial.pacoteIds.some((id) => typeof id !== 'string')) return false
+  }
+  if (parcial.dificuldades !== undefined) {
+    if (!Array.isArray(parcial.dificuldades) || parcial.dificuldades.length === 0) return false
+    if (parcial.dificuldades.some((d) => !DIFICULDADES_VALIDAS.includes(d))) return false
   }
   return true
+}
+
+const DIFICULDADES_VALIDAS: readonly Dificuldade[] = ['facil', 'medio', 'dificil']
+
+/**
+ * `PKT2-09`, edge case `PKT2-21` — busca todos os pacotes selecionados em
+ * paralelo (KV + fallback estático, mesmo padrão de antes, generalizado para
+ * N ids). Falha o lote inteiro se qualquer id não existir em nenhum dos dois,
+ * ou se o KV falhar (sem tentar iniciar parcialmente).
+ */
+export async function buscarPacotes(
+  pacoteIds: string[],
+  env?: Env,
+): Promise<Resultado<PacoteCompleto[]>> {
+  if (!env) return { ok: false, erro: 'PACOTE_INDISPONIVEL' }
+
+  try {
+    const encontrados = await Promise.all(pacoteIds.map((id) => buscarUmPacote(id, env)))
+    const pacotes: PacoteCompleto[] = []
+    for (const pacote of encontrados) {
+      if (pacote === null) return { ok: false, erro: 'PACOTE_NAO_ENCONTRADO' }
+      pacotes.push(pacote)
+    }
+    return { ok: true, valor: pacotes }
+  } catch {
+    return { ok: false, erro: 'PACOTE_INDISPONIVEL' }
+  }
+}
+
+async function buscarUmPacote(id: string, env: Env): Promise<PacoteCompleto | null> {
+  const doKv = await env.PACOTES_KV.get<PacoteCompleto>(`pacote:${id}`, 'json')
+  if (doKv) return doKv
+  // Fallback para dev local
+  const { PACOTES } = await import('../../shared/pacotes-dados')
+  return PACOTES.find((p) => p.id === id) ?? null
 }
 
 /** `ESCR-01`, `HOST-01` — lobby → escrita. */
@@ -201,25 +244,13 @@ async function iniciar<E>(
   if (autor.id !== sala.hostId) return { ok: false, erro: 'SEM_AUTORIDADE' }
   if (sala.fase !== 'lobby') return { ok: false, erro: 'FASE_INVALIDA' }
 
-  let pacote = undefined;
+  let pacotes: PacoteCompleto[] | undefined = undefined
   if (sala.config.modoPacote === 'pacote') {
-    if (!sala.config.pacoteId) return { ok: false, erro: 'PACOTE_NAO_ENCONTRADO' }
-    if (!env) return { ok: false, erro: 'PACOTE_INDISPONIVEL' }
-    
-    try {
-      const p = await env.PACOTES_KV.get<{ id: string, nome: string, emoji: string, cartas: string[] }>(`pacote:${sala.config.pacoteId}`, 'json');
-      if (p) {
-        pacote = p;
-      } else {
-        // Fallback para dev local
-        const { PACOTES } = await import('../games/quem-sou-eu/pacotes-dados');
-        const estatico = PACOTES.find(p => p.id === sala.config.pacoteId);
-        if (!estatico) return { ok: false, erro: 'PACOTE_NAO_ENCONTRADO' }
-        pacote = estatico;
-      }
-    } catch {
-      return { ok: false, erro: 'PACOTE_INDISPONIVEL' }
-    }
+    if (sala.config.pacoteIds.length === 0) return { ok: false, erro: 'PACOTE_NAO_ENCONTRADO' }
+
+    const resultado = await buscarPacotes(sala.config.pacoteIds, env)
+    if (!resultado.ok) return { ok: false, erro: resultado.erro }
+    pacotes = resultado.valor
   }
 
   const ctx: ContextoDeSala = {
@@ -229,7 +260,7 @@ async function iniciar<E>(
     jogadores: sala.jogadores,
     autorId: autor.id,
   }
-  const rodada = jogo.iniciarRodada(ctx, ambiente, pacote)
+  const rodada = jogo.iniciarRodada(ctx, ambiente, pacotes)
   if (!rodada.ok) return { ok: false, erro: rodada.erro }
 
   sala.jogo = rodada.valor

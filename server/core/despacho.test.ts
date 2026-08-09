@@ -13,9 +13,10 @@ import {
   TEMPO_TURNO_MAX_SEG,
   TEMPO_TURNO_MIN_SEG,
 } from '../../shared/protocolo'
+import type { PacoteCompleto } from '../../shared/pacotes-dados'
 import { quemSouEu } from '../games/quem-sou-eu'
 import type { EstadoQuemSouEu } from '../games/quem-sou-eu/regras'
-import { type JogoDaSala, NOTAS_MAX_CARACTERES, avisar, despachar } from './despacho'
+import { type JogoDaSala, NOTAS_MAX_CARACTERES, avisar, buscarPacotes, despachar } from './despacho'
 import { reconectar } from './roster'
 
 const AMBIENTE: Ambiente = { agora: 10_000, aleatorio: () => 0 }
@@ -409,6 +410,76 @@ describe('configuração da partida', () => {
   })
 })
 
+describe('validação de `pacoteIds`/`dificuldades` no `configurar` (T8, `PKT2-01`, `PKT2-03`, `PKT2-05`)', () => {
+  it('recusa `dificuldades` vazio e mantém a configuração anterior', async () => {
+    const sala = salaEmLobby()
+
+    const resultado = await despachar(
+      sala,
+      quemSouEu,
+      'j1',
+      { t: 'configurar', config: { dificuldades: [] } },
+      AMBIENTE,
+    )
+
+    expect(resultado).toEqual({ ok: false, erro: 'COMANDO_INVALIDO' })
+    expect(sala.config).toEqual(CONFIG_PADRAO)
+  })
+
+  it('recusa `dificuldades` com um valor que não é um nível válido', async () => {
+    const sala = salaEmLobby()
+
+    const resultado = await despachar(
+      sala,
+      quemSouEu,
+      'j1',
+      { t: 'configurar', config: { dificuldades: ['facil', 'impossivel'] as unknown as Config['dificuldades'] } },
+      AMBIENTE,
+    )
+
+    expect(resultado).toEqual({ ok: false, erro: 'COMANDO_INVALIDO' })
+    expect(sala.config).toEqual(CONFIG_PADRAO)
+  })
+
+  it('recusa `pacoteIds` com item que não é string e mantém a configuração anterior', async () => {
+    const sala = salaEmLobby()
+
+    const resultado = await despachar(
+      sala,
+      quemSouEu,
+      'j1',
+      { t: 'configurar', config: { pacoteIds: ['filmes', 42] as unknown as string[] } },
+      AMBIENTE,
+    )
+
+    expect(resultado).toEqual({ ok: false, erro: 'COMANDO_INVALIDO' })
+    expect(sala.config).toEqual(CONFIG_PADRAO)
+  })
+
+  it('aplica `pacoteIds`/`dificuldades` válidos em `sala.config`', async () => {
+    const sala = salaEmLobby()
+
+    const resultado = await despachar(
+      sala,
+      quemSouEu,
+      'j1',
+      {
+        t: 'configurar',
+        config: { modoPacote: 'pacote', pacoteIds: ['filmes', 'anime'], dificuldades: ['facil', 'medio'] },
+      },
+      AMBIENTE,
+    )
+
+    expect(resultado.ok).toBe(true)
+    expect(sala.config).toEqual({
+      ...CONFIG_PADRAO,
+      modoPacote: 'pacote',
+      pacoteIds: ['filmes', 'anime'],
+      dificuldades: ['facil', 'medio'],
+    })
+  })
+})
+
 describe('bloco de notas', () => {
   it('grava a nota do autor no estado do jogo (`NOTA-01`)', async () => {
     const sala = await salaEmJogo()
@@ -635,6 +706,142 @@ describe('roteamento ao módulo de jogo', () => {
 
     expect(resultado).toEqual({ ok: false, erro: 'JOGADOR_NAO_ENCONTRADO' })
     expect(textosDoChat(sala)).toEqual([])
+  })
+})
+
+describe('buscarPacotes (T6, `PKT2-09`, `PKT2-21`)', () => {
+  const PACOTE_DO_KV: PacoteCompleto = {
+    id: 'filmes',
+    emoji: '🎥',
+    nome: 'Filmes (do KV)',
+    descricao: 'vindo do KV',
+    quantidade: 1,
+    cartas: [{ texto: 'Matrix', dificuldade: 'facil' }],
+  }
+
+  function envComPacotes(
+    mapa: Record<string, PacoteCompleto | undefined>,
+    opts: { lancaErro?: boolean } = {},
+  ): Env {
+    return {
+      PACOTES_KV: {
+        get: async (chave: string) => {
+          if (opts.lancaErro) throw new Error('KV indisponível')
+          const id = chave.replace('pacote:', '')
+          return mapa[id] ?? null
+        },
+      },
+    } as unknown as Env
+  }
+
+  it('sem `env`, recusa com `PACOTE_INDISPONIVEL`', async () => {
+    const resultado = await buscarPacotes(['filmes'])
+
+    expect(resultado).toEqual({ ok: false, erro: 'PACOTE_INDISPONIVEL' })
+  })
+
+  it('encontra o pacote no KV e devolve exatamente o que o KV tem', async () => {
+    const env = envComPacotes({ filmes: PACOTE_DO_KV })
+
+    const resultado = await buscarPacotes(['filmes'], env)
+
+    expect(resultado).toEqual({ ok: true, valor: [PACOTE_DO_KV] })
+  })
+
+  it('cai no fallback estático quando o KV não tem o pacote', async () => {
+    const env = envComPacotes({})
+
+    const resultado = await buscarPacotes(['anime'], env)
+
+    expect(resultado.ok).toBe(true)
+    if (resultado.ok) {
+      expect(resultado.valor).toHaveLength(1)
+      expect(resultado.valor[0].id).toBe('anime')
+    }
+  })
+
+  it('recusa com `PACOTE_NAO_ENCONTRADO` quando um id não existe em nenhum dos dois', async () => {
+    const env = envComPacotes({})
+
+    const resultado = await buscarPacotes(['pacote-inexistente'], env)
+
+    expect(resultado).toEqual({ ok: false, erro: 'PACOTE_NAO_ENCONTRADO' })
+  })
+
+  it('busca vários ids em paralelo e preserva a ordem pedida (`PKT2-06`)', async () => {
+    const env = envComPacotes({ filmes: PACOTE_DO_KV })
+
+    const resultado = await buscarPacotes(['filmes', 'anime'], env)
+
+    expect(resultado.ok).toBe(true)
+    if (resultado.ok) {
+      expect(resultado.valor.map((p) => p.id)).toEqual(['filmes', 'anime'])
+    }
+  })
+
+  it('recusa o lote inteiro se qualquer um dos ids faltar, mesmo que outros existam', async () => {
+    const env = envComPacotes({ filmes: PACOTE_DO_KV })
+
+    const resultado = await buscarPacotes(['filmes', 'pacote-inexistente'], env)
+
+    expect(resultado).toEqual({ ok: false, erro: 'PACOTE_NAO_ENCONTRADO' })
+  })
+
+  it('recusa com `PACOTE_INDISPONIVEL` quando o KV falha', async () => {
+    const env = envComPacotes({}, { lancaErro: true })
+
+    const resultado = await buscarPacotes(['filmes'], env)
+
+    expect(resultado).toEqual({ ok: false, erro: 'PACOTE_INDISPONIVEL' })
+  })
+})
+
+describe('`iniciar` com pacotes (T6, `PKT2-09`)', () => {
+  function moduloQueCapturaPacotes(): {
+    modulo: JogoDaSala<Marcador>
+    chamadas: unknown[]
+  } {
+    const chamadas: unknown[] = []
+    const modulo = {
+      iniciarRodada: (_ctx: unknown, _ambiente: unknown, pacotes: unknown) => {
+        chamadas.push(pacotes)
+        return { ok: true, valor: { marca: 'inicial' } }
+      },
+      reduzir: () => {
+        throw new Error('não usado neste teste')
+      },
+      projetar: (): Projecao => {
+        throw new Error('não usado neste teste')
+      },
+    } as unknown as JogoDaSala<Marcador>
+    return { modulo, chamadas }
+  }
+
+  it('recusa iniciar com `pacoteIds` vazio, mesmo motivo de hoje (`PKT2-09`)', async () => {
+    const sala = salaEmLobby() as unknown as EstadoSala<Marcador>
+    sala.config = { ...sala.config, modoPacote: 'pacote', pacoteIds: [] }
+    const { modulo } = moduloQueCapturaPacotes()
+
+    const resultado = await despachar(sala, modulo, 'j1', { t: 'iniciar' }, AMBIENTE)
+
+    expect(resultado).toEqual({ ok: false, erro: 'PACOTE_NAO_ENCONTRADO' })
+    expect(sala.fase).toBe('lobby')
+  })
+
+  it('passa o array de pacotes buscados para `jogo.iniciarRodada`', async () => {
+    const sala = salaEmLobby() as unknown as EstadoSala<Marcador>
+    sala.config = { ...sala.config, modoPacote: 'pacote', pacoteIds: ['filmes', 'anime'] }
+    const { modulo, chamadas } = moduloQueCapturaPacotes()
+    const env = {
+      PACOTES_KV: { get: async () => null },
+    } as unknown as Env
+
+    const resultado = await despachar(sala, modulo, 'j1', { t: 'iniciar' }, AMBIENTE, env)
+
+    expect(resultado.ok).toBe(true)
+    expect(chamadas).toHaveLength(1)
+    const pacotesRecebidos = chamadas[0] as PacoteCompleto[]
+    expect(pacotesRecebidos.map((p) => p.id)).toEqual(['filmes', 'anime'])
   })
 })
 

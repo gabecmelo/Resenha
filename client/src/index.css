@@ -190,16 +190,22 @@
 }
 
 @layer components {
+  /*
+   * Desktop trava numa altura padrão (mesma lógica do `Chat.tsx`, em `vh` —
+   * não pixels fixos, porque a altura do card varia com o tamanho da
+   * descrição) com rolagem interna própria, não a do modal inteiro. Cresce
+   * sem quebrar o layout conforme mais pacotes forem adicionados.
+   */
   .pacote-grid {
-    @apply grid w-full grid-cols-1 gap-4 sm:grid-cols-2;
+    @apply grid w-full grid-cols-2 gap-3 overscroll-contain sm:grid-cols-3 lg:grid-cols-4 lg:max-h-[48vh] lg:overflow-y-auto lg:pr-1;
   }
 
   .pacote-card {
-    @apply relative flex cursor-pointer flex-col items-start gap-2 overflow-hidden rounded-bloco border border-linha bg-superficie p-4 text-left transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)];
+    @apply relative flex cursor-pointer flex-col items-start justify-between overflow-hidden rounded-bloco border border-linha bg-superficie p-2 text-left transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)];
   }
 
   .pacote-card::before {
-    @apply absolute inset-0 content-[''] bg-gradient-to-br from-acento/5 to-transparent opacity-0 transition-opacity duration-300;
+    @apply pointer-events-none absolute inset-0 content-[''] bg-gradient-to-br from-acento/5 to-transparent opacity-0 transition-opacity duration-300;
   }
 
   .pacote-card:hover {
