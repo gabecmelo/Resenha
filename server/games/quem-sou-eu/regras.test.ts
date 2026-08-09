@@ -1361,6 +1361,38 @@ describe('negar a declaração (DESC-05)', () => {
       expect.arrayContaining([{ texto: 'Ainda não: B não descobriu.' }])
     )
   })
+
+  it('não avança a vez ao negar quem declarou fora da vez', () => {
+    const { estado, contexto } = emJogo()
+    expect(estado.vezDe).toBe('a')
+    // `b` declara sem ser a vez dele (DESC-01 permite); `a` (host) confirma.
+    const pendente = reduzirOk(estado, { ...contexto, autorId: 'b' }, {
+      t: 'declararDescobri',
+    }).estado
+
+    const resultado = reduzirOk(pendente, { ...contexto, autorId: 'a' }, {
+      t: 'responderDeclaracao',
+      aceita: false,
+    })
+
+    expect(resultado.estado.vezDe).toBe('a')
+  })
+
+  it('avança a vez ao negar quem declarou sendo a vez dele', () => {
+    const { estado, contexto } = emJogo()
+    expect(estado.vezDe).toBe('a')
+    // `a` (host, na vez) declara; como é o host, `b` confirma (DESC-03).
+    const pendente = reduzirOk(estado, { ...contexto, autorId: 'a' }, {
+      t: 'declararDescobri',
+    }).estado
+
+    const resultado = reduzirOk(pendente, { ...contexto, autorId: 'b' }, {
+      t: 'responderDeclaracao',
+      aceita: false,
+    })
+
+    expect(resultado.estado.vezDe).not.toBe('a')
+  })
 })
 
 describe('efeito de descobrir sobre o rodízio (DESC-06, DESC-08, AJU-18)', () => {

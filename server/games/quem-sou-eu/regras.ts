@@ -508,7 +508,21 @@ function responderDeclaracao(
   const apelido = apelidoDe(ctx, pendente.jogadorId)
 
   // `DESC-05` — descartada sem revelar; o jogador pode declarar de novo.
+  //
+  // A vez só avança se quem declarou era o próprio dono da vez: desde que
+  // "Descobri!" deixou de ser restrito a quem está na vez (`DESC-01`), negar
+  // a declaração de um jogador fora da vez não pode empurrar quem realmente
+  // está jogando para o próximo — isso pulava a vez de outra pessoa por um
+  // ato que não era dela.
   if (!aceita) {
+    if (pendente.jogadorId !== estado.vezDe) {
+      return {
+        ok: true,
+        estado: novo,
+        eventos: [{ texto: `Ainda não: ${apelido} não descobriu.` }],
+        prazos: {},
+      }
+    }
     const avancado = comVezAvancada(novo, ctx, ambiente)
     if (!avancado.ok) return avancado
     return {
