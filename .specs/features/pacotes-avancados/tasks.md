@@ -260,7 +260,7 @@ T16 → T17 → T18
 
 ---
 
-### T8: `despacho.ts` valida `pacoteIds`/`dificuldades` no comando `configurar`
+### T8: `despacho.ts` valida `pacoteIds`/`dificuldades` no comando `configurar` ✅ Done
 
 **What**: O comando `configurar` (que já valida `modoPacote`, `pacoteId`) passa a validar `pacoteIds` (array de strings) e `dificuldades` (array não vazio de valores de `Dificuldade`) — defesa em profundidade: o cliente já impede desmarcar a última dificuldade (`PKT2-03`), mas o servidor recusa também.
 **Where**: `server/core/despacho.ts` (bloco de validação do comando `configurar`)

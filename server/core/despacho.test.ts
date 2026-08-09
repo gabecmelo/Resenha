@@ -410,6 +410,76 @@ describe('configuração da partida', () => {
   })
 })
 
+describe('validação de `pacoteIds`/`dificuldades` no `configurar` (T8, `PKT2-01`, `PKT2-03`, `PKT2-05`)', () => {
+  it('recusa `dificuldades` vazio e mantém a configuração anterior', async () => {
+    const sala = salaEmLobby()
+
+    const resultado = await despachar(
+      sala,
+      quemSouEu,
+      'j1',
+      { t: 'configurar', config: { dificuldades: [] } },
+      AMBIENTE,
+    )
+
+    expect(resultado).toEqual({ ok: false, erro: 'COMANDO_INVALIDO' })
+    expect(sala.config).toEqual(CONFIG_PADRAO)
+  })
+
+  it('recusa `dificuldades` com um valor que não é um nível válido', async () => {
+    const sala = salaEmLobby()
+
+    const resultado = await despachar(
+      sala,
+      quemSouEu,
+      'j1',
+      { t: 'configurar', config: { dificuldades: ['facil', 'impossivel'] as unknown as Config['dificuldades'] } },
+      AMBIENTE,
+    )
+
+    expect(resultado).toEqual({ ok: false, erro: 'COMANDO_INVALIDO' })
+    expect(sala.config).toEqual(CONFIG_PADRAO)
+  })
+
+  it('recusa `pacoteIds` com item que não é string e mantém a configuração anterior', async () => {
+    const sala = salaEmLobby()
+
+    const resultado = await despachar(
+      sala,
+      quemSouEu,
+      'j1',
+      { t: 'configurar', config: { pacoteIds: ['filmes', 42] as unknown as string[] } },
+      AMBIENTE,
+    )
+
+    expect(resultado).toEqual({ ok: false, erro: 'COMANDO_INVALIDO' })
+    expect(sala.config).toEqual(CONFIG_PADRAO)
+  })
+
+  it('aplica `pacoteIds`/`dificuldades` válidos em `sala.config`', async () => {
+    const sala = salaEmLobby()
+
+    const resultado = await despachar(
+      sala,
+      quemSouEu,
+      'j1',
+      {
+        t: 'configurar',
+        config: { modoPacote: 'pacote', pacoteIds: ['filmes', 'anime'], dificuldades: ['facil', 'medio'] },
+      },
+      AMBIENTE,
+    )
+
+    expect(resultado.ok).toBe(true)
+    expect(sala.config).toEqual({
+      ...CONFIG_PADRAO,
+      modoPacote: 'pacote',
+      pacoteIds: ['filmes', 'anime'],
+      dificuldades: ['facil', 'medio'],
+    })
+  })
+})
+
 describe('bloco de notas', () => {
   it('grava a nota do autor no estado do jogo (`NOTA-01`)', async () => {
     const sala = await salaEmJogo()

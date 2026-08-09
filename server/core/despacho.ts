@@ -3,6 +3,7 @@ import type {
   Comando,
   Config,
   ContextoDeSala,
+  Dificuldade,
   EstadoSala,
   Jogador,
   JogadorId,
@@ -157,7 +158,8 @@ function configurar<E>(
     tempoTurnoSeg:
       parcial.tempoTurnoSeg === undefined ? sala.config.tempoTurnoSeg : parcial.tempoTurnoSeg,
     modoPacote: parcial.modoPacote ?? sala.config.modoPacote,
-    pacoteId: parcial.pacoteId === undefined ? sala.config.pacoteId : parcial.pacoteId,
+    pacoteIds: parcial.pacoteIds ?? sala.config.pacoteIds,
+    dificuldades: parcial.dificuldades ?? sala.config.dificuldades,
     modoDistribuicao: parcial.modoDistribuicao ?? sala.config.modoDistribuicao,
   }
   return { ok: true, valor: SEM_EFEITOS }
@@ -185,11 +187,18 @@ function configValida(parcial: Partial<Config>): boolean {
   if (parcial.modoDistribuicao !== undefined && !['aleatoria', 'escolha'].includes(parcial.modoDistribuicao)) {
     return false
   }
-  if (parcial.pacoteId !== undefined && typeof parcial.pacoteId !== 'string' && parcial.pacoteId !== null) {
-    return false
+  if (parcial.pacoteIds !== undefined) {
+    if (!Array.isArray(parcial.pacoteIds)) return false
+    if (parcial.pacoteIds.some((id) => typeof id !== 'string')) return false
+  }
+  if (parcial.dificuldades !== undefined) {
+    if (!Array.isArray(parcial.dificuldades) || parcial.dificuldades.length === 0) return false
+    if (parcial.dificuldades.some((d) => !DIFICULDADES_VALIDAS.includes(d))) return false
   }
   return true
 }
+
+const DIFICULDADES_VALIDAS: readonly Dificuldade[] = ['facil', 'medio', 'dificil']
 
 /**
  * `PKT2-09`, edge case `PKT2-21` — busca todos os pacotes selecionados em
