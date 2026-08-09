@@ -206,7 +206,7 @@ T16 → T17 → T18
 
 ---
 
-### T6: `despacho.ts` busca N pacotes
+### T6: `despacho.ts` busca N pacotes ✅ Done
 
 **What**: Extrair a busca de 1 pacote (`server/core/despacho.ts:204-223`) para `buscarPacotes(pacoteIds: string[], env?: Env): Promise<Resultado<PacoteCompleto[]>>`, buscando todos os ids em paralelo (KV + fallback estático, mesmo padrão de hoje por id). O comando `iniciar` passa a chamar `jogo.iniciarRodada(ctx, ambiente, pacotes)` com o array.
 **Where**: `server/core/despacho.ts`
