@@ -181,7 +181,7 @@ T16 → T17 → T18
 
 ---
 
-### T5: Gerar conteúdo — 150 cartas por pacote (checkpoint de revisão) ⏸️
+### T5: Gerar conteúdo — 150 cartas por pacote (checkpoint de revisão) ✅ Done — aprovado pelo usuário (com recalibração de itens "expert" em super-herois/series/personagens-jogos)
 
 **What**: Substituir as 40 cartas placeholder de cada um dos 10 pacotes em `shared/pacotes-dados.ts` por 150 cartas reais (50 `facil`, 50 `medio`, 50 `dificil`), sem repetição dentro do mesmo pacote. **Ao terminar de gerar o conteúdo, PARAR e apresentar ao usuário para revisão — nenhum commit acontece até aprovação explícita.** Se o usuário pedir ajustes, aplicar e apresentar de novo antes de commitar.
 **Where**: `shared/pacotes-dados.ts`
