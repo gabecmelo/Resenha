@@ -91,6 +91,14 @@
 - **Date**: 2026-08-05
 - **Status**: active
 
+### AD-012
+- **Decision**: Conteúdo de jogo que precisa ser conhecido nos dois lados sem round-trip de rede (ex.: as cartas de um pacote) vive em `shared/`, junto das constantes de protocolo — mesmo sendo dado específico de um jogo, não do `core`.
+- **Reason**: É a mesma tensão que `AD-011` já registrou para constantes de configuração, agora aplicada a conteúdo de jogo. "Ver pacote" (`PKT2-11`) precisa mostrar até 750 cartas combinadas sem esperar uma resposta de rede a cada toggle de dificuldade — só é possível se cliente e servidor importam o mesmo dado.
+- **Trade-off**: `shared/` deixa de ser só "protocolo + constantes" e passa a hospedar conteúdo de jogo completo. Se um segundo jogo (Espião) repetir esse padrão para seus `locais`, `shared/` cresce em proporção ao número de jogos do hub, não ao tamanho do protocolo.
+- **Scope**: Conteúdo estático de "Quem Sou Eu" (`shared/pacotes-dados.ts`, `shared/pacotes.ts`). Não se aplica a estado de partida, que continua em `server/games/<jogo>/`.
+- **Date**: 2026-08-09
+- **Status**: active — reavaliar junto com `AD-011` quando o Espião definir sua própria necessidade de conteúdo compartilhado (`shared/games/<jogo>/` é o candidato natural se o padrão se repetir)
+
 ## Handoff
 
 - **Feature em andamento**: `pacotes-avancados` — `.specs/features/pacotes-avancados/` (Specify concluído e confirmado pelo dono, 2026-08-09; Design ainda não iniciado). Branch: `feat/pacotes-avancados`. Estende `pacotes-de-cartas` com dificuldade por carta, múltiplos pacotes por partida, "Ver pacote", grid responsivo e feedback sonoro/visual (`FBK-*`). Primeira de três rodadas combinadas: `pacotes-avancados` → hub de seleção de jogos → jogo Espião (roadmap completo na memória pessoal do usuário, arquivo `resenha-roadmap-jogos`)

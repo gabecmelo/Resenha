@@ -1,7 +1,7 @@
 # Pacotes Avançados Design
 
 **Spec**: `.specs/features/pacotes-avancados/spec.md`
-**Status**: Draft
+**Status**: Approved
 
 ---
 
