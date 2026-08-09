@@ -125,7 +125,7 @@ T16 → T17 → T18
 
 ---
 
-### T3: Criar `shared/pacotes.ts` com `montarPoolDeCartas`
+### T3: Criar `shared/pacotes.ts` com `montarPoolDeCartas` ✅ Done
 
 **What**: Função pura que recebe pacotes selecionados + dificuldades ativas e devolve o pool combinado — união das cartas cujas dificuldades batem, deduplicada por `texto` exato, preservando ordem de primeira ocorrência.
 **Where**: `shared/pacotes.ts` (novo), `shared/pacotes.test.ts` (novo)
