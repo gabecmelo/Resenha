@@ -10,6 +10,8 @@ import {
   type ResultadoReducer,
   type ModoDistribuicao,
 } from '../../../shared/protocolo'
+import type { PacoteCompleto } from '../../../shared/pacotes-dados'
+import { montarPoolDeCartas } from '../../../shared/pacotes'
 import { embaralhar, sortearAlvos, sortearCartasDoPacote, sortearOpcoesPorJogador } from './sorteio'
 
 /** `ESCR-03` */
@@ -48,10 +50,8 @@ export interface EstadoQuemSouEu {
   /** `NOTA-02` — privado por jogador. */
   notas: Record<JogadorId, string>
   
-  /** PKT-18, PKT-23 — pacote em uso na partida */
-  pacoteId?: string
-  pacoteNome?: string
-  pacoteEmoji?: string
+  /** `PKT-18`, `PKT-23`, `PKT2-08` — todos os pacotes em uso na partida. */
+  pacotesSelecionados?: { id: string; nome: string; emoji: string }[]
   modoDistribuicao?: ModoDistribuicao
   /** PKT-11 — opções sorteadas por jogador no modo "Cada um escolhe" */
   opcoesPorJogador?: Record<JogadorId, string[]>
@@ -101,18 +101,22 @@ export function estadoVazio(): EstadoQuemSouEu {
 /**
  * `ESCR-01`, `AJU-06` — sorteia os alvos entre os jogadores ativos.
  * Recusa abaixo de 2 ativos; jogadores `aguardando` ficam de fora (`SALA-10`).
- * 
- * PKT-08, PKT-11 — se houver pacote, distribui as cartas. Pode pular para 'jogo' se aleatória.
+ *
+ * `PKT-08`, `PKT-11`, `PKT2-06` — se houver pacotes, combina-os num único pool
+ * (`montarPoolDeCartas`) e distribui a partir dele. Pode pular para 'jogo' se
+ * aleatória.
  */
 export function iniciarRodada(
   ctx: ContextoDeSala,
   ambiente: Ambiente,
-  pacote?: { id: string; nome: string; emoji: string; cartas: readonly string[] }
+  pacotes?: PacoteCompleto[]
 ): ResultadoInicio<EstadoQuemSouEu> {
   const ativos = jogadoresAtivos(ctx)
   if (ativos.length < MIN_JOGADORES) return { ok: false, erro: 'JOGADORES_INSUFICIENTES' }
 
-  if (pacote && pacote.cartas.length < ativos.length) {
+  const pool = pacotes ? montarPoolDeCartas(pacotes, ctx.config.dificuldades) : null
+
+  if (pool !== null && pool.length < ativos.length) {
     return { ok: false, erro: 'PACOTE_INSUFICIENTE' }
   }
 
@@ -122,16 +126,14 @@ export function iniciarRodada(
     ambiente.aleatorio,
   )
 
-  if (pacote) {
-    estado.pacoteId = pacote.id
-    estado.pacoteNome = pacote.nome
-    estado.pacoteEmoji = pacote.emoji
+  if (pacotes && pool !== null) {
+    estado.pacotesSelecionados = pacotes.map((p) => ({ id: p.id, nome: p.nome, emoji: p.emoji }))
     estado.modoDistribuicao = ctx.config.modoDistribuicao
     estado.opcoesPorJogador = {}
     estado.jaSorteouOutras = {}
 
     if (ctx.config.modoDistribuicao === 'aleatoria') {
-      const cartasSorteadas = sortearCartasDoPacote(pacote.cartas, ativos.length, ambiente.aleatorio)
+      const cartasSorteadas = sortearCartasDoPacote(pool, ativos.length, ambiente.aleatorio)
       let i = 0
       for (const jogador of ativos) {
         const alvo = estado.atribuicoes[jogador.id]
@@ -152,9 +154,9 @@ export function iniciarRodada(
         faseSeguinte: 'jogo'
       }
     } else {
-      estado.opcoesPorJogador = sortearOpcoesPorJogador(pacote.cartas, ativos.map(j => j.id), 5, ambiente.aleatorio)
+      estado.opcoesPorJogador = sortearOpcoesPorJogador(pool, ativos.map(j => j.id), 5, ambiente.aleatorio)
       const distribuidas = new Set(Object.values(estado.opcoesPorJogador).flat())
-      estado.cartasRestantesPacote = pacote.cartas.filter((c) => !distribuidas.has(c))
+      estado.cartasRestantesPacote = pool.filter((c) => !distribuidas.has(c))
     }
   }
 
@@ -672,9 +674,7 @@ function saiuJogador(
     }
 
     const novo = estadoVazio()
-    if (estado.pacoteId !== undefined) novo.pacoteId = estado.pacoteId
-    if (estado.pacoteNome !== undefined) novo.pacoteNome = estado.pacoteNome
-    if (estado.pacoteEmoji !== undefined) novo.pacoteEmoji = estado.pacoteEmoji
+    if (estado.pacotesSelecionados !== undefined) novo.pacotesSelecionados = estado.pacotesSelecionados
     if (estado.modoDistribuicao !== undefined) novo.modoDistribuicao = estado.modoDistribuicao
     if (estado.cartasRestantesPacote !== undefined) novo.cartasRestantesPacote = [...estado.cartasRestantesPacote]
     

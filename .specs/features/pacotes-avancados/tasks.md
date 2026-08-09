@@ -233,7 +233,7 @@ T16 → T17 → T18
 
 ---
 
-### T7: `regras.ts` distribui a partir do pool combinado
+### T7: `regras.ts` distribui a partir do pool combinado ✅ Done
 
 **What**: `iniciarRodada` troca `pacote?: {...}` por `pacotes?: PacoteCompleto[]`, chama `montarPoolDeCartas(pacotes, ctx.config.dificuldades)` antes de `sortearCartasDoPacote`/`sortearOpcoesPorJogador` (que continuam recebendo `string[]`, sem mudança de assinatura). `EstadoQuemSouEu.pacoteId/pacoteNome/pacoteEmoji` (campos únicos) viram `pacotesSelecionados: { id: string; nome: string; emoji: string }[]`; a clonagem de estado (linha ~675) é atualizada.
 **Where**: `server/games/quem-sou-eu/regras.ts`

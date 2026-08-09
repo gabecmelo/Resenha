@@ -4,6 +4,7 @@
  * Importado por `client/` e por `server/`. Não contém regra de jogo nem código
  * de plataforma: só tipos.
  */
+import type { PacoteCompleto } from './pacotes-dados'
 
 // ---------------------------------------------------------------------------
 // Sala
@@ -375,7 +376,7 @@ export interface ModuloDeJogo<E, C> {
   iniciarRodada(
     ctx: ContextoDeSala,
     ambiente: Ambiente,
-    pacote?: { id: string; nome: string; emoji: string; cartas: readonly string[] }
+    pacotes?: PacoteCompleto[]
   ): ResultadoInicio<E>
   reduzir(estado: E, ctx: ContextoDeSala, comando: C, ambiente: Ambiente): ResultadoReducer<E>
   /** `estado` é `null` no lobby, quando ainda não há partida. */

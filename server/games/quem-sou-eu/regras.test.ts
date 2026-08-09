@@ -8,6 +8,7 @@ import {
   type JogadorId,
   type Situacao,
 } from '../../../shared/protocolo'
+import type { PacoteCompleto } from '../../../shared/pacotes-dados'
 import {
   CARTA_MAX_CARACTERES,
   type ComandoQuemSouEu,
@@ -43,12 +44,38 @@ function ctx(over: Partial<ContextoDeSala> = {}): ContextoDeSala {
   }
 }
 
+/**
+ * Adapta o mock de pacote único (usado por todos os testes anteriores a
+ * `T7`) para `PacoteCompleto[]` — a assinatura de `iniciarRodada` mudou de
+ * um pacote só para o array combinado (`PKT2-06`), mas os cenários de teste
+ * continuam os mesmos: um pacote, todas as cartas na mesma dificuldade
+ * (`'facil'`, sempre ativa em `CONFIG_PADRAO.dificuldades`).
+ */
+function paraPacotes(pacote?: {
+  id: string
+  nome: string
+  emoji: string
+  cartas: readonly string[]
+}): PacoteCompleto[] | undefined {
+  if (pacote === undefined) return undefined
+  return [
+    {
+      id: pacote.id,
+      nome: pacote.nome,
+      emoji: pacote.emoji,
+      descricao: '',
+      quantidade: pacote.cartas.length,
+      cartas: pacote.cartas.map((texto) => ({ texto, dificuldade: 'facil' as const })),
+    },
+  ]
+}
+
 function rodadaDe(
   jogadores: Jogador[],
   over: Partial<ContextoDeSala> = {},
   pacote?: { id: string; nome: string; emoji: string; cartas: readonly string[] }
 ): EstadoQuemSouEu {
-  const resultado = iniciarRodada(ctx({ jogadores, ...over }), AMBIENTE, pacote)
+  const resultado = iniciarRodada(ctx({ jogadores, ...over }), AMBIENTE, paraPacotes(pacote))
   if (!resultado.ok) throw new Error(`rodada inesperadamente recusada: ${resultado.erro}`)
   return resultado.valor
 }
@@ -58,7 +85,26 @@ function rodadaDeResultado(
   over: Partial<ContextoDeSala> = {},
   pacote?: { id: string; nome: string; emoji: string; cartas: readonly string[] }
 ) {
-  return iniciarRodada(ctx({ jogadores, ...over }), AMBIENTE, pacote)
+  return iniciarRodada(ctx({ jogadores, ...over }), AMBIENTE, paraPacotes(pacote))
+}
+
+/** Variante que aceita múltiplos `PacoteCompleto` diretamente (T7, `PKT2-06`). */
+function rodadaDeComPacotes(
+  jogadores: Jogador[],
+  over: Partial<ContextoDeSala>,
+  pacotes: PacoteCompleto[],
+): EstadoQuemSouEu {
+  const resultado = iniciarRodada(ctx({ jogadores, ...over }), AMBIENTE, pacotes)
+  if (!resultado.ok) throw new Error(`rodada inesperadamente recusada: ${resultado.erro}`)
+  return resultado.valor
+}
+
+function rodadaDeComPacotesResultado(
+  jogadores: Jogador[],
+  over: Partial<ContextoDeSala>,
+  pacotes: PacoteCompleto[],
+) {
+  return iniciarRodada(ctx({ jogadores, ...over }), AMBIENTE, pacotes)
 }
 
 function reduzirOk(
@@ -218,6 +264,68 @@ describe('iniciarRodada com pacote (PKT-08, PKT-09, PKT-11)', () => {
     expect(estado.opcoesPorJogador?.['a']).toHaveLength(1)
     expect(estado.opcoesPorJogador?.['b']).toHaveLength(1)
     expect(estado.opcoesPorJogador?.['c']).toHaveLength(1)
+  })
+})
+
+describe('iniciarRodada com pool combinado de pacotes (T7, `PKT2-06`, `PKT2-08`, `PKT2-21`)', () => {
+  const pacoteA: PacoteCompleto = {
+    id: 'filmes',
+    nome: 'Filmes',
+    emoji: '🎬',
+    descricao: '',
+    quantidade: 2,
+    cartas: [
+      { texto: 'Matrix', dificuldade: 'facil' },
+      { texto: 'Titanic', dificuldade: 'medio' },
+    ],
+  }
+  const pacoteB: PacoteCompleto = {
+    id: 'anime',
+    nome: 'Anime',
+    emoji: '🍥',
+    descricao: '',
+    quantidade: 2,
+    cartas: [
+      { texto: 'Naruto', dificuldade: 'facil' },
+      { texto: 'Bleach', dificuldade: 'dificil' },
+    ],
+  }
+
+  it('combina as cartas de dois pacotes no pool: nenhum pacote sozinho teria facil suficiente para 2 ativos, o pool combinado tem (`PKT2-06`)', () => {
+    const estado = rodadaDeComPacotes(
+      [jogador('a'), jogador('b')],
+      { config: { ...CONFIG_PADRAO, dificuldades: ['facil'], modoDistribuicao: 'aleatoria' } },
+      [pacoteA, pacoteB],
+    )
+
+    const cartasNaPartida = Object.values(estado.cartas)
+    expect(cartasNaPartida.sort()).toEqual(['Matrix', 'Naruto'])
+  })
+
+  it('recusa quando o pool combinado (não um pacote isolado) é menor que os ativos (`PKT2-21`)', () => {
+    // Cada pacote isoladamente teria cartas suficientes para os 3 jogadores
+    // ativos se a dificuldade não filtrasse — mas com só 'dificil' ativo, o
+    // pool combinado tem 1 carta (Bleach), abaixo do mínimo.
+    const resultado = rodadaDeComPacotesResultado(
+      [jogador('a'), jogador('b'), jogador('c')],
+      { config: { ...CONFIG_PADRAO, dificuldades: ['dificil'] } },
+      [pacoteA, pacoteB],
+    )
+
+    expect(resultado).toEqual({ ok: false, erro: 'PACOTE_INSUFICIENTE' })
+  })
+
+  it('grava todos os pacotes selecionados, não só o primeiro (`PKT2-08`)', () => {
+    const estado = rodadaDeComPacotes(
+      [jogador('a'), jogador('b')],
+      { config: { ...CONFIG_PADRAO, modoDistribuicao: 'aleatoria' } },
+      [pacoteA, pacoteB],
+    )
+
+    expect(estado.pacotesSelecionados).toEqual([
+      { id: 'filmes', nome: 'Filmes', emoji: '🎬' },
+      { id: 'anime', nome: 'Anime', emoji: '🍥' },
+    ])
   })
 })
 
