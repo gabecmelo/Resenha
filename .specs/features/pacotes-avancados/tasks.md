@@ -408,7 +408,7 @@ T16 → T17 → T18
 
 ---
 
-### T14: "Ver pacote" — modal de seleção e lobby
+### T14: "Ver pacote" — modal de seleção e lobby ✅ Done
 
 **What**: Dentro do modal de seleção (host), cada card ganha "Ver cartas" que expande a lista daquele pacote candidato filtrada pelas dificuldades atualmente marcadas — sem precisar confirmar a seleção primeiro. No corpo do lobby (todos, host e não-host), um botão "Ver pacote" abre a lista do pool combinado atual (todos os pacotes × dificuldades já selecionados), computada localmente via `montarPoolDeCartas`/`shared/pacotes-dados` a partir de `sala.config` — sem chamada de rede. Ausente quando `modoPacote !== 'pacote'` ou nada selecionado ainda.
 **Where**: `client/src/telas/Lobby.tsx`

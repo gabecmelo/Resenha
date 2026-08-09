@@ -11,6 +11,8 @@ import {
 } from '../../../shared/protocolo'
 import { Botao, Chat, FichaDeJogador, Modal, Shell } from '../componentes'
 import { linkDeConvite, motivoParaIniciar } from '../estado/entrada'
+import { montarPoolDeCartas } from '../../../shared/pacotes'
+import { PACOTES } from '../../../shared/pacotes-dados'
 import {
   PRESETS_DE_TEMPO,
   ehTempoPersonalizado,
@@ -312,8 +314,16 @@ function Regras({
     ehTempoPersonalizado(config.tempoTurnoSeg) ? 'personalizado' : 'preset'
   )
   const [dicaPacoteAberta, setDicaPacoteAberta] = useState(false)
+  const [pacoteExpandido, setPacoteExpandido] = useState<string | null>(null)
+  const [verPacoteAberto, setVerPacoteAberto] = useState(false)
 
   const pacotesSelecionados = pacotesDisponiveis?.filter((p) => config.pacoteIds.includes(p.id)) ?? []
+  // `PKT2-11` — pool combinado computado localmente (sem round-trip), a
+  // mesma função pura usada pelo servidor para sortear (AD-012).
+  const poolAtual = montarPoolDeCartas(
+    PACOTES.filter((p) => config.pacoteIds.includes(p.id)),
+    config.dificuldades,
+  )
 
   const opcoesDeTempo = [
     ...PRESETS_DE_TEMPO.map(p => ({ valor: p.valor === null ? 'sem-limite' : String(p.valor), rotulo: p.rotulo })),
@@ -333,6 +343,33 @@ function Regras({
           </p>
         )}
       </div>
+
+      {/* `PKT2-11`, `PKT2-12` — some quando não há pacote nenhum selecionado. */}
+      {config.modoPacote === 'pacote' && config.pacoteIds.length > 0 && (
+        <Botao variante="secundario" onClick={() => setVerPacoteAberto(true)}>
+          Ver pacote ({poolAtual.length} cartas)
+        </Botao>
+      )}
+
+      {verPacoteAberto && (
+        <Modal
+          titulo="Cartas possíveis"
+          descricao={`${poolAtual.length} cartas no pool combinado — nunca mostra quem tem qual carta.`}
+          largura="larga"
+          aoCancelar={() => setVerPacoteAberto(false)}
+        >
+          <ul className="grid max-h-[60vh] grid-cols-2 gap-1.5 overflow-y-auto sm:grid-cols-3">
+            {poolAtual.map((texto) => (
+              <li
+                key={texto}
+                className="rounded-controle bg-superficie-2 px-2.5 py-1.5 text-miudo text-texto-2"
+              >
+                {texto}
+              </li>
+            ))}
+          </ul>
+        </Modal>
+      )}
 
       {souHost ? (
         <div className="flex flex-col gap-4">
@@ -425,12 +462,30 @@ function Regras({
                   <div className="pacote-grid">
                     {pacotesDisponiveis?.map((pacote) => {
                       const marcado = config.pacoteIds.includes(pacote.id)
+                      const expandido = pacoteExpandido === pacote.id
+                      // `PKT2-10` — filtra pelas dificuldades já marcadas, mesmo
+                      // para um pacote ainda não selecionado.
+                      const cartasFiltradas =
+                        PACOTES.find((p) => p.id === pacote.id)
+                          ?.cartas.filter((c) => config.dificuldades.includes(c.dificuldade))
+                          .map((c) => c.texto) ?? []
                       return (
-                        <button
+                        // `role="button"` (não `<button>`) para poder aninhar o
+                        // botão "Ver cartas" sem invalidar o HTML.
+                        <div
                           key={pacote.id}
-                          type="button"
+                          role="button"
+                          tabIndex={0}
                           aria-pressed={marcado}
                           onClick={() => {
+                            const pacoteIds = marcado
+                              ? config.pacoteIds.filter((id) => id !== pacote.id)
+                              : [...config.pacoteIds, pacote.id]
+                            enviar({ t: 'configurar', config: { pacoteIds } })
+                          }}
+                          onKeyDown={(evento) => {
+                            if (evento.key !== 'Enter' && evento.key !== ' ') return
+                            evento.preventDefault()
                             const pacoteIds = marcado
                               ? config.pacoteIds.filter((id) => id !== pacote.id)
                               : [...config.pacoteIds, pacote.id]
@@ -446,7 +501,27 @@ function Regras({
                           <span className="mt-1 font-mono text-[10px] tracking-[0.1em] text-texto-3 uppercase">
                             {pacote.quantidade} cartas
                           </span>
-                        </button>
+                          <button
+                            type="button"
+                            onClick={(evento) => {
+                              evento.stopPropagation()
+                              setPacoteExpandido(expandido ? null : pacote.id)
+                            }}
+                            className="mt-1 cursor-pointer self-start text-[12px] font-medium text-acento hover:underline"
+                          >
+                            {expandido ? 'Ocultar cartas' : 'Ver cartas'}
+                          </button>
+                          {expandido && (
+                            <ul
+                              onClick={(evento) => evento.stopPropagation()}
+                              className="mt-1 max-h-32 w-full overflow-y-auto rounded-controle bg-superficie-2 p-2 text-miudo text-texto-2"
+                            >
+                              {cartasFiltradas.map((texto) => (
+                                <li key={texto}>{texto}</li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
                       )
                     })}
                   </div>
