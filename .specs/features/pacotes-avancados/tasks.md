@@ -11,7 +11,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 ---
 
 **Design**: `.specs/features/pacotes-avancados/design.md`
-**Status**: Approved
+**Status**: Done — 18 tasks, aguardando validação do Verifier
 
 ---
 
