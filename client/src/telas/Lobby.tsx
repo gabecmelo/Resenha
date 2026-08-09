@@ -428,6 +428,7 @@ function Regras({
                         key={opcao.valor}
                         variante={marcado ? 'primario' : 'secundario'}
                         motivo={ehUltimaAtiva ? 'Pelo menos um nível precisa estar marcado' : undefined}
+                        selecaoTravada={ehUltimaAtiva}
                         onClick={() => {
                           const dificuldades = marcado
                             ? config.dificuldades.filter((d) => d !== opcao.valor)
@@ -457,6 +458,8 @@ function Regras({
                   titulo="Escolha um ou mais pacotes"
                   descricao="Marque os temas das cartas para esta partida."
                   largura="larga"
+                  rotuloConfirmar="Confirmar"
+                  aoConfirmar={() => setModalPacotesAberto(false)}
                   aoCancelar={() => setModalPacotesAberto(false)}
                 >
                   <div className="pacote-grid">
@@ -497,7 +500,7 @@ function Regras({
                             <span className="text-2xl">{pacote.emoji}</span>
                             <h3 className="font-semibold text-texto">{pacote.nome}</h3>
                           </div>
-                          <p className="text-miudo text-texto-2">{pacote.descricao}</p>
+                          <p className="line-clamp-2 text-miudo text-texto-2">{pacote.descricao}</p>
                           <span className="mt-1 font-mono text-[10px] tracking-[0.1em] text-texto-3 uppercase">
                             {pacote.quantidade} cartas
                           </span>
@@ -507,8 +510,11 @@ function Regras({
                               evento.stopPropagation()
                               setPacoteExpandido(expandido ? null : pacote.id)
                             }}
-                            className="mt-1 cursor-pointer self-start text-[12px] font-medium text-acento hover:underline"
+                            className="mt-1 flex min-h-11 w-full cursor-pointer items-center gap-1 self-start text-apoio font-medium text-acento hover:underline"
                           >
+                            <span aria-hidden="true" className={`inline-block transition-transform ${expandido ? 'rotate-90' : ''}`}>
+                              ▸
+                            </span>
                             {expandido ? 'Ocultar cartas' : 'Ver cartas'}
                           </button>
                           {expandido && (

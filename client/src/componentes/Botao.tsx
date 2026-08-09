@@ -16,6 +16,13 @@ export interface PropsDoBotao extends Omit<ButtonHTMLAttributes<HTMLButtonElemen
    * (`HOST-01`, `ESCR-06`): "Iniciar" apagado e mudo trava o grupo.
    */
   motivo?: string | undefined
+  /**
+   * O botão está desabilitado, mas representa uma opção já selecionada (ex.:
+   * o único nível de dificuldade ativo, que não pode ser desmarcado) — não o
+   * cinza genérico de "essa ação não pode ser feita agora", que faria a opção
+   * parecer desmarcada.
+   */
+  selecaoTravada?: boolean
   /** Ocupa a linha inteira — a forma das ações principais no mobile. */
   larguraTotal?: boolean
 }
@@ -24,6 +31,7 @@ export interface PropsDoBotao extends Omit<ButtonHTMLAttributes<HTMLButtonElemen
 export function Botao({
   variante = 'primario',
   motivo,
+  selecaoTravada = false,
   larguraTotal = false,
   className = '',
   onClick,
@@ -51,7 +59,9 @@ export function Botao({
           larguraTotal ? 'w-full' : ''
         } ${
           desabilitado
-            ? 'cursor-not-allowed border-linha bg-superficie-2 font-semibold text-texto-apagado'
+            ? selecaoTravada
+              ? 'cursor-not-allowed border-acento bg-acento-suave font-semibold text-acento'
+              : 'cursor-not-allowed border-linha bg-superficie-2 font-semibold text-texto-apagado'
             : `cursor-pointer motion-safe:active:scale-[0.97] ${VARIANTES[variante]}`
         } ${className}`}
         {...props}
