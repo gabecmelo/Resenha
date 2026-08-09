@@ -646,6 +646,10 @@ function saiuJogador(
   jogadorId: JogadorId,
   ambiente: Ambiente,
 ): ResultadoReducer<EstadoQuemSouEu> {
+  if (ctx.fase === 'lobby' || ctx.fase === 'encerrada') {
+    return { ok: true, estado, eventos: [], prazos: {} }
+  }
+
   if (ctx.fase === 'escrita') {
     // Quem estava `aguardando` nunca teve alvo — a saída dele não redistribui nada.
     if (estado.atribuicoes[jogadorId] === undefined) {
@@ -669,6 +673,16 @@ function saiuJogador(
     }
 
     const novo = estadoVazio()
+    if (estado.pacoteId !== undefined) novo.pacoteId = estado.pacoteId
+    if (estado.pacoteNome !== undefined) novo.pacoteNome = estado.pacoteNome
+    if (estado.pacoteEmoji !== undefined) novo.pacoteEmoji = estado.pacoteEmoji
+    if (estado.modoDistribuicao !== undefined) novo.modoDistribuicao = estado.modoDistribuicao
+    if (estado.cartasRestantesPacote !== undefined) novo.cartasRestantesPacote = [...estado.cartasRestantesPacote]
+    
+    if (estado.jaSorteouOutras) {
+      novo.jaSorteouOutras = { ...estado.jaSorteouOutras }
+    }
+
     novo.atribuicoes = sortearAlvos(
       restantes.map((j) => j.id),
       ambiente.aleatorio,

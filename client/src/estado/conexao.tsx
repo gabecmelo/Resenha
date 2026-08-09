@@ -10,6 +10,7 @@ import {
 } from 'react'
 import type { CodigoErro, Comando, Mensagem, Projecao } from '../../../shared/protocolo'
 import { criarBackoff, criarSessao, deveReconectarAoAparecer, tokenFoiRecusado } from './sessao'
+import { setOffset } from './relogio'
 
 /**
  * Socket único da aplicação (`CONN-01`, `CONN-03`).
@@ -112,6 +113,7 @@ export function ProvedorDeConexao({ codigo, apelido, children }: PropsDoProvedor
         if (mensagem === null) return
 
         if (mensagem.t === 'projecao') {
+          setOffset(mensagem.dados.agoraServidor - Date.now())
           setProjecao(mensagem.dados)
           return
         }

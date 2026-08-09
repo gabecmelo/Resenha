@@ -256,6 +256,7 @@ export type Mensagem =
 // ---------------------------------------------------------------------------
 
 export interface Projecao {
+  agoraServidor: number
   sala: {
     codigo: string
     fase: Fase

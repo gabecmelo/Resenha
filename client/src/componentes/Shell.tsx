@@ -3,6 +3,7 @@ import { linkDeConvite } from '../estado/entrada'
 import { AlternadorDeTema } from './AlternadorDeTema'
 import { LogoResenha } from './LogoResenha'
 import { Modal } from './Modal'
+import { SomToggle } from './SomToggle'
 
 export interface PropsDoShell {
   /** Código da sala. Ausente na tela de início, onde ainda não há sala. */
@@ -45,6 +46,7 @@ export function Shell({ codigo, legenda, aoSair, children }: PropsDoShell) {
 
           <span className="-mr-2 flex min-w-0 flex-1 items-center justify-end gap-1 sm:flex-none sm:gap-2">
             {codigo !== undefined && <CopiarConvite codigo={codigo} />}
+            <SomToggle />
             <AlternadorDeTema />
             {aoSair !== undefined && (
               <button

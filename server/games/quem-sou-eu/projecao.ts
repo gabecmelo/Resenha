@@ -26,6 +26,7 @@ export function projetar(
   if (eu === undefined) throw new Error(`jogador fora da sala: ${paraJogador}`)
 
   const projecao: Projecao = {
+    agoraServidor: 0,
     sala: {
       codigo: sala.codigo,
       fase: sala.fase,

@@ -12,6 +12,7 @@ import { difundir, jogadorDe, socketsDe, vincular } from './conexoes'
 /** Projeção mínima e distinguível por jogador — AD-008. */
 function projecaoDe(paraJogador: JogadorId): Projecao {
   return {
+    agoraServidor: 0,
     sala: {
       codigo: 'ABCDE',
       fase: 'lobby',

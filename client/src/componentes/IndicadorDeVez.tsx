@@ -5,8 +5,10 @@ import {
   formatarTempo,
   fracaoRestante,
   restanteAte,
+  getAgora,
 } from '../estado/relogio'
 import { MarcadorDeJogador } from './MarcadorDeJogador'
+import { tocarTempoAcabando } from '../sons'
 
 export interface PropsDoIndicador {
   ehSuaVez: boolean
@@ -41,6 +43,12 @@ export function IndicadorDeVez({
 }: PropsDoIndicador) {
   const restante = useRestante(prazoTurno, duracaoSeg)
   const acabando = ehSuaVez && estaAcabando(restante)
+
+  useEffect(() => {
+    if (acabando) {
+      tocarTempoAcabando();
+    }
+  }, [acabando]);
 
   return (
     <section

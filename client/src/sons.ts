@@ -1,4 +1,4 @@
-﻿let audioCtx: AudioContext | null = null;
+let audioCtx: AudioContext | null = null;
 let somAtivo = false;
 
 function carregarPreferencia(): boolean {
@@ -79,6 +79,25 @@ export function tocarSuaVez() {
 export function tocarChatMensagem() {
   if (!somAtivo || motionReduzido()) return;
   tocarTom(800, 'sine', 0.1, 0.1);
+}
+
+export function tocarVezOutro() {
+  if (!somAtivo) return;
+  tocarTom(300, 'sine', 0.1, 0.1);
+  setTimeout(() => tocarTom(400, 'sine', 0.1, 0.1), 100);
+}
+
+export function tocarAcertou() {
+  if (!somAtivo) return;
+  tocarTom(440, 'triangle', 0.1, 0.2);
+  setTimeout(() => tocarTom(554, 'triangle', 0.1, 0.2), 100);
+  setTimeout(() => tocarTom(659, 'triangle', 0.2, 0.2), 200);
+  setTimeout(() => tocarTom(880, 'triangle', 0.4, 0.3), 300);
+}
+
+export function tocarTempoAcabando() {
+  if (!somAtivo) return;
+  tocarTom(800, 'square', 0.05, 0.05);
 }
 
 export function _resetParaTestes() {

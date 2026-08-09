@@ -5,6 +5,7 @@ import { defineConfig } from 'vite'
 
 export default defineConfig({
   root: 'client',
+  server: { host: true },
   build: { outDir: '../dist', emptyOutDir: true },
   plugins: [
     react(),

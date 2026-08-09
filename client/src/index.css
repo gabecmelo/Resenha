@@ -4,11 +4,11 @@
  * Tokens do sistema de design (`design/handoff/project/Resenha - Sistema de
  * Design.dc.html`).
  *
- * Claro e escuro são dois temas de primeira classe: cada token traz os dois
- * valores num `light-dark()` só, e quem escolhe entre eles é o `color-scheme`
- * em vigor. Por padrão o tema segue o dispositivo; o alternador do shell
- * escreve `data-tema` na raiz e vence a preferência. Nenhum componente carrega
- * variante de tema — eles pintam com o token semântico.
+ * Claro e escuro s�o dois temas de primeira classe: cada token traz os dois
+ * valores num `light-dark()` s�, e quem escolhe entre eles � o `color-scheme`
+ * em vigor. Por padr�o o tema segue o dispositivo; o alternador do shell
+ * escreve `data-tema` na raiz e vence a prefer�ncia. Nenhum componente carrega
+ * variante de tema  eles pintam com o token sem�ntico.
  */
 
 :root {
@@ -36,21 +36,21 @@
   --risco-contraste: light-dark(#ffffff, #2a100c);
 
   /*
-   * Espera por decisão de outra pessoa — a declaração de "Descobri!" pendente
-   * (`DESC-01`, `DESC-02`). Não é acento (não é sua ação) nem risco (nada deu
-   * errado): é o terceiro estado que a tela de partida precisa dizer.
+   * Espera por decis�o de outra pessoa  a declara��o de "Descobri!" pendente
+   * (`DESC-01`, `DESC-02`). N�o � acento (n�o � sua a��o) nem risco (nada deu
+   * errado): � o terceiro estado que a tela de partida precisa dizer.
    */
   --aviso: light-dark(#9e6e12, #d5a03a);
   --aviso-suave: light-dark(#fbf3e3, #302510);
   --aviso-linha: light-dark(#e8d9b6, #4c3d1a);
 
-  /* `light-dark()` só resolve cor — a sombra monta o valor a partir dela. */
+  /* `light-dark()` s� resolve cor  a sombra monta o valor a partir dela. */
   --sombra-cor: light-dark(rgb(27 25 23 / 0.1), rgb(0 0 0 / 0.5));
   --sombra-flutuante: 0 12px 32px var(--sombra-cor);
 
   /*
-   * Paleta de jogadores — separada da paleta da interface (`SALA-07`). Nenhuma
-   * destas cores aparece em botão, link ou fundo de tela. A cor nunca é o único
+   * Paleta de jogadores  separada da paleta da interface (`SALA-07`). Nenhuma
+   * destas cores aparece em bot�o, link ou fundo de tela. A cor nunca � o �nico
    * diferenciador: o marcador leva a inicial e o apelido acompanha sempre.
    */
   --jogador-contraste: light-dark(#ffffff, #1b1917);
@@ -88,7 +88,7 @@
   --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 
-  /* Hierarquia por tamanho e peso — nunca por caixa, borda ou sombra. */
+  /* Hierarquia por tamanho e peso  nunca por caixa, borda ou sombra. */
   --text-display: 40px;
   --text-display--line-height: 1.05;
   --text-display--letter-spacing: -0.03em;
@@ -145,7 +145,7 @@
   --radius-carta: 16px;
   --radius-pilula: 999px;
 
-  /* Sombra existe só para o que flutua: modal e menu. */
+  /* Sombra existe s� para o que flutua: modal e menu. */
   --shadow-flutuante: var(--sombra-flutuante);
 }
 
@@ -240,4 +240,20 @@
 
 .animacao-flash {
   animation: flash-atencao 600ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes pulse-attention {
+  0% {
+    box-shadow: 0 0 0 0 var(--acento-suave);
+  }
+  70% {
+    box-shadow: 0 0 0 10px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+.animacao-pulse-attention {
+  animation: pulse-attention 2s infinite;
 }

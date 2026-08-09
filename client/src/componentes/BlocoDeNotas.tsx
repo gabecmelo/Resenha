@@ -1,4 +1,3 @@
-import { Modal } from './Modal'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   chegouDoServidor,
@@ -6,6 +5,7 @@ import {
   digitou,
   rascunhoDoServidor,
 } from '../estado/notas'
+import { Modal } from './Modal'
 
 /** `NOTA-01`, `AJU-26` — o campo para no limite; o servidor continua validando. */
 const LIMITE_DE_NOTAS = 2000
@@ -45,8 +45,8 @@ export function BlocoDeNotas({ texto, aoMudar }: PropsDoBloco) {
 
   const linhas = proximo.texto === '' ? 0 : proximo.texto.split('\n').length
 
-  if (!aberto) {
-    return (
+  return (
+    <>
       <button
         type="button"
         onClick={() => setAberto(true)}
@@ -57,40 +57,35 @@ export function BlocoDeNotas({ texto, aoMudar }: PropsDoBloco) {
         </span>
         <span className="text-miudo font-medium text-acento">abrir</span>
       </button>
-    )
-  }
 
-  return (
-    <div className="flex flex-col gap-2 rounded-painel bg-superficie-2 p-3.5">
-      <div className="flex items-center justify-between gap-3">
-        <span className="font-mono text-[11px] tracking-[0.1em] text-texto-3 uppercase">
-          suas anotações
-        </span>
-        <button
-          type="button"
-          onClick={() => {
+      {aberto && (
+        <Modal
+          titulo="Suas Anotações"
+          descricao="Só você vê o que escreve aqui."
+          rotuloCancelar="Fechar"
+          aoCancelar={() => {
             envio.liberar(aoMudar)
             setAberto(false)
           }}
-          className="min-h-11 cursor-pointer text-miudo font-medium text-acento"
         >
-          recolher
-        </button>
-      </div>
-      <textarea
-        value={proximo.texto}
-        rows={4}
-        maxLength={LIMITE_DE_NOTAS}
-        aria-label="Suas anotações"
-        placeholder={'Anote o que já descobriu: “não é ator”, “está vivo”…'}
-        onChange={(evento) => {
-          setRascunho(digitou(evento.target.value))
-          envio.agendar(evento.target.value, aoMudar)
-        }}
-        onBlur={() => envio.liberar(aoMudar)}
-        className="w-full resize-y bg-transparent text-[15px] leading-relaxed text-texto placeholder:text-texto-apagado focus:outline-none"
-      />
-      <span className="text-[12px] text-texto-3">só você vê · salvo</span>
-    </div>
+          <div className="flex flex-col gap-2 rounded-painel bg-superficie-2 p-3.5 mt-2">
+            <textarea
+              value={proximo.texto}
+              rows={8}
+              maxLength={LIMITE_DE_NOTAS}
+              aria-label="Suas anotações"
+              placeholder={'Anote o que já descobriu: “não é ator”, “está vivo”…'}
+              onChange={(evento) => {
+                setRascunho(digitou(evento.target.value))
+                envio.agendar(evento.target.value, aoMudar)
+              }}
+              onBlur={() => envio.liberar(aoMudar)}
+              className="w-full resize-y bg-transparent text-[15px] leading-relaxed text-texto placeholder:text-texto-apagado focus:outline-none"
+            />
+            <span className="text-[12px] text-texto-3 self-end text-right">salvo automaticamente</span>
+          </div>
+        </Modal>
+      )}
+    </>
   )
 }
