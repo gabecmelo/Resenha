@@ -154,7 +154,7 @@ T16 → T17 → T18
 
 ---
 
-### T4: Atualizar protocolo — `pacoteIds`, `dificuldades`, `pacotesSelecionados`
+### T4: Atualizar protocolo — `pacoteIds`, `dificuldades`, `pacotesSelecionados` ✅ Done — typecheck fica vermelho até T9 (server) e T15 (client), documentado e esperado
 
 **What**: `Config.pacoteId: string | null` vira `Config.pacoteIds: string[]`; novo `Config.dificuldades: Dificuldade[]`; `CONFIG_PADRAO` ganha `pacoteIds: []` e `dificuldades: ['facil', 'medio', 'dificil']`; `Projecao.sala.pacote?: PacoteResumo` vira `Projecao.sala.pacotesSelecionados?: PacoteResumo[]`.
 **Where**: `shared/protocolo.ts`

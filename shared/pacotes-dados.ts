@@ -1,6 +1,6 @@
-import type { PacoteResumo } from './protocolo'
+import type { Dificuldade, PacoteResumo } from './protocolo'
 
-export type Dificuldade = 'facil' | 'medio' | 'dificil'
+export type { Dificuldade }
 
 export interface CartaDoPacote {
   texto: string
