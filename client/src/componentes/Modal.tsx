@@ -9,6 +9,8 @@ export interface PropsDoModal {
   rotuloCancelar?: string
   /** Expulsar, encerrar: confirmação em vermelho, e o nome de quem é afetado no título. */
   destrutivo?: boolean
+  /** `'larga'` acomoda grids de pacote; todo o resto do produto usa o padrão de 420px. */
+  largura?: 'padrao' | 'larga'
   children?: React.ReactNode
   aoConfirmar?(): void
   aoCancelar(): void
@@ -25,6 +27,7 @@ export function Modal({
   rotuloConfirmar,
   rotuloCancelar = 'Cancelar',
   destrutivo = false,
+  largura = 'padrao',
   children,
   aoConfirmar,
   aoCancelar,
@@ -49,7 +52,7 @@ export function Modal({
         aria-modal="true"
         aria-labelledby={idDoTitulo}
         onClick={(evento) => evento.stopPropagation()}
-        className="flex w-full max-w-[420px] max-h-full overflow-y-auto flex-col gap-4 rounded-bloco bg-flutuante p-5 shadow-flutuante"
+        className={`flex w-full ${largura === 'larga' ? 'max-w-[720px] lg:max-w-[880px]' : 'max-w-[420px]'} max-h-full overflow-y-auto flex-col gap-4 rounded-bloco bg-flutuante p-5 shadow-flutuante`}
       >
         <div className="flex flex-col gap-1.5">
           <h2 id={idDoTitulo} className="text-[20px] font-semibold tracking-tight text-texto">
