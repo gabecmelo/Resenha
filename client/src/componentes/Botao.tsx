@@ -23,6 +23,13 @@ export interface PropsDoBotao extends Omit<ButtonHTMLAttributes<HTMLButtonElemen
    * parecer desmarcada.
    */
   selecaoTravada?: boolean
+  /**
+   * Não mostra `motivo` ao lado do botão — usado quando o chamador já exibe
+   * a explicação uma única vez em outro lugar (ex.: vários botões do mesmo
+   * grupo desabilitados pelo mesmo motivo). O texto continua acessível via
+   * `aria-describedby` para leitor de tela.
+   */
+  motivoOculto?: boolean
   /** Ocupa a linha inteira — a forma das ações principais no mobile. */
   larguraTotal?: boolean
 }
@@ -32,6 +39,7 @@ export function Botao({
   variante = 'primario',
   motivo,
   selecaoTravada = false,
+  motivoOculto = false,
   larguraTotal = false,
   className = '',
   onClick,
@@ -53,7 +61,7 @@ export function Botao({
       <button
         type="button"
         disabled={desabilitado}
-        aria-describedby={desabilitado ? idDoMotivo : undefined}
+        aria-describedby={desabilitado && motivo ? idDoMotivo : undefined}
         onClick={aoClicar}
         className={`min-h-11 rounded-controle border px-5 text-[15px] transition-[color,background-color,border-color,transform] duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acento ${
           larguraTotal ? 'w-full' : ''
@@ -66,8 +74,11 @@ export function Botao({
         } ${className}`}
         {...props}
       />
-      {desabilitado && (
-        <span id={idDoMotivo} className="max-w-[26ch] text-apoio text-texto-2">
+      {desabilitado && motivo && (
+        <span
+          id={idDoMotivo}
+          className={motivoOculto ? 'sr-only' : 'max-w-[26ch] text-apoio text-texto-2'}
+        >
           {motivo}
         </span>
       )}

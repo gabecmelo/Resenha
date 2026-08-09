@@ -428,6 +428,7 @@ function Regras({
                         key={opcao.valor}
                         variante={marcado ? 'primario' : 'secundario'}
                         motivo={ehUltimaAtiva ? 'Pelo menos um nível precisa estar marcado' : undefined}
+                        motivoOculto={ehUltimaAtiva}
                         selecaoTravada={ehUltimaAtiva}
                         onClick={() => {
                           const dificuldades = marcado
@@ -441,6 +442,9 @@ function Regras({
                     )
                   })}
                 </div>
+                {config.dificuldades.length === 1 && (
+                  <p className="text-apoio text-texto-2">Pelo menos um nível precisa estar marcado</p>
+                )}
               </fieldset>
 
               {config.pacoteIds.length > 0 && (

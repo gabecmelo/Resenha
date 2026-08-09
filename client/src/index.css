@@ -204,7 +204,7 @@
   }
 
   .pacote-card::before {
-    @apply absolute inset-0 content-[''] bg-gradient-to-br from-acento/5 to-transparent opacity-0 transition-opacity duration-300;
+    @apply pointer-events-none absolute inset-0 content-[''] bg-gradient-to-br from-acento/5 to-transparent opacity-0 transition-opacity duration-300;
   }
 
   .pacote-card:hover {
