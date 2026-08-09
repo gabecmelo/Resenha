@@ -314,8 +314,16 @@ function Regras({
     ehTempoPersonalizado(config.tempoTurnoSeg) ? 'personalizado' : 'preset'
   )
   const [dicaPacoteAberta, setDicaPacoteAberta] = useState(false)
-  const [pacoteExpandido, setPacoteExpandido] = useState<string | null>(null)
+  // Rascunho local do modal de seleção — só vira config de verdade em
+  // "Confirmar" (`enviar`); "Cancelar" descarta sem afetar a sala.
+  const [pacoteIdsRascunho, setPacoteIdsRascunho] = useState<string[]>(config.pacoteIds)
+  const [pacoteParaVerCartas, setPacoteParaVerCartas] = useState<PacoteResumo | null>(null)
   const [verPacoteAberto, setVerPacoteAberto] = useState(false)
+
+  const abrirModalDePacotes = () => {
+    setPacoteIdsRascunho(config.pacoteIds)
+    setModalPacotesAberto(true)
+  }
 
   const pacotesSelecionados = pacotesDisponiveis?.filter((p) => config.pacoteIds.includes(p.id)) ?? []
   // `PKT2-11` — pool combinado computado localmente (sem round-trip), a
@@ -407,12 +415,12 @@ function Regras({
                         {pacotesSelecionados.length === 1 ? '1 pacote' : `${pacotesSelecionados.length} pacotes`}
                       </span>
                     </div>
-                    <Botao variante="secundario" onClick={() => setModalPacotesAberto(true)}>Mudar...</Botao>
+                    <Botao variante="secundario" onClick={() => abrirModalDePacotes()}>Mudar...</Botao>
                   </div>
                 ) : (
                   <div className="flex items-center justify-between rounded-bloco border border-dashed border-linha-suave bg-superficie px-4 py-3">
                     <span className="text-[15px] text-texto-2">Nenhum pacote selecionado</span>
-                    <Botao variante="secundario" onClick={() => setModalPacotesAberto(true)}>Selecionar...</Botao>
+                    <Botao variante="secundario" onClick={() => abrirModalDePacotes()}>Selecionar...</Botao>
                   </div>
                 )}
               </fieldset>
@@ -463,19 +471,22 @@ function Regras({
                   descricao="Marque os temas das cartas para esta partida."
                   largura="larga"
                   rotuloConfirmar="Confirmar"
-                  aoConfirmar={() => setModalPacotesAberto(false)}
+                  aoConfirmar={() => {
+                    enviar({ t: 'configurar', config: { pacoteIds: pacoteIdsRascunho } })
+                    setModalPacotesAberto(false)
+                  }}
                   aoCancelar={() => setModalPacotesAberto(false)}
                 >
                   <div className="pacote-grid">
                     {pacotesDisponiveis?.map((pacote) => {
-                      const marcado = config.pacoteIds.includes(pacote.id)
-                      const expandido = pacoteExpandido === pacote.id
-                      // `PKT2-10` — filtra pelas dificuldades já marcadas, mesmo
-                      // para um pacote ainda não selecionado.
-                      const cartasFiltradas =
-                        PACOTES.find((p) => p.id === pacote.id)
-                          ?.cartas.filter((c) => config.dificuldades.includes(c.dificuldade))
-                          .map((c) => c.texto) ?? []
+                      const marcado = pacoteIdsRascunho.includes(pacote.id)
+                      const alternar = () => {
+                        setPacoteIdsRascunho((atual) =>
+                          atual.includes(pacote.id)
+                            ? atual.filter((id) => id !== pacote.id)
+                            : [...atual, pacote.id]
+                        )
+                      }
                       return (
                         // `role="button"` (não `<button>`) para poder aninhar o
                         // botão "Ver cartas" sem invalidar o HTML.
@@ -484,19 +495,11 @@ function Regras({
                           role="button"
                           tabIndex={0}
                           aria-pressed={marcado}
-                          onClick={() => {
-                            const pacoteIds = marcado
-                              ? config.pacoteIds.filter((id) => id !== pacote.id)
-                              : [...config.pacoteIds, pacote.id]
-                            enviar({ t: 'configurar', config: { pacoteIds } })
-                          }}
+                          onClick={alternar}
                           onKeyDown={(evento) => {
                             if (evento.key !== 'Enter' && evento.key !== ' ') return
                             evento.preventDefault()
-                            const pacoteIds = marcado
-                              ? config.pacoteIds.filter((id) => id !== pacote.id)
-                              : [...config.pacoteIds, pacote.id]
-                            enviar({ t: 'configurar', config: { pacoteIds } })
+                            alternar()
                           }}
                           className="pacote-card text-left"
                         >
@@ -504,7 +507,7 @@ function Regras({
                             <span className="text-2xl">{pacote.emoji}</span>
                             <h3 className="font-semibold text-texto">{pacote.nome}</h3>
                           </div>
-                          <p className="line-clamp-2 text-miudo text-texto-2">{pacote.descricao}</p>
+                          <p className="text-miudo text-texto-2">{pacote.descricao}</p>
                           <span className="mt-1 font-mono text-[10px] tracking-[0.1em] text-texto-3 uppercase">
                             {pacote.quantidade} cartas
                           </span>
@@ -512,25 +515,48 @@ function Regras({
                             type="button"
                             onClick={(evento) => {
                               evento.stopPropagation()
-                              setPacoteExpandido(expandido ? null : pacote.id)
+                              setPacoteParaVerCartas(pacote)
                             }}
                             className="mt-1 flex min-h-11 w-full cursor-pointer items-center gap-1 self-start text-apoio font-medium text-acento hover:underline"
                           >
-                            <span aria-hidden="true" className={`inline-block transition-transform ${expandido ? 'rotate-90' : ''}`}>
-                              ▸
-                            </span>
-                            {expandido ? 'Ocultar cartas' : 'Ver cartas'}
+                            <span aria-hidden="true">▸</span>
+                            Ver cartas
                           </button>
-                          {expandido && (
-                            <ul
-                              onClick={(evento) => evento.stopPropagation()}
-                              className="mt-1 max-h-32 w-full overflow-y-auto rounded-controle bg-superficie-2 p-2 text-miudo text-texto-2"
-                            >
-                              {cartasFiltradas.map((texto) => (
-                                <li key={texto}>{texto}</li>
-                              ))}
-                            </ul>
-                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </Modal>
+              )}
+
+              {pacoteParaVerCartas && (
+                <Modal
+                  titulo={pacoteParaVerCartas.nome}
+                  descricao={`${pacoteParaVerCartas.quantidade} cartas, separadas por dificuldade.`}
+                  largura="larga"
+                  aoCancelar={() => setPacoteParaVerCartas(null)}
+                >
+                  <div className="flex max-h-[60vh] flex-col gap-4 overflow-y-auto">
+                    {OPCOES_DE_DIFICULDADE.map((opcao) => {
+                      const cartas =
+                        PACOTES.find((p) => p.id === pacoteParaVerCartas.id)
+                          ?.cartas.filter((c) => c.dificuldade === opcao.valor)
+                          .map((c) => c.texto) ?? []
+                      return (
+                        <div key={opcao.valor} className="flex flex-col gap-1.5">
+                          <h3 className="text-apoio font-semibold text-texto-2">
+                            {opcao.rotulo} ({cartas.length})
+                          </h3>
+                          <ul className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+                            {cartas.map((texto) => (
+                              <li
+                                key={texto}
+                                className="rounded-controle bg-superficie-2 px-2.5 py-1.5 text-miudo text-texto-2"
+                              >
+                                {texto}
+                              </li>
+                            ))}
+                          </ul>
                         </div>
                       )
                     })}

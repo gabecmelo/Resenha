@@ -63,15 +63,15 @@ export function Modal({
         
         {children}
 
-        <div className="flex flex-wrap gap-2.5">
+        <div className="flex flex-wrap justify-end gap-2.5">
+          <Botao variante="secundario" onClick={aoCancelar}>
+            {rotuloCancelar}
+          </Botao>
           {rotuloConfirmar && aoConfirmar && (
             <Botao variante={destrutivo ? 'destrutivoCheio' : 'primario'} onClick={aoConfirmar}>
               {rotuloConfirmar}
             </Botao>
           )}
-          <Botao variante="secundario" onClick={aoCancelar}>
-            {rotuloCancelar}
-          </Botao>
         </div>
       </div>
     </div>
