@@ -359,7 +359,7 @@ T16 → T17 → T18
 
 ---
 
-### T12: Modal de seleção vira múltipla escolha
+### T12: Modal de seleção vira múltipla escolha ✅ Done
 
 **What**: O modal de seleção de pacotes em `Lobby.tsx` (hoje seleção única, um clique fecha o modal) passa a permitir marcar mais de um pacote (checkbox, o modal não fecha ao marcar), usando `Modal largura="larga"`. Envia `configurar` com `pacoteIds` atualizado a cada toggle.
 **Where**: `client/src/telas/Lobby.tsx`

@@ -34,8 +34,8 @@ export function Lobby({ projecao, enviar, aoSair }: PropsDaTela) {
   // `AJU-34` — o mínimo vem do contrato, não de um número escrito nesta tela.
   let motivoDeEspera = motivoParaIniciar(ativos.length)
   if (motivoDeEspera === undefined) {
-    if (sala.config.modoPacote === 'pacote' && !sala.config.pacoteId) {
-      motivoDeEspera = 'Escolha um pacote para iniciar.'
+    if (sala.config.modoPacote === 'pacote' && sala.config.pacoteIds.length === 0) {
+      motivoDeEspera = 'Escolha ao menos um pacote para iniciar.'
     } else if (sala.config.modoPacote === 'personalizado') {
       motivoDeEspera = 'Pacotes personalizados não estão disponíveis ainda.'
     }
@@ -306,7 +306,7 @@ function Regras({
   )
   const [dicaPacoteAberta, setDicaPacoteAberta] = useState(false)
 
-  const pacoteAtual = pacotesDisponiveis?.find((p) => p.id === config.pacoteId)
+  const pacotesSelecionados = pacotesDisponiveis?.filter((p) => config.pacoteIds.includes(p.id)) ?? []
 
   const opcoesDeTempo = [
     ...PRESETS_DE_TEMPO.map(p => ({ valor: p.valor === null ? 'sem-limite' : String(p.valor), rotulo: p.rotulo })),
@@ -336,7 +336,7 @@ function Regras({
             atual={config.modoPacote}
             aoEscolher={(modoPacote) => {
               if (modoPacote === 'livre') {
-                enviar({ t: 'configurar', config: { modoPacote, pacoteId: null, modoDistribuicao: 'aleatoria' } })
+                enviar({ t: 'configurar', config: { modoPacote, pacoteIds: [], modoDistribuicao: 'aleatoria' } })
               } else {
                 enviar({ t: 'configurar', config: { modoPacote } })
               }
@@ -353,14 +353,15 @@ function Regras({
                 {dicaPacoteAberta && (
                   <p className="text-xs text-texto-3 mb-1 -mt-1 leading-snug">O tema de cartas selecionado para todos os jogadores.</p>
                 )}
-                {pacoteAtual ? (
+                {pacotesSelecionados.length > 0 ? (
                   <div className="flex items-center justify-between rounded-bloco border border-linha bg-superficie px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl leading-none">{pacoteAtual.emoji}</span>
-                      <div className="flex flex-col">
-                        <span className="font-semibold text-texto leading-snug">{pacoteAtual.nome}</span>
-                        <span className="font-mono text-[10px] tracking-[0.1em] text-texto-3 uppercase">{pacoteAtual.quantidade} cartas</span>
-                      </div>
+                    <div className="flex flex-col">
+                      <span className="font-semibold text-texto leading-snug">
+                        {pacotesSelecionados.map((p) => `${p.emoji} ${p.nome}`).join(', ')}
+                      </span>
+                      <span className="font-mono text-[10px] tracking-[0.1em] text-texto-3 uppercase">
+                        {pacotesSelecionados.length === 1 ? '1 pacote' : `${pacotesSelecionados.length} pacotes`}
+                      </span>
                     </div>
                     <Botao variante="secundario" onClick={() => setModalPacotesAberto(true)}>Mudar...</Botao>
                   </div>
@@ -372,7 +373,7 @@ function Regras({
                 )}
               </fieldset>
 
-              {config.pacoteId !== null && (
+              {config.pacoteIds.length > 0 && (
                 <Escolha
                   rotulo="Distribuição"
                   dica="Aleatória: o jogo sorteia a carta. Escolher: você recebe 5 opções do pacote e escolhe uma delas para seu colega."
@@ -384,32 +385,38 @@ function Regras({
 
               {modalPacotesAberto && (
                 <Modal
-                  titulo="Escolha um pacote"
-                  descricao="Selecione o tema das cartas para esta partida."
+                  titulo="Escolha um ou mais pacotes"
+                  descricao="Marque os temas das cartas para esta partida."
+                  largura="larga"
                   aoCancelar={() => setModalPacotesAberto(false)}
                 >
                   <div className="pacote-grid">
-                    {pacotesDisponiveis?.map((pacote) => (
-                      <button
-                        key={pacote.id}
-                        type="button"
-                        aria-pressed={config.pacoteId === pacote.id}
-                        onClick={() => {
-                          enviar({ t: 'configurar', config: { pacoteId: pacote.id } })
-                          setModalPacotesAberto(false)
-                        }}
-                        className="pacote-card text-left"
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className="text-2xl">{pacote.emoji}</span>
-                          <h3 className="font-semibold text-texto">{pacote.nome}</h3>
-                        </div>
-                        <p className="text-miudo text-texto-2">{pacote.descricao}</p>
-                        <span className="mt-1 font-mono text-[10px] tracking-[0.1em] text-texto-3 uppercase">
-                          {pacote.quantidade} cartas
-                        </span>
-                      </button>
-                    ))}
+                    {pacotesDisponiveis?.map((pacote) => {
+                      const marcado = config.pacoteIds.includes(pacote.id)
+                      return (
+                        <button
+                          key={pacote.id}
+                          type="button"
+                          aria-pressed={marcado}
+                          onClick={() => {
+                            const pacoteIds = marcado
+                              ? config.pacoteIds.filter((id) => id !== pacote.id)
+                              : [...config.pacoteIds, pacote.id]
+                            enviar({ t: 'configurar', config: { pacoteIds } })
+                          }}
+                          className="pacote-card text-left"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="text-2xl">{pacote.emoji}</span>
+                            <h3 className="font-semibold text-texto">{pacote.nome}</h3>
+                          </div>
+                          <p className="text-miudo text-texto-2">{pacote.descricao}</p>
+                          <span className="mt-1 font-mono text-[10px] tracking-[0.1em] text-texto-3 uppercase">
+                            {pacote.quantidade} cartas
+                          </span>
+                        </button>
+                      )
+                    })}
                   </div>
                 </Modal>
               )}
@@ -458,8 +465,18 @@ function Regras({
           <Leitura rotulo="Modo de jogo" valor={rotuloDe(OPCOES_DE_MODO, config.modoPacote)} />
           {config.modoPacote === 'pacote' && pacotesDisponiveis && (
             <>
-              <Leitura rotulo="Pacote" valor={config.pacoteId !== null ? (pacotesDisponiveis.find((p) => p.id === config.pacoteId)?.nome ?? '—') : 'Nenhum pacote selecionado'} />
-              {config.pacoteId !== null && (<Leitura rotulo="Distribuição" valor={rotuloDe(OPCOES_DE_DISTRIBUICAO, config.modoDistribuicao)} />)}
+              <Leitura
+                rotulo="Pacote"
+                valor={
+                  config.pacoteIds.length > 0
+                    ? pacotesDisponiveis
+                        .filter((p) => config.pacoteIds.includes(p.id))
+                        .map((p) => p.nome)
+                        .join(', ')
+                    : 'Nenhum pacote selecionado'
+                }
+              />
+              {config.pacoteIds.length > 0 && (<Leitura rotulo="Distribuição" valor={rotuloDe(OPCOES_DE_DISTRIBUICAO, config.modoDistribuicao)} />)}
             </>
           )}
           <Leitura rotulo="Ordem dos turnos" valor={rotuloDe(OPCOES_DE_ORDEM, config.ordemTurnos)} />
