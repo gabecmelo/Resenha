@@ -116,7 +116,13 @@
 - **Dois gaps que o Verifier achou, ambos não-bloqueantes**:
   1. **Corrigido na hora** (`b0948c1`): `scripts/seed-pacotes.ts` ainda importava do caminho antigo (`server/games/quem-sou-eu/pacotes-dados`) — quebrado pela T2, invisível a qualquer gate porque o script fica fora do escopo de todo `include`/lint/test. Rodei o script depois do fix: seed local funcionou de ponta a ponta.
   2. **Aceito como dívida, não corrigido**: `FBK-02` ("botão desabilitado não toca som nem aplica a micro-transição") está implementado corretamente (guarda dupla: checagem `!desabilitado` + o próprio `disabled` do HTML bloqueia o evento de clique) mas sem teste automatizado — mesma situação de ~12 outras cláusulas de UI desta feature, e o repo inteiro não tem infraestrutura de teste de componente React ainda. Não é uma lacuna desta feature especificamente, é uma lacuna estrutural do projeto.
-- **Feature `pacotes-avancados`: fechada.** Falta só o dono testar manualmente numa partida real (a suíte automatizada não substitui isso) e decidir se faz merge pra `main` agora ou junto com a próxima rodada.
+- **Feature `pacotes-avancados`: fechada e testada manualmente pelo dono.** Achou 5 problemas reais numa partida de verdade, todos corrigidos e testados nesta mesma sessão (fora das 18 tasks originais, rodada de UAT pós-Verifier):
+  1. `regras.ts` (`4c617a2`) — negar a declaração de "Descobri!" de alguém fora da vez pulava a vez de quem realmente estava jogando. `responderDeclaracao` só avança `vezDe` agora quando quem declarou era o dono da vez. 2 testes novos.
+  2. `Botao.tsx`/`Lobby.tsx` (`15b006a`) — o nível de dificuldade travado (único ativo, não pode desmarcar) usava o cinza genérico de "ação indisponível", parecendo desmarcado. Novo prop `selecaoTravada` mantém o verde.
+  3. Mesma leva (acabou junto no commit acima por descuido de staging): botão "Confirmar" no modal de seleção de pacotes.
+  4. `index.css` (`e8cd6d1`) — grid de pacotes trava em 2 linhas com rolagem própria no desktop (antes crescia sem limite).
+  5. Mesma leva — alvo de toque do "Ver cartas" foi de 18px pra 44px: a causa real do "não funciona" era o clique errando o botão minúsculo e caindo no card por baixo, selecionando/desselecionando o pacote em silêncio.
+  - `npx tsc` (client+server), `npm run lint` (só os 8 erros pré-existentes, confirmados sem novidade) e `npm run test:unit` (484 testes) verificados depois de cada mudança.
 - **In-progress** (file:line): none.
 - **Uncommitted files**: none — árvore de trabalho limpa na branch `feat/pacotes-avancados`.
 - **Branch**: `feat/pacotes-avancados` (não `main`).
