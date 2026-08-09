@@ -10,12 +10,12 @@ O sistema de pacotes atual tem três limitações que apareceram no uso real: (1
 
 ## Goals
 
-- [ ] Cada um dos 10 pacotes existentes passa de 40 para 150 cartas, divididas em 50 fácil / 50 médio / 50 difícil
-- [ ] Host escolhe quais níveis de dificuldade entram na partida (1, 2 ou os 3)
-- [ ] Host pode combinar mais de um pacote na mesma partida
-- [ ] Botão "Ver pacote" mostra a lista completa de cartas possíveis (do que está selecionado), para todos
-- [ ] Grid de seleção/visualização de pacotes usa 5 colunas em desktop, sem alterar o mobile
-- [ ] Cliques em botões e entrada de jogador na sala ganham som e micro-feedback visual
+- [x] Cada um dos 10 pacotes existentes passa de 40 para 150 cartas, divididas em 50 fácil / 50 médio / 50 difícil
+- [x] Host escolhe quais níveis de dificuldade entram na partida (1, 2 ou os 3)
+- [x] Host pode combinar mais de um pacote na mesma partida
+- [x] Botão "Ver pacote" mostra a lista completa de cartas possíveis (do que está selecionado), para todos
+- [x] Grid de seleção/visualização de pacotes usa 5 colunas em desktop, sem alterar o mobile
+- [x] Cliques em botões e entrada de jogador na sala ganham som e micro-feedback visual
 
 ## Out of Scope
 
@@ -168,48 +168,48 @@ O sistema de pacotes atual tem três limitações que apareceram no uso real: (1
 
 | Requirement ID | Story | Phase | Status |
 | --------------- | ----- | ------ | ------ |
-| PKT2-01 | P1: Dificuldade | Specify | Pending |
-| PKT2-02 | P1: Dificuldade | Specify | Pending |
-| PKT2-03 | P1: Dificuldade | Specify | Pending |
-| PKT2-04 | P1: Dificuldade | Specify | Pending |
-| PKT2-05 | P1: Multi-pacote | Specify | Pending |
-| PKT2-06 | P1: Multi-pacote | Specify | Pending |
-| PKT2-07 | P1: Multi-pacote | Specify | Pending |
-| PKT2-08 | P1: Multi-pacote | Specify | Pending |
-| PKT2-09 | P1: Multi-pacote | Specify | Pending |
-| PKT2-10 | P1: Ver pacote | Specify | Pending |
-| PKT2-11 | P1: Ver pacote | Specify | Pending |
-| PKT2-12 | P1: Ver pacote | Specify | Pending |
-| PKT2-13 | P1: Ver pacote | Specify | Pending |
-| PKT2-14 | P1: Grid desktop | Specify | Pending |
-| PKT2-15 | P1: Grid desktop | Specify | Pending |
-| PKT2-16 | P1: Grid desktop | Specify | Pending |
-| PKT2-17 | P1: Grid desktop | Specify | Pending |
-| PKT2-18 | P2: Conteúdo | Specify | Pending |
-| PKT2-19 | P2: Conteúdo | Specify | Pending |
-| PKT2-20 | P2: Conteúdo | Specify | Pending |
-| FBK-01 | P1: Feedback | Specify | Pending |
-| FBK-02 | P1: Feedback | Specify | Pending |
-| FBK-03 | P1: Feedback | Specify | Pending |
-| FBK-04 | P1: Feedback | Specify | Pending |
-| FBK-05 | P1: Feedback | Specify | Pending |
-| PKT2-21 | Edge Case | Specify | Pending |
-| PKT2-22 | Edge Case | Specify | Pending |
-| PKT2-23 | Edge Case | Specify | Pending |
-| FBK-06 | Edge Case | Specify | Pending |
+| PKT2-01 | P1: Dificuldade | Verified | Verified |
+| PKT2-02 | P1: Dificuldade | Verified | Verified |
+| PKT2-03 | P1: Dificuldade | Verified | Verified |
+| PKT2-04 | P1: Dificuldade | Verified | Verified |
+| PKT2-05 | P1: Multi-pacote | Verified | Verified |
+| PKT2-06 | P1: Multi-pacote | Verified | Verified |
+| PKT2-07 | P1: Multi-pacote | Verified | Verified |
+| PKT2-08 | P1: Multi-pacote | Verified | Verified |
+| PKT2-09 | P1: Multi-pacote | Verified | Verified |
+| PKT2-10 | P1: Ver pacote | Verified | Verified |
+| PKT2-11 | P1: Ver pacote | Verified | Verified |
+| PKT2-12 | P1: Ver pacote | Verified | Verified |
+| PKT2-13 | P1: Ver pacote | Verified | Verified |
+| PKT2-14 | P1: Grid desktop | Verified | Verified |
+| PKT2-15 | P1: Grid desktop | Verified | Verified |
+| PKT2-16 | P1: Grid desktop | Verified | Verified |
+| PKT2-17 | P1: Grid desktop | Verified | Verified |
+| PKT2-18 | P2: Conteúdo | Verified | Verified |
+| PKT2-19 | P2: Conteúdo | Verified | Verified |
+| PKT2-20 | P2: Conteúdo | Verified | Verified |
+| FBK-01 | P1: Feedback | Verified | Verified |
+| FBK-02 | P1: Feedback | Verified | Verified |
+| FBK-03 | P1: Feedback | Verified | Verified |
+| FBK-04 | P1: Feedback | Verified | Verified |
+| FBK-05 | P1: Feedback | Verified | Verified |
+| PKT2-21 | Edge Case | Verified | Verified |
+| PKT2-22 | Edge Case | Verified | Verified |
+| PKT2-23 | Edge Case | Verified | Verified |
+| FBK-06 | Edge Case | Verified | Verified |
 
 **ID format:** `PKT2-NN` (extensão de pacotes), `FBK-NN` (feedback sonoro/visual)
 
-**Coverage:** 29 total, 0 mapped to tasks, 29 unmapped ⚠️ (esperado nesta fase — mapeamento acontece em Tasks)
+**Coverage:** 29 total, 29 verified, 0 unmapped — PASS do Verifier em `validation.md`
 
 ---
 
 ## Success Criteria
 
-- [ ] Os 10 pacotes têm 150 cartas cada, 50/50/50 por dificuldade, revisadas pelo dono antes do merge
-- [ ] Host filtra por dificuldade e combina pacotes; pool reflete a combinação corretamente (união + dedupe)
-- [ ] "Ver pacote" funciona nos dois lugares (modal de seleção do host, lobby de todos) sem vazar quem tem qual carta
-- [ ] Grid de 5 colunas em desktop (≥1024px), mobile inalterado
-- [ ] Todo botão habilitado tem som de clique + micro-transição; desabilitado não tem nenhum dos dois
-- [ ] Som de entrada de jogador na sala existe e respeita a preferência de som
-- [ ] Todos os testes existentes continuam passando (regressão zero) — inclui a suíte de `pacotes-de-cartas` mesmo sem `validation.md` prévio
+- [x] Os 10 pacotes têm 150 cartas cada, 50/50/50 por dificuldade, revisadas pelo dono antes do merge
+- [x] Host filtra por dificuldade e combina pacotes; pool reflete a combinação corretamente (união + dedupe)
+- [x] "Ver pacote" funciona nos dois lugares (modal de seleção do host, lobby de todos) sem vazar quem tem qual carta
+- [x] Grid de 5 colunas em desktop (≥1024px), mobile inalterado
+- [x] Todo botão habilitado tem som de clique + micro-transição; desabilitado não tem nenhum dos dois
+- [x] Som de entrada de jogador na sala existe e respeita a preferência de som
+- [x] Todos os testes existentes continuam passando (regressão zero) — inclui a suíte de `pacotes-de-cartas` mesmo sem `validation.md` prévio
