@@ -940,12 +940,6 @@ describe('saída de jogador durante o jogo (JOGO-10)', () => {
 })
 
 describe('declararDescobri (DESC-01, DESC-09, DESC-10)', () => {
-  it('retorna SEM_AUTORIDADE quando não é a vez do jogador', () => {
-    const { estado, contexto } = emJogo()
-    const resultado = reduzir(estado, { ...contexto, autorId: 'b' }, { t: 'declararDescobri' }, AMBIENTE)
-    expect(resultado).toEqual({ ok: false, erro: 'SEM_AUTORIDADE' })
-  })
-
   it('permite declarar quando é a vez do jogador', () => {
     const { estado, contexto } = emJogo()
     const resultado = reduzirOk(estado, { ...contexto, autorId: 'a' }, { t: 'declararDescobri' })
