@@ -190,8 +190,13 @@
 }
 
 @layer components {
+  /*
+   * Desktop trava em 2 linhas com rolagem interna própria (não a do modal
+   * inteiro) — cresce hoje com 10 pacotes, mas não deve crescer sem limite
+   * conforme mais pacotes forem adicionados.
+   */
   .pacote-grid {
-    @apply grid w-full grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5;
+    @apply grid w-full grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5 lg:max-h-[420px] lg:overflow-y-auto lg:pr-1;
   }
 
   .pacote-card {
