@@ -1,7 +1,28 @@
-import type { PacoteResumo } from '../../../shared/protocolo'
+import type { PacoteResumo } from './protocolo'
+
+export type Dificuldade = 'facil' | 'medio' | 'dificil'
+
+export interface CartaDoPacote {
+  texto: string
+  dificuldade: Dificuldade
+}
 
 export interface PacoteCompleto extends PacoteResumo {
-  cartas: string[]
+  cartas: CartaDoPacote[]
+}
+
+/**
+ * Migração temporária (T2 de `pacotes-avancados`): distribui as cartas
+ * existentes em terços de dificuldade só para não deixar o filtro sem efeito
+ * enquanto o conteúdo real (150 cartas/pacote, `PKT2-18`) não chega em T5.
+ * Deixa de ser usada assim que os pacotes ganharem `dificuldade` curada.
+ */
+function comDificuldadePlaceholder(cartas: readonly string[]): CartaDoPacote[] {
+  const terco = Math.ceil(cartas.length / 3)
+  return cartas.map((texto, i) => ({
+    texto,
+    dificuldade: i < terco ? 'facil' : i < terco * 2 ? 'medio' : 'dificil',
+  }))
 }
 
 export const PACOTES: PacoteCompleto[] = [
@@ -11,8 +32,8 @@ export const PACOTES: PacoteCompleto[] = [
     nome: 'Filmes',
     descricao: 'Adivinhe os filmes mais famosos do cinema.',
     quantidade: 40,
-    cartas: [
-      'O Poderoso Chefão', 'O Senhor dos Anéis', 'Star Wars', 'De Volta Para o Futuro', 'Matrix', 
+    cartas: comDificuldadePlaceholder([
+      'O Poderoso Chefão', 'O Senhor dos Anéis', 'Star Wars', 'De Volta Para o Futuro', 'Matrix',
       'Pulp Fiction', 'Clube da Luta', 'Forrest Gump', 'Inception', 'Vingadores',
       'Titanic', 'Jurassic Park', 'E.T. O Extraterrestre', 'Tubarão', 'O Exterminador do Futuro',
       'Indiana Jones', 'Rocky', 'Harry Potter', 'Avatar', 'Gladiador',
@@ -20,7 +41,7 @@ export const PACOTES: PacoteCompleto[] = [
       'Casablanca', 'Cidade de Deus', 'Tropa de Elite', 'O Auto da Compadecida', 'Central do Brasil',
       'O Silêncio dos Inocentes', 'Os Suspeitos', 'Seven', 'O Sexto Sentido', 'O Show de Truman',
       'Toy Story', 'O Rei Leão', 'Procurando Nemo', 'Shrek', 'Divertida Mente'
-    ]
+    ]),
   },
   {
     id: 'anime',
@@ -28,7 +49,7 @@ export const PACOTES: PacoteCompleto[] = [
     nome: 'Personagens de Anime',
     descricao: 'Personagens icônicos do mundo dos animes e mangás.',
     quantidade: 40,
-    cartas: [
+    cartas: comDificuldadePlaceholder([
       'Goku', 'Naruto', 'Sasuke', 'Luffy', 'Zoro',
       'Ichigo', 'Edward Elric', 'Alphonse Elric', 'Levi Ackerman', 'Eren Yeager',
       'Mikasa', 'Saitama', 'Gohan', 'Vegeta', 'Kakashi',
@@ -37,7 +58,7 @@ export const PACOTES: PacoteCompleto[] = [
       'Shinji Ikari', 'Asuka', 'Rei Ayanami', 'Tanjiro', 'Nezuko',
       'Zenitsu', 'Inosuke', 'Gojo', 'Megumi', 'Nobara',
       'Yuji', 'Roronoa Zoro', 'Sanji', 'Nami', 'Nico Robin'
-    ]
+    ]),
   },
   {
     id: 'personagens-filmes',
@@ -45,7 +66,7 @@ export const PACOTES: PacoteCompleto[] = [
     nome: 'Personagens de Filmes',
     descricao: 'Heróis, vilões e personagens inesquecíveis.',
     quantidade: 40,
-    cartas: [
+    cartas: comDificuldadePlaceholder([
       'Darth Vader', 'Luke Skywalker', 'James Bond', 'Indiana Jones', 'Han Solo',
       'Harry Potter', 'Hermione Granger', 'Ron Weasley', 'Voldemort', 'Frodo Bolseiro',
       'Gandalf', 'Aragorn', 'Gollum', 'Jack Sparrow', 'Neo',
@@ -54,7 +75,7 @@ export const PACOTES: PacoteCompleto[] = [
       'Coringa', 'Batman', 'Mulher-Maravilha', 'Superman', 'Homem-Aranha',
       'Wolverine', 'Magneto', 'Professor X', 'Katniss Everdeen', 'John McClane',
       'Hannibal Lecter', 'Norman Bates', 'Kevin McCallister', 'Forrest Gump', 'Tyler Durden'
-    ]
+    ]),
   },
   {
     id: 'livros',
@@ -62,7 +83,7 @@ export const PACOTES: PacoteCompleto[] = [
     nome: 'Livros',
     descricao: 'Clássicos da literatura, best-sellers e romances.',
     quantidade: 40,
-    cartas: [
+    cartas: comDificuldadePlaceholder([
       'Dom Quixote', '1984', 'O Pequeno Príncipe', 'Harry Potter', 'O Senhor dos Anéis',
       'O Hobbit', 'O Alquimista', 'Cem Anos de Solidão', 'A Revolução dos Bichos', 'Crime e Castigo',
       'A Metamorfose', 'Orgulho e Preconceito', 'O Morro dos Ventos Uivantes', 'Moby Dick', 'A Divina Comédia',
@@ -71,7 +92,7 @@ export const PACOTES: PacoteCompleto[] = [
       'A Menina que Roubava Livros', 'O Código Da Vinci', 'Anjos e Demônios', 'A Guerra dos Tronos', 'O Nome do Vento',
       'Duna', 'Fundação', 'Eu, Robô', 'O Guia do Mochileiro das Galáxias', 'Jogos Vorazes',
       'Crepúsculo', 'Percy Jackson', 'Dom Casmurro', 'Memórias Póstumas de Brás Cubas', 'O Cortiço'
-    ]
+    ]),
   },
   {
     id: 'futebol',
@@ -79,7 +100,7 @@ export const PACOTES: PacoteCompleto[] = [
     nome: 'Jogadores de Futebol',
     descricao: 'Lendas do passado e craques da atualidade.',
     quantidade: 40,
-    cartas: [
+    cartas: comDificuldadePlaceholder([
       'Pelé', 'Maradona', 'Messi', 'Cristiano Ronaldo', 'Neymar',
       'Ronaldinho Gaúcho', 'Ronaldo Fenômeno', 'Zidane', 'Romário', 'Zico',
       'Rivellino', 'Garrincha', 'Sócrates', 'Taffarel', 'Cafu',
@@ -88,7 +109,7 @@ export const PACOTES: PacoteCompleto[] = [
       'Modric', 'Kroos', 'Iniesta', 'Xavi', 'Sergio Ramos',
       'Puyol', 'Maldini', 'Buffon', 'Neuer', 'Casillas',
       'Cruyff', 'Beckenbauer', 'Platini', 'Di Stéfano', 'Puskás'
-    ]
+    ]),
   },
   {
     id: 'jogos',
@@ -96,7 +117,7 @@ export const PACOTES: PacoteCompleto[] = [
     nome: 'Jogos',
     descricao: 'Títulos clássicos e sucessos modernos.',
     quantidade: 40,
-    cartas: [
+    cartas: comDificuldadePlaceholder([
       'Super Mario World', 'Sonic the Hedgehog', 'The Legend of Zelda', 'Minecraft', 'Grand Theft Auto V',
       'Tetris', 'Pac-Man', 'Street Fighter II', 'Mortal Kombat', 'Call of Duty',
       'Counter-Strike', 'League of Legends', 'Dota 2', 'World of Warcraft', 'Overwatch',
@@ -105,7 +126,7 @@ export const PACOTES: PacoteCompleto[] = [
       'Elden Ring', 'God of War', 'The Last of Us', 'Uncharted', 'Resident Evil',
       'Silent Hill', 'Metal Gear Solid', 'Final Fantasy VII', 'Pokémon Red/Blue', 'Super Smash Bros',
       'Mario Kart 8', 'Animal Crossing', 'Hollow Knight', 'Hades', 'Celeste'
-    ]
+    ]),
   },
   {
     id: 'personagens-jogos',
@@ -113,7 +134,7 @@ export const PACOTES: PacoteCompleto[] = [
     nome: 'Personagens de Jogos',
     descricao: 'Protagonistas e vilões marcantes dos games.',
     quantidade: 40,
-    cartas: [
+    cartas: comDificuldadePlaceholder([
       'Mario', 'Luigi', 'Bowser', 'Peach', 'Sonic',
       'Tails', 'Knuckles', 'Eggman', 'Link', 'Zelda',
       'Ganon', 'Pikachu', 'Charizard', 'Mewtwo', 'Samus Aran',
@@ -122,7 +143,7 @@ export const PACOTES: PacoteCompleto[] = [
       'Cloud Strife', 'Sephiroth', 'Sub-Zero', 'Scorpion', 'Ryu',
       'Ken', 'Chun-Li', 'Arthur Morgan', 'John Marston', 'Doomguy',
       'Gordon Freeman', 'GLaDOS', 'Steve', 'Tracer', 'Jinx'
-    ]
+    ]),
   },
   {
     id: 'series',
@@ -130,7 +151,7 @@ export const PACOTES: PacoteCompleto[] = [
     nome: 'Séries de TV',
     descricao: 'Shows que marcaram época e séries atuais.',
     quantidade: 40,
-    cartas: [
+    cartas: comDificuldadePlaceholder([
       'Breaking Bad', 'Game of Thrones', 'Stranger Things', 'Friends', 'The Office',
       'How I Met Your Mother', 'Seinfeld', 'The Simpsons', 'South Park', 'Rick and Morty',
       'Peaky Blinders', 'The Boys', 'Black Mirror', 'Dark', 'La Casa de Papel',
@@ -139,7 +160,7 @@ export const PACOTES: PacoteCompleto[] = [
       'Fargo', 'Better Call Saul', 'Succession', 'The Last of Us', 'The Mandalorian',
       'WandaVision', 'Loki', 'The Crown', 'Bridgerton', 'Euphoria',
       'Chaves', 'Chapolin', 'A Grande Família', 'Os Normais', 'Tapas & Beijos'
-    ]
+    ]),
   },
   {
     id: 'musica',
@@ -147,7 +168,7 @@ export const PACOTES: PacoteCompleto[] = [
     nome: 'Cantores/Bandas',
     descricao: 'Ídolos da música, bandas e lendas do rock.',
     quantidade: 40,
-    cartas: [
+    cartas: comDificuldadePlaceholder([
       'Michael Jackson', 'Elvis Presley', 'Freddie Mercury', 'Madonna', 'Beyoncé',
       'Taylor Swift', 'Justin Bieber', 'Ed Sheeran', 'Adele', 'Lady Gaga',
       'Rihanna', 'Katy Perry', 'Bruno Mars', 'Eminem', 'Snoop Dogg',
@@ -156,7 +177,7 @@ export const PACOTES: PacoteCompleto[] = [
       'Red Hot Chili Peppers', 'Coldplay', 'U2', 'Linkin Park', 'Green Day',
       'Roberto Carlos', 'Caetano Veloso', 'Gilberto Gil', 'Chico Buarque', 'Tim Maia',
       'Jorge Ben Jor', 'Legião Urbana', 'Charlie Brown Jr.', 'Skank', 'Titãs'
-    ]
+    ]),
   },
   {
     id: 'super-herois',
@@ -164,7 +185,7 @@ export const PACOTES: PacoteCompleto[] = [
     nome: 'Super-heróis',
     descricao: 'Heróis da Marvel, DC e outros universos.',
     quantidade: 40,
-    cartas: [
+    cartas: comDificuldadePlaceholder([
       'Homem-Aranha', 'Batman', 'Superman', 'Mulher-Maravilha', 'Capitão América',
       'Homem de Ferro', 'Thor', 'Hulk', 'Viúva Negra', 'Gavião Arqueiro',
       'Pantera Negra', 'Doutor Estranho', 'Feiticeira Escarlate', 'Visão', 'Homem-Formiga',
@@ -173,6 +194,6 @@ export const PACOTES: PacoteCompleto[] = [
       'Vampira', 'Noturno', 'Fera', 'Flash', 'Aquaman',
       'Lanterna Verde', 'Ciborgue', 'Arqueiro Verde', 'Caçador de Marte', 'Shazam',
       'Asa Noturna', 'Batgirl', 'Supergirl', 'Demolidor', 'Justiceiro'
-    ]
+    ]),
   }
 ]

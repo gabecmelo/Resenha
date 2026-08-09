@@ -76,7 +76,7 @@ T16 → T17 → T18
 
 ## Task Breakdown
 
-### T1: Incluir `shared/` na suíte de testes unitários
+### T1: Incluir `shared/` na suíte de testes unitários ✅ Done (`1cc366a`)
 
 **What**: `vitest.config.ts` passa a rodar `shared/**/*.test.ts` — hoje o `include` só cobre `server/**` e `client/**`, então qualquer teste que eu escrever para `shared/pacotes.ts` em T3 seria silenciosamente ignorado sem isso.
 **Where**: `vitest.config.ts`
@@ -99,7 +99,7 @@ T16 → T17 → T18
 
 ---
 
-### T2: Mover conteúdo de pacotes para `shared/pacotes-dados.ts`
+### T2: Mover conteúdo de pacotes para `shared/pacotes-dados.ts` ✅ Done
 
 **What**: Move `server/games/quem-sou-eu/pacotes-dados.ts` para `shared/pacotes-dados.ts`. `cartas: string[]` vira `cartas: CartaDoPacote[]` (`{ texto: string; dificuldade: 'facil' | 'medio' | 'dificil' }`). As 40 cartas atuais de cada pacote são migradas com dificuldade distribuída (ex.: as ~13-14 primeiras `facil`, as ~13 seguintes `medio`, o resto `dificil`) — é conteúdo placeholder, T5 substitui por 150 cartas reais por pacote.
 **Where**: `shared/pacotes-dados.ts` (novo), `server/games/quem-sou-eu/pacotes-dados.ts` (removido)

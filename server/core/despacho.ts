@@ -212,10 +212,13 @@ async function iniciar<E>(
         pacote = p;
       } else {
         // Fallback para dev local
-        const { PACOTES } = await import('../games/quem-sou-eu/pacotes-dados');
+        const { PACOTES } = await import('../../shared/pacotes-dados');
         const estatico = PACOTES.find(p => p.id === sala.config.pacoteId);
         if (!estatico) return { ok: false, erro: 'PACOTE_NAO_ENCONTRADO' }
-        pacote = estatico;
+        // SPEC_DEVIATION: cartas ainda achatadas para string[] aqui -- T6/T7
+        // (fases seguintes desta mesma feature) trocam este bloco inteiro
+        // para buscar N pacotes e passar PacoteCompleto/dificuldade adiante.
+        pacote = { ...estatico, cartas: estatico.cartas.map((c) => c.texto) };
       }
     } catch {
       return { ok: false, erro: 'PACOTE_INDISPONIVEL' }
