@@ -40,7 +40,9 @@ describe('sons', () => {
     };
 
     vi.stubGlobal('window', {
-      AudioContext: vi.fn(() => mockAudioContext),
+      AudioContext: vi.fn(function () {
+        return mockAudioContext;
+      }),
       matchMedia: vi.fn(() => ({ matches: false })),
       localStorage: {
         getItem: vi.fn(() => 'true'),
