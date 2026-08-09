@@ -200,7 +200,7 @@
   }
 
   .pacote-card {
-    @apply relative flex cursor-pointer flex-col items-start gap-2 overflow-hidden rounded-bloco border border-linha bg-superficie p-4 text-left transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)];
+    @apply relative flex cursor-pointer flex-col items-start justify-between overflow-hidden rounded-bloco border border-linha bg-superficie p-4 text-left transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)];
   }
 
   .pacote-card::before {
