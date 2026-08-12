@@ -359,3 +359,14 @@ Nenhuma dependência aponta para uma fase posterior; todas apontam para trás ou
 | T9: Lobby.tsx | Client UI component | none (build gate) | none | ✅ OK |
 
 Todas as tasks batem com a matriz — nenhuma violação.
+
+---
+
+## Fix Tasks (Verifier Round 1 — `validation.md`)
+
+### T-Fix1: Cobertura de integração para HUB-12 e Edge Case 4 — ✅ Done (`3ecda61`)
+
+- Adicionado `trocarJogo aceito difunde o jogoId e a config resetada pra todo jogador conectado (HUB-12)` em `sala-do.integration.test.ts`: dois jogadores, host troca de jogo, o segundo jogador (que não mandou nada) recebe a atualização só por difusão. Mata a lacuna real do Sensor #1/#2 (broadcast não testado no nível do DO shell).
+- Adicionado `jogo ausente do registro falha fechado...` cobrindo o caminho onde `sala.jogoId` não resolve no registro: comando ainda processado, sem erro ao cliente, sala persiste e continua respondendo.
+- **Limitação conhecida, não resolvida**: a mutação específica do Sensor #3 (remover a guarda `if (jogo === null) return` antes de `difundir()` em `confirmar()`) continua sobrevivendo a este novo teste. Investigação manual (reintroduzindo a mutação localmente e rodando só este teste) confirmou que a exceção não tratada dentro do handler `webSocketMessage` é engolida silenciosamente pelo runtime `workerd`/`vitest-pool-workers` — sem mensagem de erro pro cliente, sem fechar o WebSocket (`readyState` seguiu `OPEN`), sem alterar a contagem de projeções recebidas. Não foi encontrado nenhum sinal observável pelo cliente via WebSocket que distinga "guarda presente, pulo limpo" de "guarda ausente, exceção não tratada" neste harness de teste. Ver `L-007` em `.specs/LESSONS.md` — a lição já registrada (testar o resolver via integração) foi aplicada, mas o sensor específico continua vivo por uma limitação da plataforma de teste, não por falta de tentativa.
+- Gate completo rodado após a correção: typecheck ✅, unit 495/495, integration 86/86.

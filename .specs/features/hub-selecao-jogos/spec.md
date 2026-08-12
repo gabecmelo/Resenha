@@ -113,20 +113,20 @@ Toda ambiguidade foi resolvida em `discuss` (nesta própria sessão, sem `contex
 
 | Requirement ID | Story                          | Phase  | Status    |
 | --------------- | ------------------------------- | ------ | --------- |
-| HUB-01           | P1: Escolher jogo ao criar      | Design | In Design |
-| HUB-02           | P1: Escolher jogo ao criar      | Design | In Design |
-| HUB-03           | P1: Escolher jogo ao criar      | Design | In Design |
-| HUB-04           | P1: Escolher jogo ao criar      | Design | In Design |
-| HUB-05           | P1: Escolher jogo ao criar      | Design | In Design |
-| HUB-06           | P2: Trocar jogo no lobby        | Design | In Design |
-| HUB-07           | P2: Trocar jogo no lobby        | Design | In Design |
-| HUB-08           | P2: Trocar jogo no lobby        | Design | In Design |
-| HUB-09           | P2: Trocar jogo no lobby        | Design | In Design |
-| HUB-10           | P2: Trocar jogo no lobby        | Design | In Design |
-| HUB-11           | P2: Trocar jogo no lobby        | Design | In Design |
-| HUB-12           | P2: Trocar jogo no lobby        | Design | In Design |
-| HUB-13           | P3: Registro pronto pro Espião  | Design | In Design |
-| HUB-14           | P3: Registro pronto pro Espião  | Design | In Design |
+| HUB-01           | P1: Escolher jogo ao criar      | Design | Verified  |
+| HUB-02           | P1: Escolher jogo ao criar      | Design | Verified  |
+| HUB-03           | P1: Escolher jogo ao criar      | Design | Verified  |
+| HUB-04           | P1: Escolher jogo ao criar      | Design | Verified  |
+| HUB-05           | P1: Escolher jogo ao criar      | Design | Verified  |
+| HUB-06           | P2: Trocar jogo no lobby        | Design | Verified  |
+| HUB-07           | P2: Trocar jogo no lobby        | Design | Verified  |
+| HUB-08           | P2: Trocar jogo no lobby        | Design | Verified  |
+| HUB-09           | P2: Trocar jogo no lobby        | Design | Verified  |
+| HUB-10           | P2: Trocar jogo no lobby        | Design | Verified  |
+| HUB-11           | P2: Trocar jogo no lobby        | Design | Verified  |
+| HUB-12           | P2: Trocar jogo no lobby        | Design | Verified  |
+| HUB-13           | P3: Registro pronto pro Espião  | Design | Verified  |
+| HUB-14           | P3: Registro pronto pro Espião  | Design | Verified  |
 
 **ID format:** `HUB-[NUMBER]`, mapeado em ordem às ACs de P1 (01–05), P2 (06–12) e P3 (13–14) acima.
 
