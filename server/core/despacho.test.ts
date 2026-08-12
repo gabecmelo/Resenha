@@ -16,6 +16,7 @@ import {
 import type { PacoteCompleto } from '../../shared/pacotes-dados'
 import { quemSouEu } from '../games/quem-sou-eu'
 import type { EstadoQuemSouEu } from '../games/quem-sou-eu/regras'
+import { REGISTRO_DE_JOGOS } from '../games/registro'
 import { type JogoDaSala, NOTAS_MAX_CARACTERES, avisar, buscarPacotes, despachar } from './despacho'
 import { reconectar } from './roster'
 
@@ -43,6 +44,7 @@ function salaEmLobby(quantidade = 3): EstadoSala<EstadoQuemSouEu> {
     config: { ...CONFIG_PADRAO },
     chat: [],
     jogo: null,
+    jogoId: 'quem-sou-eu',
     prazos: { turno: null, migracaoHost: null, salaVazia: null, salaOciosa: null },
     ultimaAcaoEm: 0,
   }
@@ -50,17 +52,17 @@ function salaEmLobby(quantidade = 3): EstadoSala<EstadoQuemSouEu> {
 
 async function salaEmEscrita(quantidade = 3): Promise<EstadoSala<EstadoQuemSouEu>> {
   const sala = salaEmLobby(quantidade)
-  await despachar(sala, quemSouEu, 'j1', { t: 'iniciar' }, AMBIENTE)
+  await despachar(sala, REGISTRO_DE_JOGOS, 'j1', { t: 'iniciar' }, AMBIENTE)
   return sala
 }
 
 async function salaEmJogo(quantidade = 3): Promise<EstadoSala<EstadoQuemSouEu>> {
   const sala = await salaEmEscrita(quantidade)
   for (const jogador of sala.jogadores) {
-    await despachar(sala, quemSouEu, jogador.id, { t: 'escreverCarta', texto: 'Chapolin' }, AMBIENTE)
-    await despachar(sala, quemSouEu, jogador.id, { t: 'marcarPronto', pronto: true }, AMBIENTE)
+    await despachar(sala, REGISTRO_DE_JOGOS, jogador.id, { t: 'escreverCarta', texto: 'Chapolin' }, AMBIENTE)
+    await despachar(sala, REGISTRO_DE_JOGOS, jogador.id, { t: 'marcarPronto', pronto: true }, AMBIENTE)
   }
-  await despachar(sala, quemSouEu, 'j1', { t: 'comecar' }, AMBIENTE)
+  await despachar(sala, REGISTRO_DE_JOGOS, 'j1', { t: 'comecar' }, AMBIENTE)
   return sala
 }
 
@@ -69,7 +71,7 @@ interface Marcador {
   marca: string
 }
 
-function moduloQueDevolve(resposta: ResultadoReducer<Marcador>): JogoDaSala<Marcador> {
+function moduloQueDevolve(resposta: ResultadoReducer<Marcador>): JogoDaSala<unknown> {
   return {
     iniciarRodada: () => ({ ok: true, valor: { marca: 'inicial' } }),
     reduzir: () => resposta,
@@ -79,8 +81,13 @@ function moduloQueDevolve(resposta: ResultadoReducer<Marcador>): JogoDaSala<Marc
   }
 }
 
-function salaComModulo(): EstadoSala<Marcador> {
-  const sala = salaEmLobby(3) as unknown as EstadoSala<Marcador>
+/** Registro de teste com um módulo controlado no lugar do `quemSouEu` real. */
+function registroCom(jogo: JogoDaSala<unknown>): Record<string, JogoDaSala<unknown>> {
+  return { 'quem-sou-eu': jogo }
+}
+
+function salaComModulo(): EstadoSala {
+  const sala: EstadoSala = salaEmLobby(3)
   sala.fase = 'jogo'
   sala.jogo = { marca: 'inicial' }
   return sala
@@ -95,7 +102,7 @@ describe('autoridade de host (`HOST-06`)', () => {
     const sala = salaEmLobby()
     const antes = structuredClone(sala)
 
-    const resultado = await despachar(sala, quemSouEu, 'j2', { t: 'iniciar' }, AMBIENTE)
+    const resultado = await despachar(sala, REGISTRO_DE_JOGOS, 'j2', { t: 'iniciar' }, AMBIENTE)
 
     expect(resultado).toEqual({ ok: false, erro: 'SEM_AUTORIDADE' })
     expect(sala).toEqual(antes)
@@ -106,7 +113,7 @@ describe('autoridade de host (`HOST-06`)', () => {
 
     const resultado = await despachar(
       sala,
-      quemSouEu,
+      REGISTRO_DE_JOGOS,
       'j2',
       { t: 'configurar', config: { ordemTurnos: 'entrada' } },
       AMBIENTE,
@@ -121,7 +128,7 @@ describe('autoridade de host (`HOST-06`)', () => {
 
     const resultado = await despachar(
       sala,
-      quemSouEu,
+      REGISTRO_DE_JOGOS,
       'j2',
       { t: 'expulsar', jogadorId: 'j3' },
       AMBIENTE,
@@ -136,7 +143,7 @@ describe('autoridade de host (`HOST-06`)', () => {
 
     const resultado = await despachar(
       sala,
-      quemSouEu,
+      REGISTRO_DE_JOGOS,
       'j2',
       { t: 'transferirHost', jogadorId: 'j2' },
       AMBIENTE,
@@ -149,7 +156,7 @@ describe('autoridade de host (`HOST-06`)', () => {
   it('aceita `iniciar` do host e leva a sala à escrita (`ESCR-01`)', async () => {
     const sala = salaEmLobby()
 
-    const resultado = await despachar(sala, quemSouEu, 'j1', { t: 'iniciar' }, AMBIENTE)
+    const resultado = await despachar(sala, REGISTRO_DE_JOGOS, 'j1', { t: 'iniciar' }, AMBIENTE)
 
     expect(resultado.ok).toBe(true)
     expect(sala.fase).toBe('escrita')
@@ -161,7 +168,7 @@ describe('validação de fase', () => {
   it('rejeita `iniciar` fora do lobby', async () => {
     const sala = await salaEmEscrita()
 
-    const resultado = await despachar(sala, quemSouEu, 'j1', { t: 'iniciar' }, AMBIENTE)
+    const resultado = await despachar(sala, REGISTRO_DE_JOGOS, 'j1', { t: 'iniciar' }, AMBIENTE)
 
     expect(resultado).toEqual({ ok: false, erro: 'FASE_INVALIDA' })
   })
@@ -171,7 +178,7 @@ describe('validação de fase', () => {
 
     const resultado = await despachar(
       sala,
-      quemSouEu,
+      REGISTRO_DE_JOGOS,
       'j1',
       { t: 'configurar', config: { tempoTurnoSeg: 30 } },
       AMBIENTE,
@@ -184,7 +191,7 @@ describe('validação de fase', () => {
   it('rejeita comando de partida no lobby, onde não há partida montada', async () => {
     const sala = salaEmLobby()
 
-    const resultado = await despachar(sala, quemSouEu, 'j1', { t: 'passarVez' }, AMBIENTE)
+    const resultado = await despachar(sala, REGISTRO_DE_JOGOS, 'j1', { t: 'passarVez' }, AMBIENTE)
 
     expect(resultado).toEqual({ ok: false, erro: 'FASE_INVALIDA' })
   })
@@ -198,7 +205,7 @@ describe('jogador aguardando', () => {
 
     const resultado = await despachar(
       sala,
-      quemSouEu,
+      REGISTRO_DE_JOGOS,
       'j2',
       { t: 'escreverCarta', texto: 'Chaves' },
       AMBIENTE,
@@ -214,7 +221,7 @@ describe('jogador aguardando', () => {
 
     const resultado = await despachar(
       sala,
-      quemSouEu,
+      REGISTRO_DE_JOGOS,
       'j2',
       { t: 'responderDeclaracao', aceita: true },
       AMBIENTE,
@@ -227,7 +234,7 @@ describe('jogador aguardando', () => {
     const sala = await salaEmJogo()
     sala.jogadores[1].situacao = 'aguardando'
 
-    const resultado = await despachar(sala, quemSouEu, 'j2', { t: 'chat', texto: 'boa sorte' }, AMBIENTE)
+    const resultado = await despachar(sala, REGISTRO_DE_JOGOS, 'j2', { t: 'chat', texto: 'boa sorte' }, AMBIENTE)
 
     expect(resultado.ok).toBe(true)
     expect(sala.chat.at(-1)).toEqual({
@@ -247,7 +254,7 @@ describe('configuração da partida', () => {
 
     const resultado = await despachar(
       sala,
-      quemSouEu,
+      REGISTRO_DE_JOGOS,
       'j1',
       { t: 'configurar', config: { ordemTurnos: 'entrada', tempoTurnoSeg: 90 } },
       AMBIENTE,
@@ -266,7 +273,7 @@ describe('configuração da partida', () => {
 
     const resultado = await despachar(
       sala,
-      quemSouEu,
+      REGISTRO_DE_JOGOS,
       'j1',
       { t: 'configurar', config: { aoDescobrir: 'continua' } as Partial<Config> },
       AMBIENTE,
@@ -278,11 +285,11 @@ describe('configuração da partida', () => {
 
   it('alteração parcial preserva as demais configurações (`CFG-06`)', async () => {
     const sala = salaEmLobby()
-    await despachar(sala, quemSouEu, 'j1', { t: 'configurar', config: { tempoTurnoSeg: 60 } }, AMBIENTE)
+    await despachar(sala, REGISTRO_DE_JOGOS, 'j1', { t: 'configurar', config: { tempoTurnoSeg: 60 } }, AMBIENTE)
 
     await despachar(
       sala,
-      quemSouEu,
+      REGISTRO_DE_JOGOS,
       'j1',
       { t: 'configurar', config: { ordemTurnos: 'entrada' } },
       AMBIENTE,
@@ -300,7 +307,7 @@ describe('configuração da partida', () => {
 
     const resultado = await despachar(
       sala,
-      quemSouEu,
+      REGISTRO_DE_JOGOS,
       'j1',
       { t: 'configurar', config: { tempoTurnoSeg: 7 } },
       AMBIENTE,
@@ -315,7 +322,7 @@ describe('configuração da partida', () => {
 
     const resultado = await despachar(
       sala,
-      quemSouEu,
+      REGISTRO_DE_JOGOS,
       'j1',
       { t: 'configurar', config: { tempoTurnoSeg: 240 } },
       AMBIENTE,
@@ -331,14 +338,14 @@ describe('configuração da partida', () => {
 
     await despachar(
       minima,
-      quemSouEu,
+      REGISTRO_DE_JOGOS,
       'j1',
       { t: 'configurar', config: { tempoTurnoSeg: TEMPO_TURNO_MIN_SEG } },
       AMBIENTE,
     )
     await despachar(
       maxima,
-      quemSouEu,
+      REGISTRO_DE_JOGOS,
       'j1',
       { t: 'configurar', config: { tempoTurnoSeg: TEMPO_TURNO_MAX_SEG } },
       AMBIENTE,
@@ -349,11 +356,11 @@ describe('configuração da partida', () => {
 
   it('recusa tempo de turno acima da faixa e mantém a configuração anterior (`AJU-20`)', async () => {
     const sala = salaEmLobby()
-    await despachar(sala, quemSouEu, 'j1', { t: 'configurar', config: { tempoTurnoSeg: 90 } }, AMBIENTE)
+    await despachar(sala, REGISTRO_DE_JOGOS, 'j1', { t: 'configurar', config: { tempoTurnoSeg: 90 } }, AMBIENTE)
 
     const resultado = await despachar(
       sala,
-      quemSouEu,
+      REGISTRO_DE_JOGOS,
       'j1',
       { t: 'configurar', config: { tempoTurnoSeg: TEMPO_TURNO_MAX_SEG + 1 } },
       AMBIENTE,
@@ -365,11 +372,11 @@ describe('configuração da partida', () => {
 
   it('mantém "sem limite" como valor válido (`JOGO-08`)', async () => {
     const sala = salaEmLobby()
-    await despachar(sala, quemSouEu, 'j1', { t: 'configurar', config: { tempoTurnoSeg: 90 } }, AMBIENTE)
+    await despachar(sala, REGISTRO_DE_JOGOS, 'j1', { t: 'configurar', config: { tempoTurnoSeg: 90 } }, AMBIENTE)
 
     const resultado = await despachar(
       sala,
-      quemSouEu,
+      REGISTRO_DE_JOGOS,
       'j1',
       { t: 'configurar', config: { tempoTurnoSeg: null } },
       AMBIENTE,
@@ -387,7 +394,7 @@ describe('configuração da partida', () => {
 
       const resultado = await despachar(
         sala,
-        quemSouEu,
+        REGISTRO_DE_JOGOS,
         'j1',
         { t: 'configurar', config: { tempoTurnoSeg: valor } },
         AMBIENTE,
@@ -416,7 +423,7 @@ describe('validação de `pacoteIds`/`dificuldades` no `configurar` (T8, `PKT2-0
 
     const resultado = await despachar(
       sala,
-      quemSouEu,
+      REGISTRO_DE_JOGOS,
       'j1',
       { t: 'configurar', config: { dificuldades: [] } },
       AMBIENTE,
@@ -431,7 +438,7 @@ describe('validação de `pacoteIds`/`dificuldades` no `configurar` (T8, `PKT2-0
 
     const resultado = await despachar(
       sala,
-      quemSouEu,
+      REGISTRO_DE_JOGOS,
       'j1',
       { t: 'configurar', config: { dificuldades: ['facil', 'impossivel'] as unknown as Config['dificuldades'] } },
       AMBIENTE,
@@ -446,7 +453,7 @@ describe('validação de `pacoteIds`/`dificuldades` no `configurar` (T8, `PKT2-0
 
     const resultado = await despachar(
       sala,
-      quemSouEu,
+      REGISTRO_DE_JOGOS,
       'j1',
       { t: 'configurar', config: { pacoteIds: ['filmes', 42] as unknown as string[] } },
       AMBIENTE,
@@ -461,7 +468,7 @@ describe('validação de `pacoteIds`/`dificuldades` no `configurar` (T8, `PKT2-0
 
     const resultado = await despachar(
       sala,
-      quemSouEu,
+      REGISTRO_DE_JOGOS,
       'j1',
       {
         t: 'configurar',
@@ -484,7 +491,7 @@ describe('bloco de notas', () => {
   it('grava a nota do autor no estado do jogo (`NOTA-01`)', async () => {
     const sala = await salaEmJogo()
 
-    const resultado = await despachar(sala, quemSouEu, 'j2', { t: 'notas', texto: 'não é humano' }, AMBIENTE)
+    const resultado = await despachar(sala, REGISTRO_DE_JOGOS, 'j2', { t: 'notas', texto: 'não é humano' }, AMBIENTE)
 
     expect(resultado.ok).toBe(true)
     expect(sala.jogo?.notas).toEqual({ j2: 'não é humano' })
@@ -494,7 +501,7 @@ describe('bloco de notas', () => {
     const sala = await salaEmJogo()
     const texto = 'a'.repeat(NOTAS_MAX_CARACTERES)
 
-    const resultado = await despachar(sala, quemSouEu, 'j2', { t: 'notas', texto }, AMBIENTE)
+    const resultado = await despachar(sala, REGISTRO_DE_JOGOS, 'j2', { t: 'notas', texto }, AMBIENTE)
 
     expect(resultado.ok).toBe(true)
     expect(sala.jogo?.notas.j2).toHaveLength(2_000)
@@ -504,7 +511,7 @@ describe('bloco de notas', () => {
     const sala = await salaEmJogo()
     const texto = 'a'.repeat(NOTAS_MAX_CARACTERES + 1)
 
-    const resultado = await despachar(sala, quemSouEu, 'j2', { t: 'notas', texto }, AMBIENTE)
+    const resultado = await despachar(sala, REGISTRO_DE_JOGOS, 'j2', { t: 'notas', texto }, AMBIENTE)
 
     expect(resultado).toEqual({ ok: false, erro: 'NOTAS_MUITO_LONGAS' })
     expect(sala.jogo?.notas).toEqual({})
@@ -513,14 +520,14 @@ describe('bloco de notas', () => {
   it('recusa notas no lobby, onde o bloco não é oferecido (`NOTA-01`)', async () => {
     const sala = salaEmLobby()
 
-    const resultado = await despachar(sala, quemSouEu, 'j2', { t: 'notas', texto: 'oi' }, AMBIENTE)
+    const resultado = await despachar(sala, REGISTRO_DE_JOGOS, 'j2', { t: 'notas', texto: 'oi' }, AMBIENTE)
 
     expect(resultado).toEqual({ ok: false, erro: 'FASE_INVALIDA' })
   })
 
   it('a nota gravada nunca chega à projeção de outro jogador (`NOTA-02`)', async () => {
     const sala = await salaEmJogo()
-    await despachar(sala, quemSouEu, 'j2', { t: 'notas', texto: 'segredo de j2' }, AMBIENTE)
+    await despachar(sala, REGISTRO_DE_JOGOS, 'j2', { t: 'notas', texto: 'segredo de j2' }, AMBIENTE)
 
     const paraOutro = JSON.stringify(quemSouEu.projetar(sala.jogo, sala, 'j3'))
 
@@ -533,7 +540,7 @@ describe('sair da sala (`CONN-06`)', () => {
   it('libera a vaga e devolve o jogador em `removidos`', async () => {
     const sala = salaEmLobby()
 
-    const resultado = await despachar(sala, quemSouEu, 'j3', { t: 'sair' }, AMBIENTE)
+    const resultado = await despachar(sala, REGISTRO_DE_JOGOS, 'j3', { t: 'sair' }, AMBIENTE)
 
     expect(resultado).toEqual({ ok: true, valor: { removidos: ['j3'] } })
     expect(sala.jogadores.map((j) => j.id)).toEqual(['j1', 'j2'])
@@ -541,7 +548,7 @@ describe('sair da sala (`CONN-06`)', () => {
 
   it('invalida o token daquela sala: ele não devolve mais a vaga', async () => {
     const sala = salaEmLobby()
-    await despachar(sala, quemSouEu, 'j3', { t: 'sair' }, AMBIENTE)
+    await despachar(sala, REGISTRO_DE_JOGOS, 'j3', { t: 'sair' }, AMBIENTE)
 
     expect(reconectar(sala, 'hash-3')).toEqual({ ok: false, erro: 'JOGADOR_NAO_ENCONTRADO' })
   })
@@ -549,7 +556,7 @@ describe('sair da sala (`CONN-06`)', () => {
   it('não bane o token: sair não é expulsão (`HOST-02`)', async () => {
     const sala = salaEmLobby()
 
-    await despachar(sala, quemSouEu, 'j3', { t: 'sair' }, AMBIENTE)
+    await despachar(sala, REGISTRO_DE_JOGOS, 'j3', { t: 'sair' }, AMBIENTE)
 
     expect(sala.banidos).toEqual([])
   })
@@ -557,7 +564,7 @@ describe('sair da sala (`CONN-06`)', () => {
   it('passa o comando adiante quando quem sai é o host', async () => {
     const sala = salaEmLobby()
 
-    await despachar(sala, quemSouEu, 'j1', { t: 'sair' }, AMBIENTE)
+    await despachar(sala, REGISTRO_DE_JOGOS, 'j1', { t: 'sair' }, AMBIENTE)
 
     expect(sala.hostId).toBe('j2')
   })
@@ -569,7 +576,7 @@ describe('expulsar (`HOST-02`)', () => {
 
     const resultado = await despachar(
       sala,
-      quemSouEu,
+      REGISTRO_DE_JOGOS,
       'j1',
       { t: 'expulsar', jogadorId: 'j3' },
       AMBIENTE,
@@ -582,9 +589,9 @@ describe('expulsar (`HOST-02`)', () => {
 
   it('preserva as cartas e sorteia alvos novos quando a saída é na escrita (`ESCR-07`)', async () => {
     const sala = await salaEmEscrita(4)
-    await despachar(sala, quemSouEu, 'j2', { t: 'escreverCarta', texto: 'Chaves' }, AMBIENTE)
+    await despachar(sala, REGISTRO_DE_JOGOS, 'j2', { t: 'escreverCarta', texto: 'Chaves' }, AMBIENTE)
 
-    await despachar(sala, quemSouEu, 'j1', { t: 'expulsar', jogadorId: 'j4' }, AMBIENTE)
+    await despachar(sala, REGISTRO_DE_JOGOS, 'j1', { t: 'expulsar', jogadorId: 'j4' }, AMBIENTE)
 
     expect(sala.jogo?.cartas[sala.jogo?.atribuicoes['j2']]).toBe('Chaves')
     expect(Object.keys(sala.jogo?.atribuicoes ?? {}).sort()).toEqual(['j1', 'j2', 'j3'])
@@ -599,7 +606,7 @@ describe('roteamento ao módulo de jogo', () => {
 
     const resultado = await despachar(
       sala,
-      quemSouEu,
+      REGISTRO_DE_JOGOS,
       naoEhDaVezNemHost as JogadorId,
       { t: 'passarVez' },
       AMBIENTE,
@@ -618,7 +625,7 @@ describe('roteamento ao módulo de jogo', () => {
       prazos: {},
     })
 
-    await despachar(sala, jogo, 'j1', { t: 'passarVez' }, AMBIENTE)
+    await despachar(sala, registroCom(jogo), 'j1', { t: 'passarVez' }, AMBIENTE)
 
     expect(sala.chat).toEqual([
       { tipo: 'sistema', texto: 'É a vez de Jogador 2.', em: AMBIENTE.agora },
@@ -636,7 +643,7 @@ describe('roteamento ao módulo de jogo', () => {
       prazos: { turno: 3_000 },
     })
 
-    await despachar(sala, jogo, 'j1', { t: 'passarVez' }, AMBIENTE)
+    await despachar(sala, registroCom(jogo), 'j1', { t: 'passarVez' }, AMBIENTE)
 
     expect(sala.prazos).toEqual({
       turno: 3_000,
@@ -658,7 +665,7 @@ describe('roteamento ao módulo de jogo', () => {
       promoverAguardando: true,
     })
 
-    await despachar(sala, jogo, 'j1', { t: 'novaPartida' }, AMBIENTE)
+    await despachar(sala, registroCom(jogo), 'j1', { t: 'novaPartida' }, AMBIENTE)
 
     expect(sala.jogadores.map((j) => j.situacao)).toEqual(['ativo', 'ativo', 'ativo'])
     expect(sala.fase).toBe('lobby')
@@ -673,7 +680,7 @@ describe('roteamento ao módulo de jogo', () => {
 
     const resultado = avisar(
       sala,
-      quemSouEu,
+      REGISTRO_DE_JOGOS['quem-sou-eu'],
       { t: 'venceuPrazoTurno' },
       { agora: 20_000, aleatorio: () => 0 },
     )
@@ -686,7 +693,7 @@ describe('roteamento ao módulo de jogo', () => {
   it('marca a última ação a cada comando aceito (`CONN-08`)', async () => {
     const sala = salaEmLobby()
 
-    await despachar(sala, quemSouEu, 'j2', { t: 'chat', texto: 'oi' }, AMBIENTE)
+    await despachar(sala, REGISTRO_DE_JOGOS, 'j2', { t: 'chat', texto: 'oi' }, AMBIENTE)
 
     expect(sala.ultimaAcaoEm).toBe(AMBIENTE.agora)
   })
@@ -694,7 +701,7 @@ describe('roteamento ao módulo de jogo', () => {
   it('não marca a última ação quando o comando é recusado', async () => {
     const sala = salaEmLobby()
 
-    await despachar(sala, quemSouEu, 'j2', { t: 'iniciar' }, AMBIENTE)
+    await despachar(sala, REGISTRO_DE_JOGOS, 'j2', { t: 'iniciar' }, AMBIENTE)
 
     expect(sala.ultimaAcaoEm).toBe(0)
   })
@@ -702,7 +709,7 @@ describe('roteamento ao módulo de jogo', () => {
   it('recusa comando de quem não está na sala', async () => {
     const sala = salaEmLobby()
 
-    const resultado = await despachar(sala, quemSouEu, 'fantasma', { t: 'chat', texto: 'oi' }, AMBIENTE)
+    const resultado = await despachar(sala, REGISTRO_DE_JOGOS, 'fantasma', { t: 'chat', texto: 'oi' }, AMBIENTE)
 
     expect(resultado).toEqual({ ok: false, erro: 'JOGADOR_NAO_ENCONTRADO' })
     expect(textosDoChat(sala)).toEqual([])
@@ -798,12 +805,12 @@ describe('buscarPacotes (T6, `PKT2-09`, `PKT2-21`)', () => {
 
 describe('`iniciar` com pacotes (T6, `PKT2-09`)', () => {
   function moduloQueCapturaPacotes(): {
-    modulo: JogoDaSala<Marcador>
+    modulo: JogoDaSala<unknown>
     chamadas: unknown[]
   } {
     const chamadas: unknown[] = []
-    const modulo = {
-      iniciarRodada: (_ctx: unknown, _ambiente: unknown, pacotes: unknown) => {
+    const modulo: JogoDaSala<unknown> = {
+      iniciarRodada: (_ctx, _ambiente, pacotes) => {
         chamadas.push(pacotes)
         return { ok: true, valor: { marca: 'inicial' } }
       },
@@ -813,30 +820,30 @@ describe('`iniciar` com pacotes (T6, `PKT2-09`)', () => {
       projetar: (): Projecao => {
         throw new Error('não usado neste teste')
       },
-    } as unknown as JogoDaSala<Marcador>
+    }
     return { modulo, chamadas }
   }
 
   it('recusa iniciar com `pacoteIds` vazio, mesmo motivo de hoje (`PKT2-09`)', async () => {
-    const sala = salaEmLobby() as unknown as EstadoSala<Marcador>
+    const sala = salaEmLobby()
     sala.config = { ...sala.config, modoPacote: 'pacote', pacoteIds: [] }
     const { modulo } = moduloQueCapturaPacotes()
 
-    const resultado = await despachar(sala, modulo, 'j1', { t: 'iniciar' }, AMBIENTE)
+    const resultado = await despachar(sala, registroCom(modulo), 'j1', { t: 'iniciar' }, AMBIENTE)
 
     expect(resultado).toEqual({ ok: false, erro: 'PACOTE_NAO_ENCONTRADO' })
     expect(sala.fase).toBe('lobby')
   })
 
   it('passa o array de pacotes buscados para `jogo.iniciarRodada`', async () => {
-    const sala = salaEmLobby() as unknown as EstadoSala<Marcador>
+    const sala = salaEmLobby()
     sala.config = { ...sala.config, modoPacote: 'pacote', pacoteIds: ['filmes', 'anime'] }
     const { modulo, chamadas } = moduloQueCapturaPacotes()
     const env = {
       PACOTES_KV: { get: async () => null },
     } as unknown as Env
 
-    const resultado = await despachar(sala, modulo, 'j1', { t: 'iniciar' }, AMBIENTE, env)
+    const resultado = await despachar(sala, registroCom(modulo), 'j1', { t: 'iniciar' }, AMBIENTE, env)
 
     expect(resultado.ok).toBe(true)
     expect(chamadas).toHaveLength(1)
@@ -850,7 +857,7 @@ describe('nova partida (`FIM-04`)', () => {
     const sala = salaEmLobby()
     await despachar(
       sala,
-      quemSouEu,
+      REGISTRO_DE_JOGOS,
       'j1',
       {
         t: 'configurar',
@@ -858,26 +865,151 @@ describe('nova partida (`FIM-04`)', () => {
       },
       AMBIENTE,
     )
-    await despachar(sala, quemSouEu, 'j1', { t: 'iniciar' }, AMBIENTE)
+    await despachar(sala, REGISTRO_DE_JOGOS, 'j1', { t: 'iniciar' }, AMBIENTE)
     for (const jogador of sala.jogadores) {
-      await despachar(sala, quemSouEu, jogador.id, { t: 'escreverCarta', texto: 'Chapolin' }, AMBIENTE)
-      await despachar(sala, quemSouEu, jogador.id, { t: 'marcarPronto', pronto: true }, AMBIENTE)
+      await despachar(sala, REGISTRO_DE_JOGOS, jogador.id, { t: 'escreverCarta', texto: 'Chapolin' }, AMBIENTE)
+      await despachar(sala, REGISTRO_DE_JOGOS, jogador.id, { t: 'marcarPronto', pronto: true }, AMBIENTE)
     }
-    await despachar(sala, quemSouEu, 'j1', { t: 'comecar' }, AMBIENTE)
-    await despachar(sala, quemSouEu, 'j2', { t: 'chat', texto: 'boa partida' }, AMBIENTE)
-    await despachar(sala, quemSouEu, 'j1', { t: 'encerrar' }, AMBIENTE)
+    await despachar(sala, REGISTRO_DE_JOGOS, 'j1', { t: 'comecar' }, AMBIENTE)
+    await despachar(sala, REGISTRO_DE_JOGOS, 'j2', { t: 'chat', texto: 'boa partida' }, AMBIENTE)
+    await despachar(sala, REGISTRO_DE_JOGOS, 'j1', { t: 'encerrar' }, AMBIENTE)
     const jogadoresAntes = structuredClone(sala.jogadores)
     const chatAntes = structuredClone(sala.chat)
     const configAntes = structuredClone(sala.config)
     // Controle: sem histórico anterior, preservar o chat seria trivialmente verdade.
     expect(textosDoChat(sala)).toContain('boa partida')
 
-    const resultado = await despachar(sala, quemSouEu, 'j1', { t: 'novaPartida' }, AMBIENTE)
+    const resultado = await despachar(sala, REGISTRO_DE_JOGOS, 'j1', { t: 'novaPartida' }, AMBIENTE)
 
     expect(resultado.ok).toBe(true)
     expect(sala.fase).toBe('lobby')
     expect(sala.chat.slice(0, chatAntes.length)).toEqual(chatAntes)
     expect(sala.jogadores).toEqual(jogadoresAntes)
     expect(sala.config).toEqual(configAntes)
+  })
+})
+
+describe('trocarJogo (`HUB-06`–`HUB-12`)', () => {
+  // Segunda entrada do registro para os testes: o mesmo módulo real do
+  // `quemSouEu`, sob outro id — evita duplicar a forma de `Projecao` num
+  // stub, e prova a troca com código de produção de verdade.
+  const REGISTRO_DE_TESTE: Record<string, JogoDaSala<unknown>> = {
+    ...REGISTRO_DE_JOGOS,
+    'jogo-b': REGISTRO_DE_JOGOS['quem-sou-eu'],
+  }
+
+  function salaComConfigNaoPadrao(): EstadoSala<EstadoQuemSouEu> {
+    const sala = salaEmLobby()
+    sala.config = { ...CONFIG_PADRAO, modoPacote: 'pacote', pacoteIds: ['filmes'] }
+    return sala
+  }
+
+  it('host troca para um jogo diferente: jogoId muda e config reseta (`HUB-08`)', async () => {
+    const sala = salaComConfigNaoPadrao()
+
+    const resultado = await despachar(
+      sala,
+      REGISTRO_DE_TESTE,
+      'j1',
+      { t: 'trocarJogo', jogoId: 'jogo-b' },
+      AMBIENTE,
+    )
+
+    expect(resultado).toEqual({ ok: true, valor: { removidos: [] } })
+    expect(sala.jogoId).toBe('jogo-b')
+    expect(sala.jogo).toBeNull()
+    expect(sala.config).toEqual(CONFIG_PADRAO)
+  })
+
+  it('host troca para o mesmo jogo já ativo: idempotente, config intocada (`HUB-09`)', async () => {
+    const sala = salaComConfigNaoPadrao()
+    const configAntes = structuredClone(sala.config)
+
+    const resultado = await despachar(
+      sala,
+      REGISTRO_DE_TESTE,
+      'j1',
+      { t: 'trocarJogo', jogoId: 'quem-sou-eu' },
+      AMBIENTE,
+    )
+
+    expect(resultado).toEqual({ ok: true, valor: { removidos: [] } })
+    expect(sala.jogoId).toBe('quem-sou-eu')
+    expect(sala.config).toEqual(configAntes)
+  })
+
+  it('recusa a troca de quem não é host e mantém a sala intocada (`HUB-10`)', async () => {
+    const sala = salaComConfigNaoPadrao()
+    const antes = structuredClone(sala)
+
+    const resultado = await despachar(
+      sala,
+      REGISTRO_DE_TESTE,
+      'j2',
+      { t: 'trocarJogo', jogoId: 'jogo-b' },
+      AMBIENTE,
+    )
+
+    expect(resultado).toEqual({ ok: false, erro: 'SEM_AUTORIDADE' })
+    expect(sala).toEqual(antes)
+  })
+
+  it('recusa a troca fora do lobby (`HUB-11`)', async () => {
+    const sala = await salaEmEscrita()
+    const jogoIdAntes = sala.jogoId
+
+    const resultado = await despachar(
+      sala,
+      REGISTRO_DE_TESTE,
+      'j1',
+      { t: 'trocarJogo', jogoId: 'jogo-b' },
+      AMBIENTE,
+    )
+
+    expect(resultado).toEqual({ ok: false, erro: 'FASE_INVALIDA' })
+    expect(sala.jogoId).toBe(jogoIdAntes)
+  })
+
+  it('recusa `jogoId` fora do registro do hub e mantém a sala intocada (`HUB-03`)', async () => {
+    const sala = salaComConfigNaoPadrao()
+    const antes = structuredClone(sala)
+
+    const resultado = await despachar(
+      sala,
+      REGISTRO_DE_TESTE,
+      'j1',
+      { t: 'trocarJogo', jogoId: 'jogo-fantasma' },
+      AMBIENTE,
+    )
+
+    expect(resultado).toEqual({ ok: false, erro: 'JOGO_INVALIDO' })
+    expect(sala).toEqual(antes)
+  })
+
+  it('a projeção reflete o novo jogoId depois da troca aceita (`HUB-12`)', async () => {
+    const sala = salaEmLobby()
+
+    await despachar(sala, REGISTRO_DE_TESTE, 'j1', { t: 'trocarJogo', jogoId: 'jogo-b' }, AMBIENTE)
+
+    const projecao = REGISTRO_DE_TESTE[sala.jogoId].projetar(sala.jogo, sala, 'j2')
+    expect(projecao.sala.jogoId).toBe('jogo-b')
+  })
+})
+
+describe('jogo ausente do registro (cenário de ops, não caminho de usuário)', () => {
+  it('recusa comando de jogo com `COMANDO_INVALIDO` sem lançar exceção quando o jogoId da sala não está no registro', async () => {
+    const sala = await salaEmEscrita()
+    sala.jogoId = 'jogo-removido-do-deploy'
+    const registroSemEsseJogo: Record<string, JogoDaSala<unknown>> = {}
+
+    const resultado = await despachar(
+      sala,
+      registroSemEsseJogo,
+      'j1',
+      { t: 'passarVez' },
+      AMBIENTE,
+    )
+
+    expect(resultado).toEqual({ ok: false, erro: 'COMANDO_INVALIDO' })
   })
 })

@@ -35,6 +35,7 @@ function sala(): EstadoSala {
     codigo: 'ABCDE',
     fase: 'jogo',
     hostId: 'ana',
+    jogoId: 'quem-sou-eu',
     limiteJogadores: MAX_JOGADORES,
     jogadores: [{ ...ana }, { ...bia }],
     banidos: [],

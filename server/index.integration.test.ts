@@ -180,6 +180,31 @@ describe('POST /api/salas', () => {
   })
 })
 
+describe('POST /api/salas — jogoId (`HUB-01`, `HUB-02`, `HUB-03`, `HUB-04`, `HUB-05`)', () => {
+  it('sem jogoId no corpo, a sala nasce com o jogo padrão (`HUB-04`)', async () => {
+    const codigo = await criarPelaApi()
+
+    expect((await lerSala(codigo))?.jogoId).toBe('quem-sou-eu')
+  })
+
+  it('com jogoId válido no corpo, a sala nasce com aquele jogo e a projeção reflete (`HUB-01`, `HUB-05`)', async () => {
+    const resposta = await postSalas({ jogoId: 'quem-sou-eu' })
+    expect(resposta.status).toBe(201)
+    const { codigo } = await resposta.json<{ codigo: string }>()
+
+    expect((await lerSala(codigo))?.jogoId).toBe('quem-sou-eu')
+    const ana = await entrar(codigo, 'Ana')
+    expect(ultimaProjecao(ana).sala.jogoId).toBe('quem-sou-eu')
+  })
+
+  it('recusa a criação com jogoId fora do registro, sem acordar o Durable Object (`HUB-02`, `HUB-03`)', async () => {
+    const resposta = await postSalas({ jogoId: 'jogo-que-nao-existe' })
+
+    expect(resposta.status).toBe(400)
+    expect(await resposta.json()).toEqual({ erro: 'JOGO_INVALIDO' })
+  })
+})
+
 describe('GET /api/salas/:codigo/ws', () => {
   it('aceita a conexão numa sala viva', async () => {
     const codigo = await criarPelaApi()

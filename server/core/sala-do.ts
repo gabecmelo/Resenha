@@ -7,6 +7,7 @@ import {
   type JogadorId,
   type PacoteResumo,
 } from '../../shared/protocolo'
+import { JOGO_PADRAO } from '../../shared/jogos-catalogo'
 import * as chat from './chat'
 import { aceitar, desvincular, difundir, enviar, jogadorDe, socketsDe, vincular } from './conexoes'
 import { type JogoDaSala, avisar, despachar } from './despacho'
@@ -47,6 +48,7 @@ const MENSAGENS_DE_ERRO: Record<CodigoErro, string> = {
   PACOTE_NAO_ENCONTRADO: 'Pacote não encontrado.',
   PACOTE_INDISPONIVEL: 'Não foi possível carregar o pacote no momento.',
   PACOTE_INSUFICIENTE: 'Pacote não tem cartas suficientes para esta quantidade de jogadores.',
+  JOGO_INVALIDO: 'Jogo inválido.',
 }
 
 /**
@@ -58,18 +60,27 @@ const MENSAGENS_DE_ERRO: Record<CodigoErro, string> = {
  * todo handler recarrega o documento do storage e o vínculo socket → jogador
  * vem do `serializeAttachment`.
  *
- * O módulo de jogo chega por injeção — o `core` não importa nada de `games/`
- * (AD-002).
+ * O jogo chega por injeção de um **registro** — `jogoId → JogoDaSala<unknown>`
+ * (`AD-013`) — em vez de um único módulo fixo: o `core` continua sem importar
+ * nada de `games/` (AD-002), só passa a resolver o módulo por `sala.jogoId` a
+ * cada uso.
  */
-export class SalaDeJogo<E> {
+export class SalaDeJogo {
   private pacotesDisponiveis: PacoteResumo[] | null = null;
   private pacotesCacheTimestamp = 0;
 
   constructor(
     protected readonly ctx: DurableObjectState,
     protected readonly env: Env,
-    protected readonly jogo: JogoDaSala<E>,
+    protected readonly registro: Record<string, JogoDaSala<unknown>>,
   ) {}
+
+  /** `AD-013` — resolve o módulo do jogo desta sala; `null` é o cenário de ops
+   * em que `sala.jogoId` não existe mais no registro (nunca um caminho de
+   * usuário). */
+  private jogoAtual(sala: EstadoSala): JogoDaSala<unknown> | null {
+    return this.registro[sala.jogoId] ?? null
+  }
 
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url)
@@ -77,9 +88,12 @@ export class SalaDeJogo<E> {
     if (request.method === 'POST' && url.pathname === '/criar') {
       // `AJU-36` — sem limite pedido, a sala nasce com o padrão do produto.
       const limite = url.searchParams.get('limite')
+      // `HUB-04` — sem jogoId pedido, a sala nasce com o jogo padrão do hub.
+      const jogoId = url.searchParams.get('jogoId')
       return this.criar(
         url.searchParams.get('codigo') ?? '',
         limite === null ? MAX_JOGADORES : Number(limite),
+        jogoId === null ? JOGO_PADRAO : jogoId,
       )
     }
     if (request.headers.get('Upgrade') !== 'websocket') {
@@ -93,17 +107,23 @@ export class SalaDeJogo<E> {
   // -------------------------------------------------------------------------
 
   /** `SALA-01` — 409 quando o código já é de uma sala viva (colisão). */
-  private async criar(codigo: string, limiteJogadores: number): Promise<Response> {
+  private async criar(
+    codigo: string,
+    limiteJogadores: number,
+    jogoId: string,
+  ): Promise<Response> {
     if (await this.carregarSala()) return new Response('sala já existe', { status: 409 })
 
     const agora = Date.now()
-    const sala: EstadoSala<E> = {
+    const sala: EstadoSala = {
       codigo,
       fase: 'lobby',
       // O criador vira host ao entrar; até lá a sala não tem comando.
       hostId: '',
       // `AJU-40` — gravado uma vez; nenhum comando o alcança depois.
       limiteJogadores,
+      // `HUB-01` — qual jogo esta sala roda; fixado na criação.
+      jogoId,
       jogadores: [],
       banidos: [],
       config: { ...CONFIG_PADRAO },
@@ -155,7 +175,7 @@ export class SalaDeJogo<E> {
       return
     }
 
-    const resultado = await despachar(sala, this.jogo, autorId, comando, ambienteAgora(), this.env)
+    const resultado = await despachar(sala, this.registro, autorId, comando, ambienteAgora(), this.env)
     if (!resultado.ok) {
       enviar(ws, erro(resultado.erro))
       return
@@ -215,7 +235,12 @@ export class SalaDeJogo<E> {
       if (tipo === 'turno') {
         // `JOGO-07` — o alarme acorda o Durable Object hibernado.
         definir(sala, 'turno', null)
-        avisar(sala, this.jogo, { t: 'venceuPrazoTurno' }, { agora, aleatorio: Math.random })
+        // Cenário de ops (jogo removido do registro): pula o efeito neste
+        // ciclo em vez de travar a sala.
+        const jogo = this.jogoAtual(sala)
+        if (jogo !== null) {
+          avisar(sala, jogo, { t: 'venceuPrazoTurno' }, { agora, aleatorio: Math.random })
+        }
       } else if (tipo === 'migracaoHost') {
         definir(sala, 'migracaoHost', null)
         const novoHost = migrarHost(sala)
@@ -236,7 +261,7 @@ export class SalaDeJogo<E> {
   /** `CONN-01`, `SALA-01`, `SALA-09`, `SALA-10` */
   private async entrarNaSala(
     ws: WebSocket,
-    sala: EstadoSala<E>,
+    sala: EstadoSala,
     apelido: string,
   ): Promise<void> {
     const agora = Date.now()
@@ -257,7 +282,11 @@ export class SalaDeJogo<E> {
     enviar(ws, { t: 'entrou', token, jogadorId: id })
     chat.registrarSistema(sala, `${entrada.valor.apelido} entrou na sala.`, agora)
     // `ESCR-10` — o jogo decide o que fazer com quem chega no meio.
-    avisar(sala, this.jogo, { t: 'entrouJogador', jogadorId: id }, { agora, aleatorio: Math.random })
+    // Cenário de ops (jogo removido do registro): pula o efeito neste ciclo.
+    const jogo = this.jogoAtual(sala)
+    if (jogo !== null) {
+      avisar(sala, jogo, { t: 'entrouJogador', jogadorId: id }, { agora, aleatorio: Math.random })
+    }
 
     sala.ultimaAcaoEm = agora
     await this.confirmar(sala)
@@ -266,7 +295,7 @@ export class SalaDeJogo<E> {
   /** `CONN-02`, `CONN-04` — mesma vaga, com tudo que ela guardava. */
   private async reconectarNaSala(
     ws: WebSocket,
-    sala: EstadoSala<E>,
+    sala: EstadoSala,
     token: string,
   ): Promise<void> {
     const volta = reconectar(sala, await hashDeToken(token))
@@ -288,11 +317,11 @@ export class SalaDeJogo<E> {
   // Auxiliares
   // -------------------------------------------------------------------------
 
-  private carregarSala(): Promise<EstadoSala<E> | null> {
-    return carregar<E>(this.ctx.storage)
+  private carregarSala(): Promise<EstadoSala | null> {
+    return carregar<unknown>(this.ctx.storage)
   }
 
-  private async confirmar(sala: EstadoSala<E>): Promise<void> {
+  private async confirmar(sala: EstadoSala): Promise<void> {
     this.atualizarCicloDeVida(sala)
     await this.persistir(sala)
 
@@ -301,8 +330,13 @@ export class SalaDeJogo<E> {
       pacotes = await this.getPacotesDisponiveis();
     }
 
+    // Cenário de ops (jogo removido do registro): pula a difusão neste ciclo
+    // em vez de travar a sala.
+    const jogo = this.jogoAtual(sala)
+    if (jogo === null) return
+
     difundir(this.ctx, (paraJogador) => {
-      const projecao = this.jogo.projetar(sala.jogo, sala, paraJogador);
+      const projecao = jogo.projetar(sala.jogo, sala, paraJogador);
       projecao.agoraServidor = Date.now();
       if (pacotes) {
         projecao.sala.pacotesDisponiveis = pacotes;
@@ -342,7 +376,7 @@ export class SalaDeJogo<E> {
    * cada mutação, num lugar só. Passam pelo agendador como qualquer outro
    * prazo (AD-010): agendar o turno não pode cancelar a expiração.
    */
-  private atualizarCicloDeVida(sala: EstadoSala<E>): void {
+  private atualizarCicloDeVida(sala: EstadoSala): void {
     const agora = Date.now()
     const vazia = this.conexoesVivas() === 0
     definir(sala, 'salaVazia', vazia ? agora + SALA_VAZIA_MS : null)
@@ -364,7 +398,7 @@ export class SalaDeJogo<E> {
     await this.ctx.storage.deleteAlarm()
   }
 
-  private async persistir(sala: EstadoSala<E>): Promise<void> {
+  private async persistir(sala: EstadoSala): Promise<void> {
     await salvar(this.ctx.storage, sala)
     await reagendar(this.ctx.storage, sala)
   }

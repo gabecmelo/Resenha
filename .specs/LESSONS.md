@@ -50,6 +50,18 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: validation.md — AJU-23, clausula do cursor sem assercao (client)
 - last seen: 2026-08-06T02:29:56Z
 
+### L-007 — When a Durable-Object shell layer resolves an injected registry by key and guards a missing entry, add an integration test with a registry missing that key to prove the guard actually runs — a unit test on the pure resolver function alone does not exercise the shell's guard.
+- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `server/core` · harmful: 0
+- features: hub-selecao-jogos
+- evidence: server/core/sala-do.ts:333-339 (confirmar() null-guard mutation, validation.md Sensor #3) (server/core)
+- last seen: 2026-08-12T14:57:33Z
+
+### L-008 — When a command's spec-required outcome is broadcasting to every connected player, add an integration test that sends the command over a live connection with a second connected client and asserts that client's projection updates — a unit test that calls the projection function directly does not prove the broadcast path works.
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `server/core` · harmful: 0
+- features: hub-selecao-jogos
+- evidence: HUB-12 (spec.md P2 AC7) — no evidence in sala-do.integration.test.ts (server/core)
+- last seen: 2026-08-12T14:57:39Z
+
 ## Quarantined (failed when applied — ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.

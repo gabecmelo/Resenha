@@ -9,7 +9,8 @@ import {
   TEMPO_TURNO_MAX_SEG,
   TEMPO_TURNO_MIN_SEG,
 } from '../../../shared/protocolo'
-import { Botao, Chat, FichaDeJogador, Modal, Shell } from '../componentes'
+import { CATALOGO_DE_JOGOS } from '../../../shared/jogos-catalogo'
+import { Botao, Chat, FichaDeJogador, Modal, SeletorDeJogos, Shell } from '../componentes'
 import { linkDeConvite, motivoParaIniciar } from '../estado/entrada'
 import { montarPoolDeCartas } from '../../../shared/pacotes'
 import { PACOTES } from '../../../shared/pacotes-dados'
@@ -44,10 +45,12 @@ export function Lobby({ projecao, enviar, aoSair }: PropsDaTela) {
     }
   }
 
+  const nomeDoJogo = CATALOGO_DE_JOGOS.find((jogo) => jogo.id === sala.jogoId)?.nome ?? sala.jogoId
+
   return (
     <Shell
       codigo={sala.codigo}
-      legenda={`${ativos.length} ${ativos.length === 1 ? 'pessoa' : 'pessoas'} · Quem Sou Eu?`}
+      legenda={`${ativos.length} ${ativos.length === 1 ? 'pessoa' : 'pessoas'} · ${nomeDoJogo}`}
       aoSair={aoSair}
     >
       <div className="grid grid-cols-1 gap-7 lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)_minmax(0,320px)] lg:items-start lg:gap-8">
@@ -55,7 +58,7 @@ export function Lobby({ projecao, enviar, aoSair }: PropsDaTela) {
           <Convite codigo={sala.codigo} sozinho={jogadores.length === 1} />
         </section>
 
-        <section className="order-2 flex flex-col gap-3 lg:order-none lg:col-start-2 lg:row-span-3 lg:row-start-1">
+        <section className="order-2 flex flex-col gap-3 lg:order-none lg:col-start-2 lg:row-span-4 lg:row-start-1">
           {/* `AJU-39` — a lotação é a desta sala, escolhida por quem a criou. */}
           <Titulo texto="Na sala" contagem={`${jogadores.length}/${sala.limiteJogadores}`} />
           <ul className="flex flex-col">
@@ -78,15 +81,19 @@ export function Lobby({ projecao, enviar, aoSair }: PropsDaTela) {
         </section>
 
         <section className="order-3 lg:order-none lg:col-start-1 lg:row-start-2">
+          <JogoDaSala jogoId={sala.jogoId} souHost={eu.ehHost} enviar={enviar} />
+        </section>
+
+        <section className="order-4 lg:order-none lg:col-start-1 lg:row-start-3">
           <Regras config={sala.config} pacotesDisponiveis={sala.pacotesDisponiveis} souHost={eu.ehHost} apelidoDoHost={host?.apelido} enviar={enviar} />
         </section>
 
-        <section className="order-4 flex flex-col gap-3 lg:order-none lg:col-start-3 lg:row-span-3 lg:row-start-1">
+        <section className="order-5 flex flex-col gap-3 lg:order-none lg:col-start-3 lg:row-span-4 lg:row-start-1">
           <Titulo texto="Chat" />
           <Chat mensagens={projecao.chat} aoEnviar={(texto) => enviar({ t: 'chat', texto })} />
         </section>
 
-        <section className="order-5 lg:order-none lg:col-start-1 lg:row-start-3">
+        <section className="order-6 lg:order-none lg:col-start-1 lg:row-start-4">
           {eu.ehHost ? (
             <div className="flex flex-col gap-2">
               <Botao
@@ -164,6 +171,63 @@ function Convite({ codigo, sozinho }: { codigo: string; sozinho: boolean }) {
       >
         {copiado ? 'Link copiado' : 'Copiar link do convite'}
       </Botao>
+    </div>
+  )
+}
+
+/**
+ * `HUB-06`…`HUB-12` — host troca de jogo sem sair do lobby; não-host só vê o
+ * nome do jogo atual, sem controle nenhum (`VIS-04`).
+ */
+function JogoDaSala({
+  jogoId,
+  souHost,
+  enviar,
+}: {
+  jogoId: string
+  souHost: boolean
+  enviar: PropsDaTela['enviar']
+}) {
+  const [modalAberto, setModalAberto] = useState(false)
+  // Rascunho local: só vira comando de verdade em "Confirmar"; "Cancelar"
+  // descarta sem tocar na sala — mesmo padrão de `pacoteIdsRascunho`.
+  const [jogoIdRascunho, setJogoIdRascunho] = useState(jogoId)
+  const nomeDoJogo = CATALOGO_DE_JOGOS.find((jogo) => jogo.id === jogoId)?.nome ?? jogoId
+
+  const abrirModal = () => {
+    setJogoIdRascunho(jogoId)
+    setModalAberto(true)
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <Titulo texto="Jogo" />
+      {souHost ? (
+        <div className="flex items-center justify-between rounded-bloco border border-linha bg-superficie px-4 py-3">
+          <span className="font-semibold text-texto">{nomeDoJogo}</span>
+          <Botao variante="secundario" onClick={abrirModal}>
+            Mudar jogo
+          </Botao>
+        </div>
+      ) : (
+        <p className="text-[15px] text-texto-2">{nomeDoJogo}</p>
+      )}
+
+      {modalAberto && (
+        <Modal
+          titulo="Escolha o jogo"
+          descricao="Trocar de jogo reseta as regras da partida para o padrão do jogo novo."
+          largura="larga"
+          rotuloConfirmar="Confirmar"
+          aoConfirmar={() => {
+            enviar({ t: 'trocarJogo', jogoId: jogoIdRascunho })
+            setModalAberto(false)
+          }}
+          aoCancelar={() => setModalAberto(false)}
+        >
+          <SeletorDeJogos jogoIdSelecionado={jogoIdRascunho} aoSelecionar={setJogoIdRascunho} />
+        </Modal>
+      )}
     </div>
   )
 }
