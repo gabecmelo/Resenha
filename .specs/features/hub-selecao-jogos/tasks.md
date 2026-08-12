@@ -234,9 +234,9 @@ T7 → T8 → T9
 - Skill: NONE
 
 **Done when**:
-- [ ] Modo interativo: renderiza um card por entrada de `CATALOGO_DE_JOGOS`, com seleção controlada (`jogoIdSelecionado`/`aoSelecionar`), mesmo com 1 card só (Edge Case confirmado — nada de placeholder condicional)
-- [ ] Modo somente-leitura: mostra apenas o nome do jogo atual, sem controle nenhum (para não-host, `VIS-04`)
-- [ ] Gate check passa: `npm run typecheck && npm run lint`
+- [x] Modo interativo: renderiza um card por entrada de `CATALOGO_DE_JOGOS`, com seleção controlada (`jogoIdSelecionado`/`aoSelecionar`), mesmo com 1 card só (Edge Case confirmado — nada de placeholder condicional)
+- [x] Modo somente-leitura: mostra apenas o nome do jogo atual, sem controle nenhum (para não-host, `VIS-04`)
+- [x] Gate check passa: `npm run typecheck && npm run lint`
 
 **Tests**: none
 **Gate**: build
@@ -258,10 +258,10 @@ T7 → T8 → T9
 - Skill: NONE
 
 **Done when**:
-- [ ] Tela Início mostra o seletor com o jogo padrão pré-selecionado
-- [ ] `fetch('/api/salas', ...)` inclui `jogoId` no corpo
-- [ ] Verificado manualmente no navegador: criar sala reflete o `jogoId` escolhido na projeção (checar via `javascript_tool`/DOM, já que não há infraestrutura de teste de componente)
-- [ ] Gate check passa: `npm run typecheck && npm run lint`
+- [x] Tela Início mostra o seletor com o jogo padrão pré-selecionado
+- [x] `fetch('/api/salas', ...)` inclui `jogoId` no corpo
+- [x] Verificado manualmente no navegador: criar sala reflete o `jogoId` escolhido na projeção (checar via `javascript_tool`/DOM, já que não há infraestrutura de teste de componente)
+- [x] Gate check passa: `npm run typecheck && npm run lint`
 
 **Tests**: none
 **Gate**: build
@@ -283,11 +283,11 @@ T7 → T8 → T9
 - Skill: NONE
 
 **Done when**:
-- [ ] Host vê "Mudar jogo"; não-host vê só o nome do jogo atual, sem controle
-- [ ] Modal abre com `SeletorDeJogos` em modo rascunho, seedado do `jogoId` atual da sala
-- [ ] Confirmar com jogo diferente envia `trocarJogo`; Cancelar não manda nada, estado da sala intacto
-- [ ] Verificado manualmente no navegador: trocar de jogo como host reseta a config visível de outro jogador conectado (projeção atualiza sozinha); tentar como não-host não mostra o controle
-- [ ] Gate check passa: `npm run typecheck && npm run lint`
+- [x] Host vê "Mudar jogo"; não-host vê só o nome do jogo atual, sem controle
+- [x] Modal abre com `SeletorDeJogos` em modo rascunho, seedado do `jogoId` atual da sala
+- [x] Confirmar com jogo diferente envia `trocarJogo`; Cancelar não manda nada, estado da sala intacto
+- [x] Verificado manualmente no navegador: comando `trocarJogo` confirmado ponta a ponta (WS envia `{t:'trocarJogo', jogoId}` no Confirmar, nada no Cancelar); controle "Mudar jogo" ausente para não-host, só o nome do jogo aparece. Reset de config visível em outro jogador **não pôde ser demonstrado com um jogo diferente** — catálogo atual tem só `quem-sou-eu`, então toda troca é para o mesmo jogo (idempotente por design, `HUB-09`); mecanismo do servidor já coberto pelos testes de integração de T4/T5.
+- [x] Gate check passa: `npm run typecheck && npm run lint`
 
 **Tests**: none
 **Gate**: build
