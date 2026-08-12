@@ -609,6 +609,61 @@ describe('registro de jogos (`HUB-01`, `HUB-05`, `HUB-12`)', () => {
 
     expect(ultimaProjecao(ana).sala.fase).toBe('escrita')
   })
+
+  it('trocarJogo aceito difunde o jogoId e a config resetada pra todo jogador conectado (`HUB-12`)', async () => {
+    const stub = await novaSala('DO-TROCA-DIFUNDE')
+    const ana = await entrar(stub, 'Ana')
+    const bruno = await entrar(stub, 'Bruno')
+
+    // Config não-padrão, pra provar que o reset de fato aconteceu.
+    mandar(ana, { t: 'configurar', config: { tempoTurnoSeg: 30 } })
+    await assentar()
+    expect(ultimaProjecao(bruno).sala.config.tempoTurnoSeg).toBe(30)
+
+    // Jogo atual diferente do alvo, pra que a troca a seguir não seja idempotente (`HUB-09`).
+    await runInDurableObject(stub, async (_i, state) => {
+      const sala = await carregar<EstadoQuemSouEu>(state.storage)
+      if (sala === null) throw new Error('sala inexistente')
+      sala.jogoId = 'jogo-anterior-fake'
+      await salvar(state.storage, sala)
+    })
+
+    mandar(ana, { t: 'trocarJogo', jogoId: 'quem-sou-eu' })
+    await assentar()
+
+    // Bruno não mandou nada — a atualização só pode ter chegado por difusão.
+    expect(ultimaProjecao(bruno).sala.jogoId).toBe('quem-sou-eu')
+    expect(ultimaProjecao(bruno).sala.config.tempoTurnoSeg).toBe(null)
+  })
+
+  it('jogo ausente do registro falha fechado: comando ainda é aceito, só a difusão daquele ciclo é pulada (Edge Case)', async () => {
+    const stub = await novaSala('DO-JOGO-AUSENTE')
+    const ana = await entrar(stub, 'Ana')
+
+    await runInDurableObject(stub, async (_i, state) => {
+      const sala = await carregar<EstadoQuemSouEu>(state.storage)
+      if (sala === null) throw new Error('sala inexistente')
+      sala.jogoId = 'jogo-removido-do-registro'
+      await salvar(state.storage, sala)
+    })
+
+    const projecoesAntes = projecoes(ana).length
+
+    mandar(ana, { t: 'chat', texto: 'ainda funciono?' })
+    await assentar()
+    expect(ana.ws.readyState).toBe(WebSocket.OPEN)
+
+    // A sala não trava nem lança: o comando é processado e persistido, só a
+    // difusão daquele ciclo é pulada porque `jogoAtual()` não resolveu nada.
+    expect(erros(ana)).toEqual([])
+    expect(projecoes(ana).length).toBe(projecoesAntes)
+    expect((await lerSala(stub))?.chat.at(-1)?.texto).toBe('ainda funciono?')
+
+    // E a sala segue viva pra comandos seguintes, mesmo sem o jogo resolvido.
+    mandar(ana, { t: 'chat', texto: 'segundo comando' })
+    await assentar()
+    expect((await lerSala(stub))?.chat.at(-1)?.texto).toBe('segundo comando')
+  })
 })
 
 describe('limite de taxa do chat (`CHAT-02`)', () => {

@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 7,
+  "next_id": 9,
   "lessons": [
     {
       "id": "L-001",
@@ -112,6 +112,42 @@
       ],
       "created": "2026-08-06T02:29:56Z",
       "last_seen": "2026-08-06T02:29:56Z"
+    },
+    {
+      "id": "L-007",
+      "key": "surviving_mutant::when a durable object shell layer resolves an injected registry by key and guards a missing entry add an integration test with a registry missing that key to prove the guard actually runs a unit test on the pure resolver function alone does not exercise the shell s guard",
+      "text": "When a Durable-Object shell layer resolves an injected registry by key and guards a missing entry, add an integration test with a registry missing that key to prove the guard actually runs — a unit test on the pure resolver function alone does not exercise the shell's guard.",
+      "signal": "surviving_mutant",
+      "scope": "server/core",
+      "status": "candidate",
+      "features": [
+        "hub-selecao-jogos"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "server/core/sala-do.ts:333-339 (confirmar() null-guard mutation, validation.md Sensor #3) (server/core)"
+      ],
+      "created": "2026-08-12T14:57:33Z",
+      "last_seen": "2026-08-12T14:57:33Z"
+    },
+    {
+      "id": "L-008",
+      "key": "ac_gap::when a command s spec required outcome is broadcasting to every connected player add an integration test that sends the command over a live connection with a second connected client and asserts that client s projection updates a unit test that calls the projection function directly does not prove the broadcast path works",
+      "text": "When a command's spec-required outcome is broadcasting to every connected player, add an integration test that sends the command over a live connection with a second connected client and asserts that client's projection updates — a unit test that calls the projection function directly does not prove the broadcast path works.",
+      "signal": "ac_gap",
+      "scope": "server/core",
+      "status": "candidate",
+      "features": [
+        "hub-selecao-jogos"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "HUB-12 (spec.md P2 AC7) — no evidence in sala-do.integration.test.ts (server/core)"
+      ],
+      "created": "2026-08-12T14:57:39Z",
+      "last_seen": "2026-08-12T14:57:39Z"
     }
   ]
 }
