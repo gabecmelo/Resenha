@@ -24,6 +24,7 @@ function sala(fase: Fase = 'lobby', limiteJogadores = MAX_JOGADORES): EstadoSala
     codigo: 'ABCDE',
     fase,
     hostId: '',
+    jogoId: 'quem-sou-eu',
     limiteJogadores,
     jogadores: [],
     banidos: [],

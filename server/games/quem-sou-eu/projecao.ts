@@ -31,6 +31,8 @@ export function projetar(
       codigo: sala.codigo,
       fase: sala.fase,
       hostId: sala.hostId,
+      // `HUB-01`, `HUB-12` — qual jogo esta sala roda.
+      jogoId: sala.jogoId,
       config: sala.config,
       // `AJU-39` — a lotação que a tela mostra é a desta sala.
       limiteJogadores: sala.limiteJogadores,

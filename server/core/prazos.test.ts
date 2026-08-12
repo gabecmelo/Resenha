@@ -12,6 +12,7 @@ function sala(prazos: Partial<Prazos> = {}): EstadoSala {
     codigo: 'ABCDE',
     fase: 'jogo',
     hostId: 'j1',
+    jogoId: 'quem-sou-eu',
     limiteJogadores: MAX_JOGADORES,
     jogadores: [],
     banidos: [],
