@@ -187,6 +187,8 @@ export interface EstadoSala<E = unknown> {
   /** Ring buffer, máximo de 200 (`CHAT-05`). */
   chat: MensagemChat[]
   jogo: E | null
+  /** `HUB-01`, `HUB-05` — qual jogo esta sala roda. Persistido, nunca undefined após a criação. */
+  jogoId: string
   prazos: Prazos
   ultimaAcaoEm: number
 }
@@ -221,6 +223,8 @@ export type CodigoErro =
   | 'PACOTE_NAO_ENCONTRADO'
   | 'PACOTE_INDISPONIVEL'
   | 'PACOTE_INSUFICIENTE'
+  /** `HUB-03` — `jogoId` que não existe no registro do hub, na criação ou na troca. */
+  | 'JOGO_INVALIDO'
 
 export type Resultado<T = void> = { ok: true; valor: T } | { ok: false; erro: CodigoErro }
 
@@ -250,6 +254,7 @@ export type Comando =
   | { t: 'chat'; texto: string }
   | { t: 'notas'; texto: string }
   | { t: 'sair' }
+  | { t: 'trocarJogo'; jogoId: string }
 
 /** Servidor → cliente. */
 export type Mensagem =
@@ -268,6 +273,8 @@ export interface Projecao {
     codigo: string
     fase: Fase
     hostId: JogadorId
+    /** `HUB-01`, `HUB-12` — qual jogo esta sala roda. */
+    jogoId: string
     config: Config
     /** `AJU-39` — a lotação exibida é a desta sala, não o teto do produto. */
     limiteJogadores: number
