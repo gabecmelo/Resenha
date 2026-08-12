@@ -17,6 +17,7 @@ function projecaoDe(paraJogador: JogadorId): Projecao {
       codigo: 'ABCDE',
       fase: 'lobby',
       hostId: 'j1',
+      jogoId: 'quem-sou-eu',
       config: { ...CONFIG_PADRAO },
       limiteJogadores: MAX_JOGADORES,
     },

@@ -366,7 +366,7 @@ describe('hibernação (AD-005, `CONN-05`)', () => {
       Object.keys(instancia as unknown as Record<string, unknown>),
     )
 
-    expect(campos.sort()).toEqual(['ctx', 'env', 'jogo', 'pacotesCacheTimestamp', 'pacotesDisponiveis'].sort())
+    expect(campos.sort()).toEqual(['ctx', 'env', 'registro', 'pacotesCacheTimestamp', 'pacotesDisponiveis'].sort())
   })
 })
 
@@ -573,6 +573,41 @@ describe('o chat preserva o autor que saiu (`AJU-16`)', () => {
       texto: 'até mais',
       em: expect.any(Number),
     })
+  })
+})
+
+describe('registro de jogos (`HUB-01`, `HUB-05`, `HUB-12`)', () => {
+  it('a sala criada guarda o jogoId padrão quando nenhum é pedido', async () => {
+    const stub = await novaSala('DO-JOGO-ID-PADRAO')
+    const ana = await entrar(stub, 'Ana')
+
+    expect(ultimaProjecao(ana).sala.jogoId).toBe('quem-sou-eu')
+    expect((await lerSala(stub))?.jogoId).toBe('quem-sou-eu')
+  })
+
+  it('a reconexão reflete o jogoId da sala na projeção', async () => {
+    const stub = await novaSala('DO-JOGO-ID-RECONECTA')
+    const ana = await entrar(stub, 'Ana')
+
+    ana.ws.close()
+    await assentar()
+    const volta = await abrir(stub, ana.token)
+    mandar(volta, { t: 'ola', token: ana.token })
+    await assentar()
+
+    expect(ultimaProjecao(volta).sala.jogoId).toBe('quem-sou-eu')
+  })
+
+  it('roteia o comando ao módulo certo via registro (`iniciar` avança a fase)', async () => {
+    const stub = await novaSala('DO-JOGO-ID-ROTEIA')
+    const ana = await entrar(stub, 'Ana')
+    await entrar(stub, 'Bruno')
+    await entrar(stub, 'Carla')
+
+    mandar(ana, { t: 'iniciar' })
+    await assentar()
+
+    expect(ultimaProjecao(ana).sala.fase).toBe('escrita')
   })
 })
 

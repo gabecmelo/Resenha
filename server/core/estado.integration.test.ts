@@ -19,6 +19,7 @@ function documento(codigo: string): EstadoSala<JogoDeTeste> {
     codigo,
     fase: 'jogo',
     hostId: 'j1',
+    jogoId: 'quem-sou-eu',
     limiteJogadores: MAX_JOGADORES,
     jogadores: [
       {
