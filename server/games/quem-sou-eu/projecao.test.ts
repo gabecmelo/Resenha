@@ -69,6 +69,7 @@ function salaDe(
     codigo: 'ABCDE',
     fase,
     hostId: 'a',
+    jogoId: 'quem-sou-eu',
     limiteJogadores: MAX_JOGADORES,
     jogadores: [
       jogador('a', 'ativo', 1_000),

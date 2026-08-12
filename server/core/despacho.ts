@@ -11,7 +11,7 @@ import type {
   Resultado,
   ResultadoReducer,
 } from '../../shared/protocolo'
-import { TEMPO_TURNO_MAX_SEG, TEMPO_TURNO_MIN_SEG } from '../../shared/protocolo'
+import { CONFIG_PADRAO, TEMPO_TURNO_MAX_SEG, TEMPO_TURNO_MIN_SEG } from '../../shared/protocolo'
 import type { PacoteCompleto } from '../../shared/pacotes-dados'
 import * as chat from './chat'
 import { TIPOS_DE_PRAZO, definir } from './prazos'
@@ -36,6 +36,7 @@ type TipoDeComandoDoCore =
   | 'transferirHost'
   | 'chat'
   | 'sair'
+  | 'trocarJogo'
 
 export type ComandoDeJogo = Exclude<Comando, { t: TipoDeComandoDoCore }>
 export type EntradaDoJogo = ComandoDeJogo | AvisoDeSala
@@ -58,10 +59,13 @@ const SEM_EFEITOS: Efeitos = { removidos: [] }
  * Único ponto que decide "esse jogador pode fazer isso?" (`HOST-06`, `JOGO-06`
  * e a recusa de ações de quem está apenas aguardando). Em caso de recusa a
  * sala fica exatamente como estava.
+ *
+ * `registro` substitui a antiga injeção de um único módulo fixo (`AD-013`): o
+ * jogo é resolvido por `sala.jogoId` a cada comando que precisa dele.
  */
-export async function despachar<E>(
-  sala: EstadoSala<E>,
-  jogo: JogoDaSala<E>,
+export async function despachar(
+  sala: EstadoSala,
+  registro: Record<string, JogoDaSala<unknown>>,
   autorId: JogadorId,
   comando: Comando,
   ambiente: Ambiente,
@@ -70,15 +74,15 @@ export async function despachar<E>(
   const autor = sala.jogadores.find((j) => j.id === autorId)
   if (autor === undefined) return { ok: false, erro: 'JOGADOR_NAO_ENCONTRADO' }
 
-  const resultado = await executar(sala, jogo, autor, comando, ambiente, env)
+  const resultado = await executar(sala, registro, autor, comando, ambiente, env)
   // `CONN-08` — só ação de jogador adia a expiração por ociosidade.
   if (resultado.ok) sala.ultimaAcaoEm = ambiente.agora
   return resultado
 }
 
-async function executar<E>(
-  sala: EstadoSala<E>,
-  jogo: JogoDaSala<E>,
+async function executar(
+  sala: EstadoSala,
+  registro: Record<string, JogoDaSala<unknown>>,
   autor: Jogador,
   comando: Comando,
   ambiente: Ambiente,
@@ -93,16 +97,27 @@ async function executar<E>(
 
     case 'configurar':
       return configurar(sala, autor, comando.config)
-    case 'iniciar':
+    case 'trocarJogo':
+      return trocarJogo(sala, autor, comando.jogoId, registro)
+    case 'iniciar': {
+      const jogo = jogoAtual(sala, registro)
+      if (jogo === null) return { ok: false, erro: 'COMANDO_INVALIDO' }
       return await iniciar(sala, jogo, autor, ambiente, env)
-    case 'expulsar':
+    }
+    case 'expulsar': {
+      const jogo = jogoAtual(sala, registro)
+      if (jogo === null) return { ok: false, erro: 'COMANDO_INVALIDO' }
       return expulsar(sala, jogo, autor, comando.jogadorId, ambiente)
+    }
     case 'transferirHost':
       return transferir(sala, autor, comando.jogadorId, ambiente)
     case 'chat':
       return mensagemDeChat(sala, autor, comando.texto, ambiente)
-    case 'sair':
+    case 'sair': {
+      const jogo = jogoAtual(sala, registro)
+      if (jogo === null) return { ok: false, erro: 'COMANDO_INVALIDO' }
       return sair(sala, jogo, autor, ambiente)
+    }
 
     // `NOTA-01` — o limite e a fase são política da sala; a escrita é do jogo.
     case 'notas': {
@@ -110,23 +125,40 @@ async function executar<E>(
       if (comando.texto.length > NOTAS_MAX_CARACTERES) {
         return { ok: false, erro: 'NOTAS_MUITO_LONGAS' }
       }
+      const jogo = jogoAtual(sala, registro)
+      if (jogo === null) return { ok: false, erro: 'COMANDO_INVALIDO' }
       return paraOJogo(sala, jogo, autor.id, comando, ambiente)
     }
 
-    default:
+    default: {
       // Edge case do spec: quem está aguardando a próxima partida não age nela.
       if (autor.situacao !== 'ativo') return { ok: false, erro: 'JOGADOR_AGUARDANDO' }
+      const jogo = jogoAtual(sala, registro)
+      if (jogo === null) return { ok: false, erro: 'COMANDO_INVALIDO' }
       return paraOJogo(sala, jogo, autor.id, comando, ambiente)
+    }
   }
+}
+
+/**
+ * Resolve o módulo do jogo atual da sala. `null` é o cenário de ops do Edge
+ * Case 4 do spec (jogo removido do registro depois de um deploy) — nunca
+ * caminho de usuário; quem chama trata como `COMANDO_INVALIDO`.
+ */
+function jogoAtual(
+  sala: EstadoSala,
+  registro: Record<string, JogoDaSala<unknown>>,
+): JogoDaSala<unknown> | null {
+  return registro[sala.jogoId] ?? null
 }
 
 /**
  * Entrega um aviso da sala ao jogo (saída de jogador, prazo de turno vencido).
  * Não é ação de jogador: não adia a expiração por ociosidade (`CONN-08`).
  */
-export function avisar<E>(
-  sala: EstadoSala<E>,
-  jogo: JogoDaSala<E>,
+export function avisar(
+  sala: EstadoSala,
+  jogo: JogoDaSala<unknown>,
   aviso: AvisoDeSala,
   ambiente: Ambiente,
 ): Resultado<Efeitos> {
@@ -143,8 +175,8 @@ export function avisar<E>(
  * campo, e não por espalhamento: o que o cliente mandar fora do contrato (a
  * opção removida, por exemplo) não entra na sala.
  */
-function configurar<E>(
-  sala: EstadoSala<E>,
+function configurar(
+  sala: EstadoSala,
   autor: Jogador,
   parcial: Partial<Config>,
 ): Resultado<Efeitos> {
@@ -201,6 +233,30 @@ function configValida(parcial: Partial<Config>): boolean {
 const DIFICULDADES_VALIDAS: readonly Dificuldade[] = ['facil', 'medio', 'dificil']
 
 /**
+ * `HUB-06`–`HUB-09`, `HUB-11` — troca o jogo da sala. `HUB-12` (broadcast
+ * imediato) é grátis: é o mesmo `confirmar()` que já roda depois de qualquer
+ * comando aceito.
+ */
+function trocarJogo(
+  sala: EstadoSala,
+  autor: Jogador,
+  jogoId: string,
+  registro: Record<string, JogoDaSala<unknown>>,
+): Resultado<Efeitos> {
+  if (autor.id !== sala.hostId) return { ok: false, erro: 'SEM_AUTORIDADE' }
+  if (sala.fase !== 'lobby') return { ok: false, erro: 'FASE_INVALIDA' }
+  if (!(jogoId in registro)) return { ok: false, erro: 'JOGO_INVALIDO' }
+  // `HUB-09` — idempotente: reabrir o seletor e confirmar o mesmo jogo não
+  // apaga configuração por acidente de navegação.
+  if (jogoId === sala.jogoId) return { ok: true, valor: SEM_EFEITOS }
+
+  sala.jogoId = jogoId
+  sala.jogo = null
+  sala.config = { ...CONFIG_PADRAO }
+  return { ok: true, valor: SEM_EFEITOS }
+}
+
+/**
  * `PKT2-09`, edge case `PKT2-21` — busca todos os pacotes selecionados em
  * paralelo (KV + fallback estático, mesmo padrão de antes, generalizado para
  * N ids). Falha o lote inteiro se qualquer id não existir em nenhum dos dois,
@@ -234,9 +290,9 @@ async function buscarUmPacote(id: string, env: Env): Promise<PacoteCompleto | nu
 }
 
 /** `ESCR-01`, `HOST-01` — lobby → escrita. */
-async function iniciar<E>(
-  sala: EstadoSala<E>,
-  jogo: JogoDaSala<E>,
+async function iniciar(
+  sala: EstadoSala,
+  jogo: JogoDaSala<unknown>,
   autor: Jogador,
   ambiente: Ambiente,
   env?: Env,
@@ -285,9 +341,9 @@ async function iniciar<E>(
 }
 
 /** `HOST-02` */
-function expulsar<E>(
-  sala: EstadoSala<E>,
-  jogo: JogoDaSala<E>,
+function expulsar(
+  sala: EstadoSala,
+  jogo: JogoDaSala<unknown>,
   autor: Jogador,
   alvoId: JogadorId,
   ambiente: Ambiente,
@@ -304,8 +360,8 @@ function expulsar<E>(
 }
 
 /** `HOST-03` */
-function transferir<E>(
-  sala: EstadoSala<E>,
+function transferir(
+  sala: EstadoSala,
   autor: Jogador,
   novoHostId: JogadorId,
   ambiente: Ambiente,
@@ -321,8 +377,8 @@ function transferir<E>(
 }
 
 /** `CHAT-01`, `CHAT-02` — quem está aguardando também conversa. */
-function mensagemDeChat<E>(
-  sala: EstadoSala<E>,
+function mensagemDeChat(
+  sala: EstadoSala,
   autor: Jogador,
   texto: string,
   ambiente: Ambiente,
@@ -337,9 +393,9 @@ function mensagemDeChat<E>(
  * deixou de existir; sair não é expulsão, então o token não é banido e a pessoa
  * pode entrar de novo como jogador novo.
  */
-function sair<E>(
-  sala: EstadoSala<E>,
-  jogo: JogoDaSala<E>,
+function sair(
+  sala: EstadoSala,
+  jogo: JogoDaSala<unknown>,
   autor: Jogador,
   ambiente: Ambiente,
 ): Resultado<Efeitos> {
@@ -364,9 +420,9 @@ function sair<E>(
 // Fronteira com o jogo
 // ---------------------------------------------------------------------------
 
-function paraOJogo<E>(
-  sala: EstadoSala<E>,
-  jogo: JogoDaSala<E>,
+function paraOJogo(
+  sala: EstadoSala,
+  jogo: JogoDaSala<unknown>,
   autorId: JogadorId,
   entrada: EntradaDoJogo,
   ambiente: Ambiente,
@@ -389,9 +445,9 @@ function paraOJogo<E>(
 }
 
 /** O jogo descreve o que mudou; executar é sempre do `core` (AD-009). */
-function aplicar<E>(
-  sala: EstadoSala<E>,
-  resultado: Extract<ResultadoReducer<E>, { ok: true }>,
+function aplicar(
+  sala: EstadoSala,
+  resultado: Extract<ResultadoReducer<unknown>, { ok: true }>,
   ambiente: Ambiente,
 ): void {
   sala.jogo = resultado.estado
