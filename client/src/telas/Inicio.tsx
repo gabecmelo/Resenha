@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { MAX_JOGADORES, MIN_JOGADORES, TAMANHO_CODIGO } from '../../../shared/protocolo'
-import { Botao, CampoDeTexto, Shell } from '../componentes'
+import { JOGO_PADRAO } from '../../../shared/jogos-catalogo'
+import { Botao, CampoDeTexto, SeletorDeJogos, Shell } from '../componentes'
 import type { ErroDeSala } from '../estado/conexao'
 import {
   LIMITE_PADRAO,
@@ -57,6 +58,8 @@ export function Inicio({
   const [codigo, setCodigo] = useState(codigoInicial)
   // `AJU-36` — já preenchido: quem não quiser mexer cria a sala sem passo a mais.
   const [limite, setLimite] = useState(LIMITE_PADRAO)
+  // `HUB-01` — o jogo padrão já vem pré-selecionado.
+  const [jogoId, setJogoId] = useState(JOGO_PADRAO)
   const [criando, setCriando] = useState(false)
   const [falhaAoCriar, setFalhaAoCriar] = useState(false)
   // O erro é do objeto que chegou: dispensar um não esconde o próximo.
@@ -88,7 +91,7 @@ export function Inicio({
     fetch('/api/salas', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ limiteJogadores }),
+      body: JSON.stringify({ limiteJogadores, jogoId }),
     })
       .then((resposta) => (resposta.ok ? resposta.json() : Promise.reject(new Error('falhou'))))
       .then((dados: { codigo: string }) => {
@@ -102,7 +105,7 @@ export function Inicio({
   return (
     <Shell>
       <div className="mx-auto flex w-full max-w-[420px] flex-col gap-9 pt-4 lg:max-w-none lg:flex-row lg:items-start lg:justify-center lg:gap-20 lg:pt-14">
-        <Apresentacao />
+        <Apresentacao jogoId={jogoId} aoEscolherJogo={setJogoId} />
 
         <div className="flex w-full flex-col gap-6 lg:max-w-[420px]">
           {dePorta !== null ? (
@@ -229,7 +232,14 @@ function erroDoApelido(erro: ErroDeSala | null): string | undefined {
   return undefined
 }
 
-function Apresentacao() {
+/** `HUB-01` — o jogo é uma escolha de verdade, não um texto fixo. */
+function Apresentacao({
+  jogoId,
+  aoEscolherJogo,
+}: {
+  jogoId: string
+  aoEscolherJogo(jogoId: string): void
+}) {
   return (
     <div className="flex flex-col gap-3 lg:max-w-[420px] lg:pt-1">
       <h1 className="text-titulo text-balance text-texto lg:text-display">
@@ -238,14 +248,11 @@ function Apresentacao() {
       <p className="text-corpo text-texto-2">Sem cadastro. Escolha um apelido e entre.</p>
       <div className="mt-3 hidden flex-col gap-1.5 border-t border-linha pt-5 lg:flex">
         <span className="font-mono text-[11px] tracking-[0.12em] text-texto-3 uppercase">
-          jogo disponível
+          escolha o jogo
         </span>
-        <span className="text-[15px] font-medium text-texto">
-          Quem Sou Eu? · {MIN_JOGADORES} a {MAX_JOGADORES} pessoas
-        </span>
+        <SeletorDeJogos jogoIdSelecionado={jogoId} aoSelecionar={aoEscolherJogo} />
         <p className="text-apoio text-texto-2">
-          Cada um recebe uma carta que todos veem menos ele. As perguntas são no viva-voz; o site só
-          mostra as cartas e de quem é a vez.
+          {MIN_JOGADORES} a {MAX_JOGADORES} pessoas.
         </p>
       </div>
     </div>
