@@ -78,11 +78,11 @@ T7 → T8 → T9
 - Skill: NONE
 
 **Done when**:
-- [ ] `EstadoSala<E>.jogoId: string` adicionado
-- [ ] `Comando` inclui `{ t: 'trocarJogo'; jogoId: string }`
-- [ ] `CodigoErro` inclui `'JOGO_INVALIDO'`
-- [ ] `Projecao.sala.jogoId: string` adicionado
-- [ ] Gate check passa: `npm run typecheck` (vermelho esperado em `despacho.ts`/`sala-do.ts`/`index.ts` até T4–T6 — mesmo padrão já documentado em `pacotes-avancados` T4)
+- [x] `EstadoSala<E>.jogoId: string` adicionado
+- [x] `Comando` inclui `{ t: 'trocarJogo'; jogoId: string }`
+- [x] `CodigoErro` inclui `'JOGO_INVALIDO'`
+- [x] `Projecao.sala.jogoId: string` adicionado
+- [x] Gate check passa: `npm run typecheck` (vermelho esperado em `despacho.ts`/`sala-do.ts`/`index.ts` até T4–T6 — mesmo padrão já documentado em `pacotes-avancados` T4)
 
 **Tests**: none
 **Gate**: build (typecheck only — vermelho esperado nos consumidores até T4–T6, ver nota acima)
@@ -104,10 +104,10 @@ T7 → T8 → T9
 - Skill: NONE
 
 **Done when**:
-- [ ] `CATALOGO_DE_JOGOS` contém exatamente a entrada `quem-sou-eu` com `id`/`nome`/`descricao`
-- [ ] `JOGO_PADRAO === 'quem-sou-eu'`
-- [ ] Teste unitário garante ids únicos no catálogo e que `JOGO_PADRAO` existe no catálogo
-- [ ] Gate check passa: `npm run typecheck && npm run test:unit`
+- [x] `CATALOGO_DE_JOGOS` contém exatamente a entrada `quem-sou-eu` com `id`/`nome`/`descricao`
+- [x] `JOGO_PADRAO === 'quem-sou-eu'`
+- [x] Teste unitário garante ids únicos no catálogo e que `JOGO_PADRAO` existe no catálogo
+- [x] Gate check passa: `npm run typecheck && npm run test:unit`
 
 **Tests**: unit
 **Gate**: quick
@@ -129,9 +129,9 @@ T7 → T8 → T9
 - Skill: NONE
 
 **Done when**:
-- [ ] `REGISTRO_DE_JOGOS: Record<string, JogoDaSala<unknown>>` exportado, com a chave `'quem-sou-eu'`
-- [ ] Nenhum outro arquivo do projeto contém `as JogoDaSala<unknown>` (grep — apagamento de tipo isolado neste arquivo)
-- [ ] Gate check passa: `npm run typecheck` (arquivo novo, isolado — sem consumidores ainda até T5/T6)
+- [x] `REGISTRO_DE_JOGOS: Record<string, JogoDaSala<unknown>>` exportado, com a chave `'quem-sou-eu'`
+- [x] Nenhum outro arquivo do projeto contém `as JogoDaSala<unknown>` (grep — apagamento de tipo isolado neste arquivo)
+- [x] Gate check passa: `npm run typecheck` (arquivo novo, isolado — sem consumidores ainda até T5/T6)
 
 **Tests**: none
 **Gate**: build
@@ -153,11 +153,11 @@ T7 → T8 → T9
 - Skill: NONE
 
 **Done when**:
-- [ ] `TipoDeComandoDoCore` inclui `'trocarJogo'`
-- [ ] `trocarJogo()`: não-host → `SEM_AUTORIDADE`; fora do lobby → `FASE_INVALIDA`; `jogoId` fora do registro → `JOGO_INVALIDO` sem mudar a sala; mesmo `jogoId` do atual → `ok: true` sem resetar `config`; `jogoId` diferente e válido → atualiza `sala.jogoId`, zera `sala.jogo`, reseta `sala.config` para `CONFIG_PADRAO`
-- [ ] `despachar`/`executar` resolvem `jogo = registro[sala.jogoId]` nos branches que precisam (`iniciar`, `expulsar`, `sair`, `paraOJogo`); jogo não encontrado no registro → `COMANDO_INVALIDO` (fail-closed, cenário de ops)
-- [ ] Testes novos cobrem as 6 ramificações de `trocarJogo` acima (host válido+diferente, host válido+idêntico/idempotente, não-host, fora do lobby, jogoId inválido, projeção reflete a troca)
-- [ ] Gate check passa: `npm run typecheck && npm run test:unit`
+- [x] `TipoDeComandoDoCore` inclui `'trocarJogo'`
+- [x] `trocarJogo()`: não-host → `SEM_AUTORIDADE`; fora do lobby → `FASE_INVALIDA`; `jogoId` fora do registro → `JOGO_INVALIDO` sem mudar a sala; mesmo `jogoId` do atual → `ok: true` sem resetar `config`; `jogoId` diferente e válido → atualiza `sala.jogoId`, zera `sala.jogo`, reseta `sala.config` para `CONFIG_PADRAO`
+- [x] `despachar`/`executar` resolvem `jogo = registro[sala.jogoId]` nos branches que precisam (`iniciar`, `expulsar`, `sair`, `paraOJogo`); jogo não encontrado no registro → `COMANDO_INVALIDO` (fail-closed, cenário de ops)
+- [x] Testes novos cobrem as 6 ramificações de `trocarJogo` acima (host válido+diferente, host válido+idêntico/idempotente, não-host, fora do lobby, jogoId inválido, projeção reflete a troca)
+- [x] Gate check passa: `npm run typecheck && npm run test:unit`
 
 **Tests**: unit
 **Gate**: quick
@@ -179,13 +179,13 @@ T7 → T8 → T9
 - Skill: NONE
 
 **Done when**:
-- [ ] `SalaDeJogo` não é mais genérico; construtor recebe `registro: Record<string, JogoDaSala<unknown>>`
-- [ ] `criar(codigo, limiteJogadores, jogoId)` persiste `jogoId` em `EstadoSala`
-- [ ] `jogoAtual(sala)` resolve `this.registro[sala.jogoId] ?? null`; todo ponto que usava `this.jogo` fixo (`despachar`, `avisar` no `alarm()`/`entrarNaSala`, `projetar` em `confirmar()`) usa `jogoAtual()`
-- [ ] Jogo não encontrado no registro (edge case de ops) não lança exceção — `avisar`/`projetar` pulam o efeito naquele ciclo, sala não trava
-- [ ] `MENSAGENS_DE_ERRO.JOGO_INVALIDO` definida
-- [ ] Testes de integração cobrem: sala criada guarda o `jogoId` certo; reconexão reflete `jogoId` na projeção; comando roteado ao módulo certo via registro
-- [ ] Gate check passa: `npm run typecheck && npm run test:unit && npm run test:integration`
+- [x] `SalaDeJogo` não é mais genérico; construtor recebe `registro: Record<string, JogoDaSala<unknown>>`
+- [x] `criar(codigo, limiteJogadores, jogoId)` persiste `jogoId` em `EstadoSala`
+- [x] `jogoAtual(sala)` resolve `this.registro[sala.jogoId] ?? null`; todo ponto que usava `this.jogo` fixo (`despachar`, `avisar` no `alarm()`/`entrarNaSala`, `projetar` em `confirmar()`) usa `jogoAtual()`
+- [x] Jogo não encontrado no registro (edge case de ops) não lança exceção — `avisar`/`projetar` pulam o efeito naquele ciclo, sala não trava
+- [x] `MENSAGENS_DE_ERRO.JOGO_INVALIDO` definida
+- [x] Testes de integração cobrem: sala criada guarda o `jogoId` certo; reconexão reflete `jogoId` na projeção; comando roteado ao módulo certo via registro
+- [x] Gate check passa: `npm run typecheck && npm run test:unit && npm run test:integration`
 
 **Tests**: integration
 **Gate**: full
@@ -207,12 +207,12 @@ T7 → T8 → T9
 - Skill: NONE
 
 **Done when**:
-- [ ] `SalaDurableObject` (não genérico) injeta `REGISTRO_DE_JOGOS` no `super()`
-- [ ] `jogoId` ausente no corpo → sala criada com `JOGO_PADRAO`, sem erro
-- [ ] `jogoId` presente mas fora de `Object.keys(REGISTRO_DE_JOGOS)` → `400 { erro: 'JOGO_INVALIDO' }`, **nenhuma chamada** ao Durable Object (sala não nasce)
-- [ ] `jogoId` válido → propagado para `/criar` e persistido (verificável via projeção pós-criação)
-- [ ] Testes de integração cobrem os três casos acima
-- [ ] Gate check passa: `npm run typecheck && npm run test:unit && npm run test:integration`
+- [x] `SalaDurableObject` (não genérico) injeta `REGISTRO_DE_JOGOS` no `super()`
+- [x] `jogoId` ausente no corpo → sala criada com `JOGO_PADRAO`, sem erro
+- [x] `jogoId` presente mas fora de `Object.keys(REGISTRO_DE_JOGOS)` → `400 { erro: 'JOGO_INVALIDO' }`, **nenhuma chamada** ao Durable Object (sala não nasce)
+- [x] `jogoId` válido → propagado para `/criar` e persistido (verificável via projeção pós-criação)
+- [x] Testes de integração cobrem os três casos acima
+- [x] Gate check passa: `npm run typecheck && npm run test:unit && npm run test:integration`
 
 **Tests**: integration
 **Gate**: full
