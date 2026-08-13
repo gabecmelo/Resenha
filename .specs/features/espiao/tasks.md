@@ -238,8 +238,8 @@ T11 → T12 → T13 → T14 → T15
 - Skill: NONE
 
 **Done when**:
-- [ ] `export const espiao: ModuloDeJogo<EstadoEspiao, ComandoEspiao> = { iniciarRodada, reduzir, projetar }`
-- [ ] Gate check passa: `npm run typecheck` (arquivo isolado, sem consumidores ainda até T8)
+- [x] `export const espiao: ModuloDeJogo<EstadoEspiao, ComandoEspiao> = { iniciarRodada, reduzir, projetar }`
+- [x] Gate check passa: `npm run typecheck` (arquivo isolado, sem consumidores ainda até T8)
 
 **Tests**: none
 **Gate**: build
