@@ -317,7 +317,8 @@ async function buscarUmPacote(id: string, env: Env): Promise<PacoteCompleto | nu
   if (doKv) return doKv
   // Fallback para dev local
   const { PACOTES } = await import('../../shared/pacotes-dados')
-  return PACOTES.find((p) => p.id === id) ?? null
+  const { LOCAIS } = await import('../../shared/locais-dados')
+  return [...PACOTES, ...LOCAIS].find((p) => p.id === id) ?? null
 }
 
 /** `ESCR-01`, `HOST-01` — lobby → escrita. */

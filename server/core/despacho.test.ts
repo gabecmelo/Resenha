@@ -911,6 +911,19 @@ describe('buscarPacotes (T6, `PKT2-09`, `PKT2-21`)', () => {
     expect(resultado).toEqual({ ok: false, erro: 'PACOTE_NAO_ENCONTRADO' })
   })
 
+  it('cai no fallback estático também para pacotes de locais de Espião (`ESP-01`, `ESP-04`)', async () => {
+    const env = envComPacotes({})
+
+    const resultado = await buscarPacotes(['locais-classicos'], env)
+
+    expect(resultado.ok).toBe(true)
+    if (resultado.ok) {
+      expect(resultado.valor).toHaveLength(1)
+      expect(resultado.valor[0].id).toBe('locais-classicos')
+      expect(resultado.valor[0].jogoId).toBe('espiao')
+    }
+  })
+
   it('busca vários ids em paralelo e preserva a ordem pedida (`PKT2-06`)', async () => {
     const env = envComPacotes({ filmes: PACOTE_DO_KV })
 
