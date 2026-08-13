@@ -1,0 +1,700 @@
+import { describe, expect, it } from 'vitest'
+import {
+  CONFIG_PADRAO,
+  type Ambiente,
+  type ContextoDeSala,
+  type Jogador,
+  type JogadorId,
+  type Situacao,
+} from '../../../shared/protocolo'
+import type { PacoteCompleto } from '../../../shared/pacotes-dados'
+import {
+  type ComandoEspiao,
+  type EstadoEspiao,
+  estadoVazio,
+  iniciarRodada,
+  reduzir,
+} from './regras'
+
+/**
+ * `aleatorio` constante faz `embaralhar` rotacionar a lista em 1 posição
+ * (`[x0,x1,...,xn-1] → [x1,...,xn-1,x0]`), sempre a mesma rotação — dá
+ * resultados 100% previsíveis sem precisar mockar o algoritmo, mesmo padrão
+ * de `despacho.test.ts`.
+ */
+const AMBIENTE: Ambiente = { agora: 10_000, aleatorio: () => 0 }
+
+function jogador(id: JogadorId, situacao: Situacao = 'ativo', conectado = true): Jogador {
+  return {
+    id,
+    tokenHash: `hash-${id}`,
+    apelido: id.toUpperCase(),
+    cor: 'vermelho',
+    entrouEm: 1_000,
+    conectado,
+    desconectadoEm: conectado ? null : 500,
+    situacao,
+  }
+}
+
+function ctx(over: Partial<ContextoDeSala> = {}): ContextoDeSala {
+  return {
+    fase: 'jogo',
+    hostId: 'a',
+    config: { ...CONFIG_PADRAO },
+    jogadores: [jogador('a'), jogador('b'), jogador('c')],
+    autorId: 'a',
+    ...over,
+  }
+}
+
+function pacoteDe(locais: string[]): PacoteCompleto {
+  return {
+    id: 'locais-teste',
+    nome: 'Locais de Teste',
+    emoji: '🗺️',
+    descricao: '',
+    quantidade: locais.length,
+    jogoId: 'espiao',
+    cartas: locais.map((texto) => ({ texto, dificuldade: 'facil' as const })),
+  }
+}
+
+const LOCAIS_PADRAO = ['Praia', 'Escola', 'Hospital']
+
+function rodadaDe(
+  jogadores: Jogador[],
+  over: Partial<ContextoDeSala> = {},
+  locais: string[] = LOCAIS_PADRAO,
+): EstadoEspiao {
+  const resultado = iniciarRodada(ctx({ jogadores, ...over }), AMBIENTE, [pacoteDe(locais)])
+  if (!resultado.ok) throw new Error(`rodada inesperadamente recusada: ${resultado.erro}`)
+  return resultado.valor
+}
+
+function rodadaDeResultado(
+  jogadores: Jogador[],
+  over: Partial<ContextoDeSala> = {},
+  locais: string[] = LOCAIS_PADRAO,
+) {
+  return iniciarRodada(ctx({ jogadores, ...over }), AMBIENTE, [pacoteDe(locais)])
+}
+
+function reduzirOk(
+  estado: EstadoEspiao,
+  contexto: ContextoDeSala,
+  comando: ComandoEspiao,
+  ambiente: Ambiente = AMBIENTE,
+) {
+  const resultado = reduzir(estado, contexto, comando, ambiente)
+  if (!resultado.ok) throw new Error(`comando inesperadamente recusado: ${resultado.erro}`)
+  return resultado
+}
+
+/** Leva todos os ativos a marcar PRONTO — a rodada libera. */
+function comTodosProntos(estado: EstadoEspiao, base: ContextoDeSala): EstadoEspiao {
+  let atual = estado
+  for (const j of base.jogadores.filter((x) => x.situacao === 'ativo')) {
+    const comoAutor = { ...base, autorId: j.id }
+    atual = reduzirOk(atual, comoAutor, { t: 'marcarPronto', pronto: true }).estado
+  }
+  return atual
+}
+
+// ---------------------------------------------------------------------------
+// iniciarRodada
+// ---------------------------------------------------------------------------
+
+describe('iniciarRodada (ESP-01, ESP-03, ESP-04)', () => {
+  it('recusa com menos de 3 jogadores ativos (ESP-03)', () => {
+    const resultado = rodadaDeResultado([jogador('a'), jogador('b')])
+
+    expect(resultado).toEqual({ ok: false, erro: 'JOGADORES_INSUFICIENTES' })
+  })
+
+  it('recusa quando o nº de espiões configurado não deixa 2+ não-espiões (ESP-02)', () => {
+    const resultado = rodadaDeResultado(
+      [jogador('a'), jogador('b'), jogador('c')],
+      { config: { ...CONFIG_PADRAO, espiao: { ...CONFIG_PADRAO.espiao, numEspioes: 2 } } },
+    )
+
+    expect(resultado).toEqual({ ok: false, erro: 'JOGADORES_INSUFICIENTES' })
+  })
+
+  it('aceita quando o nº de espiões deixa exatamente 2 não-espiões', () => {
+    const estado = rodadaDe(
+      [jogador('a'), jogador('b'), jogador('c'), jogador('d')],
+      { config: { ...CONFIG_PADRAO, espiao: { ...CONFIG_PADRAO.espiao, numEspioes: 2 } } },
+    )
+
+    expect(estado.espioes).toHaveLength(2)
+  })
+
+  it('sorteia local, espiões (na quantidade configurada) e quem começa perguntando (ESP-04)', () => {
+    const estado = rodadaDe([jogador('a'), jogador('b'), jogador('c')])
+
+    // Rotação de `['a','b','c']` com `aleatorio` constante é `['b','c','a']`.
+    expect({
+      espioes: estado.espioes,
+      comecaPerguntando: estado.comecaPerguntando,
+      local: estado.local,
+    }).toEqual({
+      espioes: ['b'],
+      comecaPerguntando: 'b',
+      local: 'Escola', // rotação de `['Praia','Escola','Hospital']` também começa em índice 1
+    })
+  })
+
+  it('espiões vêm sempre dentre os jogadores ativos, mesmo com jogador aguardando', () => {
+    const estado = rodadaDe([
+      jogador('a'),
+      jogador('b'),
+      jogador('c'),
+      jogador('d', 'aguardando'),
+    ])
+
+    expect(estado.espioes.every((id) => ['a', 'b', 'c'].includes(id))).toBe(true)
+  })
+
+  it('a rodada nasce com `prontos` vazio e `rodadaIniciada: false` (ESP-05)', () => {
+    const estado = rodadaDe([jogador('a'), jogador('b'), jogador('c')])
+
+    expect({ prontos: estado.prontos, rodadaIniciada: estado.rodadaIniciada }).toEqual({
+      prontos: [],
+      rodadaIniciada: false,
+    })
+  })
+
+  it('recusa sem pacotes selecionados', () => {
+    const resultado = iniciarRodada(ctx(), AMBIENTE, undefined)
+
+    expect(resultado).toEqual({ ok: false, erro: 'PACOTE_NAO_ENCONTRADO' })
+  })
+
+  it('recusa quando o pool de locais fica vazio após o filtro de dificuldades', () => {
+    const resultado = iniciarRodada(
+      ctx({ config: { ...CONFIG_PADRAO, dificuldades: ['dificil'] } }),
+      AMBIENTE,
+      [pacoteDe(LOCAIS_PADRAO)], // todas as cartas são 'facil'
+    )
+
+    expect(resultado).toEqual({ ok: false, erro: 'PACOTE_INSUFICIENTE' })
+  })
+})
+
+// ---------------------------------------------------------------------------
+// marcarPronto (ESP-05, ESP-06)
+// ---------------------------------------------------------------------------
+
+describe('marcarPronto (ESP-05, ESP-06)', () => {
+  it('recusa fora da fase de jogo', () => {
+    const estado = rodadaDe([jogador('a'), jogador('b'), jogador('c')])
+    const base = ctx({ fase: 'lobby' })
+
+    const resultado = reduzir(estado, base, { t: 'marcarPronto', pronto: true }, AMBIENTE)
+
+    expect(resultado).toEqual({ ok: false, erro: 'FASE_INVALIDA' })
+  })
+
+  it('recusa depois que a rodada já iniciou', () => {
+    const base = ctx()
+    const iniciado = comTodosProntos(rodadaDe(base.jogadores), base)
+
+    const resultado = reduzir(iniciado, base, { t: 'marcarPronto', pronto: true }, AMBIENTE)
+
+    expect(resultado).toEqual({ ok: false, erro: 'COMANDO_INVALIDO' })
+  })
+
+  it('marca o autor como pronto sem liberar a rodada se falta gente', () => {
+    const base = ctx()
+    const estado = rodadaDe(base.jogadores)
+
+    const resultado = reduzirOk(estado, { ...base, autorId: 'a' }, { t: 'marcarPronto', pronto: true })
+
+    expect({ prontos: resultado.estado.prontos, rodadaIniciada: resultado.estado.rodadaIniciada }).toEqual({
+      prontos: ['a'],
+      rodadaIniciada: false,
+    })
+  })
+
+  it('desmarca o autor quando `pronto: false`', () => {
+    const base = ctx()
+    const marcado = reduzirOk(rodadaDe(base.jogadores), { ...base, autorId: 'a' }, { t: 'marcarPronto', pronto: true }).estado
+
+    const resultado = reduzirOk(marcado, { ...base, autorId: 'a' }, { t: 'marcarPronto', pronto: false })
+
+    expect(resultado.estado.prontos).toEqual([])
+  })
+
+  it('quando todos os ativos marcam pronto, libera a rodada e define o prazo (ESP-06)', () => {
+    const base = ctx({ config: { ...CONFIG_PADRAO, espiao: { ...CONFIG_PADRAO.espiao, tempoRodadaSeg: 300 } } })
+
+    const iniciado = comTodosProntos(rodadaDe(base.jogadores), base)
+
+    expect(iniciado.rodadaIniciada).toBe(true)
+  })
+
+  it('o prazo da rodada é `null` quando `tempoRodadaSeg` é `null`', () => {
+    const base = ctx({ config: { ...CONFIG_PADRAO, espiao: { ...CONFIG_PADRAO.espiao, tempoRodadaSeg: null } } })
+    const estado = rodadaDe(base.jogadores, { config: base.config })
+    const ativos = base.jogadores.filter((j) => j.situacao === 'ativo')
+
+    let atual = estado
+    let ultimoResultado
+    for (const j of ativos) {
+      ultimoResultado = reduzirOk(atual, { ...base, autorId: j.id }, { t: 'marcarPronto', pronto: true })
+      atual = ultimoResultado.estado
+    }
+
+    expect(ultimoResultado?.prazos).toEqual({ turno: null })
+  })
+
+  it('define `prazos.turno` a partir de `config.espiao.tempoRodadaSeg` (ESP-06)', () => {
+    const base = ctx({ config: { ...CONFIG_PADRAO, espiao: { ...CONFIG_PADRAO.espiao, tempoRodadaSeg: 120 } } })
+    const estado = rodadaDe(base.jogadores, { config: base.config })
+    const ativos = base.jogadores.filter((j) => j.situacao === 'ativo')
+
+    let atual = estado
+    let ultimoResultado
+    for (const j of ativos) {
+      ultimoResultado = reduzirOk(atual, { ...base, autorId: j.id }, { t: 'marcarPronto', pronto: true })
+      atual = ultimoResultado.estado
+    }
+
+    expect(ultimoResultado?.prazos).toEqual({ turno: AMBIENTE.agora + 120_000 })
+  })
+})
+
+// ---------------------------------------------------------------------------
+// abrirVotacao / venceuPrazoTurno (ESP-09, ESP-10)
+// ---------------------------------------------------------------------------
+
+describe('abrirVotacao (ESP-09)', () => {
+  function emRodada(over: Partial<ContextoDeSala> = {}) {
+    const base = ctx(over)
+    const estado = comTodosProntos(rodadaDe(base.jogadores, over), base)
+    return { estado, base }
+  }
+
+  it('recusa antes de a rodada iniciar (aguardando prontos)', () => {
+    const base = ctx()
+    const estado = rodadaDe(base.jogadores)
+
+    const resultado = reduzir(estado, base, { t: 'abrirVotacao' }, AMBIENTE)
+
+    expect(resultado).toEqual({ ok: false, erro: 'COMANDO_INVALIDO' })
+  })
+
+  it('qualquer jogador ativo pode abrir a votação durante a rodada', () => {
+    const { estado, base } = emRodada()
+
+    const resultado = reduzirOk(estado, { ...base, autorId: 'c' }, { t: 'abrirVotacao' })
+
+    expect(resultado.estado.votacaoAberta).toEqual({ abertaEm: AMBIENTE.agora, votos: {} })
+  })
+
+  it('pausa o prazo da rodada ao abrir (prazos.turno: null)', () => {
+    const { estado, base } = emRodada()
+
+    const resultado = reduzirOk(estado, base, { t: 'abrirVotacao' })
+
+    expect(resultado.prazos).toEqual({ turno: null })
+  })
+
+  it('recusa abrir uma segunda votação enquanto a primeira está aberta', () => {
+    const { estado, base } = emRodada()
+    const aberta = reduzirOk(estado, base, { t: 'abrirVotacao' }).estado
+
+    const resultado = reduzir(aberta, base, { t: 'abrirVotacao' }, AMBIENTE)
+
+    expect(resultado).toEqual({ ok: false, erro: 'COMANDO_INVALIDO' })
+  })
+})
+
+describe('venceuPrazoTurno abre a votação automaticamente (ESP-10)', () => {
+  function emRodada(config = CONFIG_PADRAO) {
+    const base = ctx({ config })
+    const estado = comTodosProntos(rodadaDe(base.jogadores, { config }), base)
+    return { estado, base }
+  }
+
+  it('abre a votação quando a rodada está em andamento sem votação aberta', () => {
+    const { estado, base } = emRodada()
+
+    const resultado = reduzirOk(estado, base, { t: 'venceuPrazoTurno' })
+
+    expect(resultado.estado.votacaoAberta).toEqual({ abertaEm: AMBIENTE.agora, votos: {} })
+    expect(resultado.prazos).toEqual({ turno: null })
+  })
+
+  it('não faz nada quando `tempoRodadaSeg` é `null` (sem prazo agendado)', () => {
+    const config = { ...CONFIG_PADRAO, espiao: { ...CONFIG_PADRAO.espiao, tempoRodadaSeg: null } }
+    const { estado, base } = emRodada(config)
+
+    const resultado = reduzirOk(estado, base, { t: 'venceuPrazoTurno' })
+
+    expect(resultado.estado).toEqual(estado)
+  })
+
+  it('não faz nada (no-op) se a votação já está aberta', () => {
+    const { estado, base } = emRodada()
+    const aberta = reduzirOk(estado, base, { t: 'abrirVotacao' }).estado
+
+    const resultado = reduzirOk(aberta, base, { t: 'venceuPrazoTurno' })
+
+    expect(resultado.estado).toEqual(aberta)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// votar / encerrarVotacao / resultado da votação (ESP-11..ESP-14)
+// ---------------------------------------------------------------------------
+
+describe('votação — votar e fechamento (ESP-11, ESP-12)', () => {
+  function comVotacaoAberta(jogadores: Jogador[] = [jogador('a'), jogador('b'), jogador('c')]) {
+    const base = ctx({ jogadores })
+    const pronto = comTodosProntos(rodadaDe(jogadores), base)
+    const aberta = reduzirOk(pronto, base, { t: 'abrirVotacao' }).estado
+    return { estado: aberta, base }
+  }
+
+  it('recusa votar sem votação aberta', () => {
+    const base = ctx()
+    const estado = comTodosProntos(rodadaDe(base.jogadores), base)
+
+    const resultado = reduzir(estado, base, { t: 'votar', alvoId: 'b' }, AMBIENTE)
+
+    expect(resultado).toEqual({ ok: false, erro: 'COMANDO_INVALIDO' })
+  })
+
+  it('recusa `alvoId` que não é jogador ativo', () => {
+    const { estado, base } = comVotacaoAberta()
+
+    const resultado = reduzir(estado, base, { t: 'votar', alvoId: 'fantasma' }, AMBIENTE)
+
+    expect(resultado).toEqual({ ok: false, erro: 'COMANDO_INVALIDO' })
+  })
+
+  it('registra o voto do autor', () => {
+    const { estado, base } = comVotacaoAberta()
+
+    const resultado = reduzirOk(estado, { ...base, autorId: 'a' }, { t: 'votar', alvoId: 'b' })
+
+    expect(resultado.estado.votacaoAberta?.votos).toEqual({ a: 'b' })
+  })
+
+  it('`alvoId: null` registra "pular"', () => {
+    const { estado, base } = comVotacaoAberta()
+
+    const resultado = reduzirOk(estado, { ...base, autorId: 'a' }, { t: 'votar', alvoId: null })
+
+    expect(resultado.estado.votacaoAberta?.votos).toEqual({ a: 'pular' })
+  })
+
+  it('um segundo voto do mesmo jogador substitui o anterior, não soma', () => {
+    const { estado, base } = comVotacaoAberta()
+    const primeiro = reduzirOk(estado, { ...base, autorId: 'a' }, { t: 'votar', alvoId: 'b' }).estado
+
+    const resultado = reduzirOk(primeiro, { ...base, autorId: 'a' }, { t: 'votar', alvoId: 'c' })
+
+    expect(resultado.estado.votacaoAberta?.votos).toEqual({ a: 'c' })
+  })
+
+  it('fecha automaticamente quando todos os ativos conectados votaram', () => {
+    const { estado, base } = comVotacaoAberta()
+    let atual = estado
+    atual = reduzirOk(atual, { ...base, autorId: 'a' }, { t: 'votar', alvoId: 'b' }).estado
+    atual = reduzirOk(atual, { ...base, autorId: 'c' }, { t: 'votar', alvoId: 'b' }).estado
+
+    const resultado = reduzirOk(atual, { ...base, autorId: 'b' }, { t: 'votar', alvoId: 'b' })
+
+    expect(resultado.estado.votacaoAberta).toBeNull()
+  })
+
+  it('não fecha enquanto falta jogador ativo conectado votar', () => {
+    const { estado, base } = comVotacaoAberta()
+
+    const resultado = reduzirOk(estado, { ...base, autorId: 'a' }, { t: 'votar', alvoId: 'b' })
+
+    expect(resultado.estado.votacaoAberta).not.toBeNull()
+  })
+
+  it('desconectado não trava o fechamento: "todos votaram" conta só ativos conectados (edge case)', () => {
+    const jogadores = [jogador('a'), jogador('b'), jogador('c', 'ativo', false)]
+    const { estado, base } = comVotacaoAberta(jogadores)
+    const comA = reduzirOk(estado, { ...base, autorId: 'a' }, { t: 'votar', alvoId: 'b' }).estado
+
+    const resultado = reduzirOk(comA, { ...base, autorId: 'b' }, { t: 'votar', alvoId: 'b' })
+
+    expect(resultado.estado.votacaoAberta).toBeNull()
+  })
+})
+
+describe('encerrarVotacao (ESP-12)', () => {
+  function comVotacaoAberta() {
+    const base = ctx()
+    const pronto = comTodosProntos(rodadaDe(base.jogadores), base)
+    const aberta = reduzirOk(pronto, base, { t: 'abrirVotacao' }).estado
+    return { estado: aberta, base }
+  }
+
+  it('recusa fora da fase de jogo', () => {
+    const { estado, base } = comVotacaoAberta()
+
+    const resultado = reduzir(estado, { ...base, fase: 'lobby' }, { t: 'encerrarVotacao' }, AMBIENTE)
+
+    expect(resultado).toEqual({ ok: false, erro: 'FASE_INVALIDA' })
+  })
+
+  it('recusa de quem não é host', () => {
+    const { estado, base } = comVotacaoAberta()
+
+    const resultado = reduzir(estado, { ...base, autorId: 'b' }, { t: 'encerrarVotacao' }, AMBIENTE)
+
+    expect(resultado).toEqual({ ok: false, erro: 'SEM_AUTORIDADE' })
+  })
+
+  it('recusa sem votação aberta', () => {
+    const base = ctx()
+    const estado = comTodosProntos(rodadaDe(base.jogadores), base)
+
+    const resultado = reduzir(estado, base, { t: 'encerrarVotacao' }, AMBIENTE)
+
+    expect(resultado).toEqual({ ok: false, erro: 'COMANDO_INVALIDO' })
+  })
+
+  it('o host fecha a votação mesmo sem todo mundo ter votado', () => {
+    const { estado, base } = comVotacaoAberta()
+
+    const resultado = reduzirOk(estado, base, { t: 'encerrarVotacao' })
+
+    expect(resultado.estado.votacaoAberta).toBeNull()
+  })
+})
+
+describe('resultado da votação — maioria absoluta sobre o total de ativos (ESP-13, ESP-14)', () => {
+  /** 3 ativos: `a` (host), `b` (espião, por rotação com `aleatorio` constante), `c`. */
+  function partidaComVotos(votos: Record<JogadorId, JogadorId | 'pular'>) {
+    const base = ctx()
+    const pronto = comTodosProntos(rodadaDe(base.jogadores), base)
+    const abertura = reduzirOk(pronto, base, { t: 'abrirVotacao' })
+    let atual = abertura.estado
+    let ultimoResultado: ReturnType<typeof reduzirOk> = abertura
+    for (const [votante, alvo] of Object.entries(votos)) {
+      ultimoResultado = reduzirOk(atual, { ...base, autorId: votante }, { t: 'votar', alvoId: alvo === 'pular' ? null : alvo })
+      atual = ultimoResultado.estado
+    }
+    // Se o último voto não fechou sozinho (nem todos os ativos votaram), o
+    // host fecha manualmente — mesmo caminho de `ESP-12`.
+    if (atual.votacaoAberta !== null) {
+      ultimoResultado = reduzirOk(atual, base, { t: 'encerrarVotacao' })
+    }
+    return { resultado: ultimoResultado, base }
+  }
+
+  it('maioria absoluta em quem é de fato espião encerra a partida revelando local e espiões (ESP-13)', () => {
+    const { resultado } = partidaComVotos({ a: 'b', c: 'b' }) // 2 de 3 votam no espião 'b'
+
+    expect({ faseSeguinte: resultado.faseSeguinte, local: resultado.estado.local, espioes: resultado.estado.espioes }).toEqual({
+      faseSeguinte: 'encerrada',
+      local: 'Escola',
+      espioes: ['b'],
+    })
+  })
+
+  it('maioria em quem não é espião não encerra a partida e reabre o prazo (ESP-14)', () => {
+    const { resultado, base } = partidaComVotos({ a: 'c', b: 'c' }) // 2 de 3 votam em 'c', que não é espião
+
+    expect({ faseSeguinte: resultado.faseSeguinte, prazos: resultado.prazos }).toEqual({
+      faseSeguinte: undefined,
+      prazos: { turno: AMBIENTE.agora + base.config.espiao.tempoRodadaSeg! * 1_000 },
+    })
+  })
+
+  it('empate não encerra a partida (ESP-14)', () => {
+    const { resultado } = partidaComVotos({ a: 'b', c: 'a' }) // 1 voto para 'b', 1 voto para 'a'
+
+    expect(resultado.faseSeguinte).toBeUndefined()
+  })
+
+  it('maioria em "pular" não encerra a partida (ESP-14)', () => {
+    const { resultado } = partidaComVotos({ a: 'pular', b: 'pular', c: 'pular' })
+
+    expect(resultado.faseSeguinte).toBeUndefined()
+  })
+
+  it('0 votos válidos (host encerra sem ninguém votar) conta como "não acertou" (edge case)', () => {
+    const { resultado } = partidaComVotos({})
+
+    expect(resultado.faseSeguinte).toBeUndefined()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// encerrar / novaPartida
+// ---------------------------------------------------------------------------
+
+describe('encerrar (ESP-15)', () => {
+  it('recusa fora da fase de jogo', () => {
+    const base = ctx({ fase: 'lobby' })
+
+    const resultado = reduzir(estadoVazio(), base, { t: 'encerrar' }, AMBIENTE)
+
+    expect(resultado).toEqual({ ok: false, erro: 'FASE_INVALIDA' })
+  })
+
+  it('recusa de quem não é host', () => {
+    const base = ctx()
+    const estado = rodadaDe(base.jogadores)
+
+    const resultado = reduzir(estado, { ...base, autorId: 'b' }, { t: 'encerrar' }, AMBIENTE)
+
+    expect(resultado).toEqual({ ok: false, erro: 'SEM_AUTORIDADE' })
+  })
+
+  it('o host encerra a qualquer momento da fase de jogo, revelando local e espiões', () => {
+    const base = ctx()
+    const estado = rodadaDe(base.jogadores) // ainda "aguardando prontos" — encerrar funciona mesmo assim
+
+    const resultado = reduzirOk(estado, base, { t: 'encerrar' })
+
+    expect({
+      faseSeguinte: resultado.faseSeguinte,
+      local: resultado.estado.local,
+      espioes: resultado.estado.espioes,
+    }).toEqual({ faseSeguinte: 'encerrada', local: estado.local, espioes: estado.espioes })
+  })
+})
+
+describe('novaPartida', () => {
+  it('recusa fora da fase encerrada', () => {
+    const base = ctx()
+
+    const resultado = reduzir(estadoVazio(), base, { t: 'novaPartida' }, AMBIENTE)
+
+    expect(resultado).toEqual({ ok: false, erro: 'FASE_INVALIDA' })
+  })
+
+  it('recusa de quem não é host', () => {
+    const base = ctx({ fase: 'encerrada' })
+
+    const resultado = reduzir(estadoVazio(), { ...base, autorId: 'b' }, { t: 'novaPartida' }, AMBIENTE)
+
+    expect(resultado).toEqual({ ok: false, erro: 'SEM_AUTORIDADE' })
+  })
+
+  it('devolve a sala ao lobby com o estado zerado e promove aguardando', () => {
+    const base = ctx({ fase: 'encerrada' })
+
+    const resultado = reduzirOk(estadoVazio(), base, { t: 'novaPartida' })
+
+    expect({
+      estado: resultado.estado,
+      faseSeguinte: resultado.faseSeguinte,
+      promoverAguardando: resultado.promoverAguardando,
+    }).toEqual({ estado: estadoVazio(), faseSeguinte: 'lobby', promoverAguardando: true })
+  })
+})
+
+// ---------------------------------------------------------------------------
+// notas
+// ---------------------------------------------------------------------------
+
+describe('notas', () => {
+  it('persiste a nota privada do autor', () => {
+    const base = ctx()
+    const estado = rodadaDe(base.jogadores)
+
+    const resultado = reduzirOk(estado, { ...base, autorId: 'c' }, { t: 'notas', texto: 'acho que é a Ana' })
+
+    expect(resultado.estado.notas).toEqual({ c: 'acho que é a Ana' })
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Edge cases — saída de jogador
+// ---------------------------------------------------------------------------
+
+describe('saída de jogador durante a rodada (edge cases do spec)', () => {
+  it('cancela a partida quando os ativos restantes caem abaixo de 3', () => {
+    const base = ctx({ jogadores: [jogador('a'), jogador('b'), jogador('c')] })
+    const estado = rodadaDe(base.jogadores)
+    // `c` já saiu do roster — `core` remove antes de avisar (mesmo padrão de "Quem Sou Eu").
+    const ctxSemC = ctx({ jogadores: [jogador('a'), jogador('b')] })
+
+    const resultado = reduzirOk(estado, ctxSemC, { t: 'saiuJogador', jogadorId: 'c' })
+
+    expect({
+      estado: resultado.estado,
+      faseSeguinte: resultado.faseSeguinte,
+      promoverAguardando: resultado.promoverAguardando,
+    }).toEqual({ estado: estadoVazio(), faseSeguinte: 'lobby', promoverAguardando: true })
+  })
+
+  it('a partida segue sem espião quando o único espião sai e sobram ativos suficientes', () => {
+    const base = ctx({ jogadores: [jogador('a'), jogador('b'), jogador('c'), jogador('d')] })
+    const estado = rodadaDe(base.jogadores) // espião sorteado: 'b' (rotação com aleatorio constante)
+    expect(estado.espioes).toEqual(['b'])
+    const ctxSemB = ctx({ jogadores: [jogador('a'), jogador('c'), jogador('d')] })
+
+    const resultado = reduzirOk(estado, ctxSemB, { t: 'saiuJogador', jogadorId: 'b' })
+
+    expect(resultado.estado.espioes).toEqual([])
+    expect(resultado.faseSeguinte).toBeUndefined() // a partida não é cancelada nem redistribuída
+  })
+
+  it('limpa nota, voto e marcação de pronto de quem saiu', () => {
+    const base = ctx({ jogadores: [jogador('a'), jogador('b'), jogador('c'), jogador('d')] })
+    const estado = rodadaDe(base.jogadores)
+    const comNota = reduzirOk(estado, { ...base, autorId: 'c' }, { t: 'notas', texto: 'nota da c' }).estado
+    const comPronto = reduzirOk(comNota, { ...base, autorId: 'c' }, { t: 'marcarPronto', pronto: true }).estado
+    const ctxSemC = ctx({ jogadores: [jogador('a'), jogador('b'), jogador('d')] })
+
+    const resultado = reduzirOk(comPronto, ctxSemC, { t: 'saiuJogador', jogadorId: 'c' })
+
+    expect({ notas: resultado.estado.notas, prontos: resultado.estado.prontos }).toEqual({
+      notas: {},
+      prontos: [],
+    })
+  })
+
+  it('libera a rodada se quem saiu era o último faltando marcar pronto', () => {
+    const base = ctx({ jogadores: [jogador('a'), jogador('b'), jogador('c'), jogador('d')] })
+    const estado = rodadaDe(base.jogadores)
+    const comAPronto = reduzirOk(estado, { ...base, autorId: 'a' }, { t: 'marcarPronto', pronto: true }).estado
+    const comBPronto = reduzirOk(comAPronto, { ...base, autorId: 'b' }, { t: 'marcarPronto', pronto: true }).estado
+    const comDPronto = reduzirOk(comBPronto, { ...base, autorId: 'd' }, { t: 'marcarPronto', pronto: true }).estado
+    // 'c' nunca marcou pronto e agora sai — restam 'a', 'b' e 'd', todos prontos.
+    const ctxSemC = ctx({ jogadores: [jogador('a'), jogador('b'), jogador('d')] })
+
+    const resultado = reduzirOk(comDPronto, ctxSemC, { t: 'saiuJogador', jogadorId: 'c' })
+
+    expect(resultado.estado.rodadaIniciada).toBe(true)
+  })
+
+  it('fecha a votação se quem saiu era o único ativo conectado faltando votar', () => {
+    const base = ctx({ jogadores: [jogador('a'), jogador('b'), jogador('c')] })
+    const pronto = comTodosProntos(rodadaDe(base.jogadores), base)
+    const aberta = reduzirOk(pronto, base, { t: 'abrirVotacao' }).estado
+    const comVotoDeA = reduzirOk(aberta, { ...base, autorId: 'a' }, { t: 'votar', alvoId: 'b' }).estado
+    // 'c' sai sem votar — só resta 'a' (já votou) e 'b'.
+    const ctxSemC = ctx({ jogadores: [jogador('a'), jogador('b')] })
+    const comVotoDeB = reduzirOk(comVotoDeA, { ...ctxSemC, autorId: 'b' }, { t: 'votar', alvoId: 'b' }).estado
+
+    const resultado = reduzirOk(comVotoDeB, ctxSemC, { t: 'saiuJogador', jogadorId: 'c' })
+
+    expect(resultado.estado.votacaoAberta).toBeNull()
+  })
+
+  it('ignora saída de jogador no lobby ou com a partida já encerrada', () => {
+    const estado = estadoVazio()
+
+    const noLobby = reduzir(estado, ctx({ fase: 'lobby' }), { t: 'saiuJogador', jogadorId: 'x' }, AMBIENTE)
+    const encerrada = reduzir(estado, ctx({ fase: 'encerrada' }), { t: 'saiuJogador', jogadorId: 'x' }, AMBIENTE)
+
+    expect([noLobby, encerrada]).toEqual([
+      { ok: true, estado, eventos: [], prazos: {} },
+      { ok: true, estado, eventos: [], prazos: {} },
+    ])
+  })
+})
