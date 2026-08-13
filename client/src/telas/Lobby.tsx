@@ -14,6 +14,7 @@ import { Botao, Chat, FichaDeJogador, Modal, SeletorDeJogos, Shell } from '../co
 import { linkDeConvite, motivoParaIniciar } from '../estado/entrada'
 import { montarPoolDeCartas } from '../../../shared/pacotes'
 import { PACOTES } from '../../../shared/pacotes-dados'
+import { LOCAIS } from '../../../shared/locais-dados'
 import {
   PRESETS_DE_TEMPO,
   ehTempoPersonalizado,
@@ -85,7 +86,12 @@ export function Lobby({ projecao, enviar, aoSair }: PropsDaTela) {
         </section>
 
         <section className="order-4 lg:order-none lg:col-start-1 lg:row-start-3">
-          <Regras config={sala.config} pacotesDisponiveis={sala.pacotesDisponiveis} souHost={eu.ehHost} apelidoDoHost={host?.apelido} enviar={enviar} />
+          {sala.jogoId === 'quem-sou-eu' && (
+            <Regras config={sala.config} pacotesDisponiveis={sala.pacotesDisponiveis} souHost={eu.ehHost} apelidoDoHost={host?.apelido} enviar={enviar} />
+          )}
+          {sala.jogoId === 'espiao' && (
+            <RegrasEspiao config={sala.config} pacotesDisponiveis={sala.pacotesDisponiveis} souHost={eu.ehHost} apelidoDoHost={host?.apelido} enviar={enviar} />
+          )}
         </section>
 
         <section className="order-5 flex flex-col gap-3 lg:order-none lg:col-start-3 lg:row-span-4 lg:row-start-1">
@@ -694,6 +700,315 @@ function Regras({
           )}
           <Leitura rotulo="Ordem dos turnos" valor={rotuloDe(OPCOES_DE_ORDEM, config.ordemTurnos)} />
           <Leitura rotulo="Tempo por turno" valor={rotuloDoTempo(config.tempoTurnoSeg)} />
+        </dl>
+      )}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Regras da partida de Espião (`AD-014`, `ESP-01`…`ESP-03`, `ESP-17`…`ESP-19`, `ESP-22`)
+// ---------------------------------------------------------------------------
+
+const OPCOES_NUM_ESPIOES: ReadonlyArray<{ valor: number; rotulo: string }> = [1, 2, 3, 4, 5].map(
+  (n) => ({ valor: n, rotulo: String(n) }),
+)
+
+const OPCOES_SIM_NAO = [
+  { valor: true, rotulo: 'Sim' },
+  { valor: false, rotulo: 'Não' },
+] as const
+
+const OPCOES_VISIBILIDADE_VOTO = [
+  { valor: 'oculta', rotulo: 'Oculta até fechar' },
+  { valor: 'tempoReal', rotulo: 'Tempo real' },
+] as const
+
+const PRESETS_DE_TEMPO_RODADA: ReadonlyArray<{ valor: number | null; rotulo: string }> = [
+  { valor: null, rotulo: 'Sem limite' },
+  { valor: 180, rotulo: '3min' },
+  { valor: 300, rotulo: '5min' },
+  { valor: 600, rotulo: '10min' },
+]
+
+/** Mesmo raciocínio de `ehTempoPersonalizado` (`estado/turno.ts`), pro tempo de rodada. */
+function ehTempoRodadaPersonalizado(tempoRodadaSeg: number | null): boolean {
+  return tempoRodadaSeg !== null && !PRESETS_DE_TEMPO_RODADA.some((o) => o.valor === tempoRodadaSeg)
+}
+
+function RegrasEspiao({
+  config,
+  pacotesDisponiveis,
+  souHost,
+  apelidoDoHost,
+  enviar,
+}: {
+  config: Config
+  pacotesDisponiveis: PacoteResumo[] | undefined
+  souHost: boolean
+  apelidoDoHost: string | undefined
+  enviar: PropsDaTela['enviar']
+}) {
+  const [modalLocaisAberto, setModalLocaisAberto] = useState(false)
+  const [modoTempoRodada, setModoTempoRodada] = useState<'preset' | 'personalizado'>(
+    ehTempoRodadaPersonalizado(config.espiao.tempoRodadaSeg) ? 'personalizado' : 'preset'
+  )
+  // Rascunho local: só vira comando de verdade em "Confirmar" — mesmo padrão
+  // de `pacoteIdsRascunho` usado pros pacotes de cartas.
+  const [pacoteIdsRascunho, setPacoteIdsRascunho] = useState<string[]>(config.pacoteIds)
+  const [pacoteParaVerLocais, setPacoteParaVerLocais] = useState<PacoteResumo | null>(null)
+  const [verLocaisAberto, setVerLocaisAberto] = useState(false)
+
+  const abrirModalDeLocais = () => {
+    setPacoteIdsRascunho(config.pacoteIds)
+    setModalLocaisAberto(true)
+  }
+
+  const pacotesSelecionados = pacotesDisponiveis?.filter((p) => config.pacoteIds.includes(p.id)) ?? []
+  const poolAtual = montarPoolDeCartas(
+    LOCAIS.filter((p) => config.pacoteIds.includes(p.id)),
+    config.dificuldades,
+  )
+
+  const opcoesDeTempoRodada = [
+    ...PRESETS_DE_TEMPO_RODADA.map((p) => ({
+      valor: p.valor === null ? 'sem-limite' : String(p.valor),
+      rotulo: p.rotulo,
+    })),
+    { valor: 'personalizado', rotulo: 'Personalizado' },
+  ]
+  const tempoRodadaAtualVal =
+    ehTempoRodadaPersonalizado(config.espiao.tempoRodadaSeg) || modoTempoRodada === 'personalizado'
+      ? 'personalizado'
+      : config.espiao.tempoRodadaSeg === null
+        ? 'sem-limite'
+        : String(config.espiao.tempoRodadaSeg)
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1">
+        <Titulo texto={souHost ? 'Regras da partida' : 'Regras desta partida'} />
+        {!souHost && (
+          <p className="text-miudo text-texto-3">
+            Quem escolhe é {apelidoDoHost ?? 'quem comanda a sala'}, que criou a sala.
+          </p>
+        )}
+      </div>
+
+      {config.pacoteIds.length > 0 && (
+        <Botao variante="secundario" onClick={() => setVerLocaisAberto(true)}>
+          Ver locais ({poolAtual.length})
+        </Botao>
+      )}
+
+      {verLocaisAberto && (
+        <Modal
+          titulo="Locais possíveis"
+          descricao={`${poolAtual.length} locais no pool combinado — nunca mostra qual saiu.`}
+          largura="larga"
+          aoCancelar={() => setVerLocaisAberto(false)}
+        >
+          <ul className="grid max-h-[60vh] grid-cols-2 gap-1.5 overflow-y-auto sm:grid-cols-3">
+            {poolAtual.map((texto) => (
+              <li
+                key={texto}
+                className="rounded-controle bg-superficie-2 px-2.5 py-1.5 text-miudo text-texto-2"
+              >
+                {texto}
+              </li>
+            ))}
+          </ul>
+        </Modal>
+      )}
+
+      {souHost ? (
+        <div className="flex flex-col gap-4">
+          <fieldset className="flex flex-col gap-2">
+            <legend className="mb-2 text-apoio text-texto-2">Pacote de locais</legend>
+            {pacotesSelecionados.length > 0 ? (
+              <div className="flex items-center justify-between rounded-bloco border border-linha bg-superficie px-4 py-3">
+                <div className="flex flex-col">
+                  <span className="font-semibold text-texto leading-snug">
+                    {pacotesSelecionados.map((p) => `${p.emoji} ${p.nome}`).join(', ')}
+                  </span>
+                  <span className="font-mono text-[10px] tracking-[0.1em] text-texto-3 uppercase">
+                    {pacotesSelecionados.length === 1 ? '1 pacote' : `${pacotesSelecionados.length} pacotes`}
+                  </span>
+                </div>
+                <Botao variante="secundario" onClick={abrirModalDeLocais}>Mudar...</Botao>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between rounded-bloco border border-dashed border-linha-suave bg-superficie px-4 py-3">
+                <span className="text-[15px] text-texto-2">Nenhum pacote selecionado</span>
+                <Botao variante="secundario" onClick={abrirModalDeLocais}>Selecionar...</Botao>
+              </div>
+            )}
+          </fieldset>
+
+          {modalLocaisAberto && (
+            <Modal
+              titulo="Escolha um ou mais pacotes de locais"
+              descricao="Marque os temas de locais para esta partida."
+              largura="larga"
+              rotuloConfirmar="Confirmar"
+              aoConfirmar={() => {
+                enviar({ t: 'configurar', config: { modoPacote: 'pacote', pacoteIds: pacoteIdsRascunho } })
+                setModalLocaisAberto(false)
+              }}
+              aoCancelar={() => setModalLocaisAberto(false)}
+            >
+              <div className="pacote-grid">
+                {pacotesDisponiveis?.map((pacote) => {
+                  const marcado = pacoteIdsRascunho.includes(pacote.id)
+                  const alternar = () => {
+                    setPacoteIdsRascunho((atual) =>
+                      atual.includes(pacote.id)
+                        ? atual.filter((id) => id !== pacote.id)
+                        : [...atual, pacote.id]
+                    )
+                  }
+                  return (
+                    <div
+                      key={pacote.id}
+                      role="button"
+                      tabIndex={0}
+                      aria-pressed={marcado}
+                      onClick={alternar}
+                      onKeyDown={(evento) => {
+                        if (evento.key !== 'Enter' && evento.key !== ' ') return
+                        evento.preventDefault()
+                        alternar()
+                      }}
+                      className="pacote-card text-left"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl">{pacote.emoji}</span>
+                        <h3 className="font-semibold text-texto">{pacote.nome}</h3>
+                      </div>
+                      <p className="text-miudo text-texto-2">{pacote.descricao}</p>
+                      <span className="mt-1 font-mono text-[10px] tracking-[0.1em] text-texto-3 uppercase">
+                        {pacote.quantidade} locais
+                      </span>
+                      <button
+                        type="button"
+                        onClick={(evento) => {
+                          evento.stopPropagation()
+                          setPacoteParaVerLocais(pacote)
+                        }}
+                        className="mt-1 flex min-h-11 w-full cursor-pointer items-center gap-1 self-start text-apoio font-medium text-acento hover:underline"
+                      >
+                        <span aria-hidden="true">▸</span>
+                        Ver locais
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            </Modal>
+          )}
+
+          {pacoteParaVerLocais && (
+            <Modal
+              titulo={pacoteParaVerLocais.nome}
+              descricao={`${pacoteParaVerLocais.quantidade} locais.`}
+              largura="larga"
+              aoCancelar={() => setPacoteParaVerLocais(null)}
+            >
+              <ul className="grid max-h-[60vh] grid-cols-2 gap-1.5 overflow-y-auto sm:grid-cols-3">
+                {(LOCAIS.find((p) => p.id === pacoteParaVerLocais.id)?.cartas.map((c) => c.texto) ?? []).map(
+                  (texto) => (
+                    <li
+                      key={texto}
+                      className="rounded-controle bg-superficie-2 px-2.5 py-1.5 text-miudo text-texto-2"
+                    >
+                      {texto}
+                    </li>
+                  ),
+                )}
+              </ul>
+            </Modal>
+          )}
+
+          <Escolha
+            rotulo="Nº de espiões"
+            dica="Precisa sobrar ao menos 2 jogadores não-espiões pra rodada começar."
+            opcoes={OPCOES_NUM_ESPIOES}
+            atual={config.espiao.numEspioes}
+            aoEscolher={(numEspioes) =>
+              enviar({ t: 'configurar', config: { espiao: { ...config.espiao, numEspioes } } })
+            }
+          />
+
+          <Escolha
+            rotulo="Espiões se veem"
+            dica="Com 2+ espiões, decide se eles sabem uns dos outros."
+            opcoes={OPCOES_SIM_NAO}
+            atual={config.espiao.espioesSeVeem}
+            aoEscolher={(espioesSeVeem) =>
+              enviar({ t: 'configurar', config: { espiao: { ...config.espiao, espioesSeVeem } } })
+            }
+          />
+
+          <Escolha
+            rotulo="Visibilidade do voto"
+            dica="Tempo real mostra a contagem enquanto a votação está aberta; oculta só revela ao fechar."
+            opcoes={OPCOES_VISIBILIDADE_VOTO}
+            atual={config.espiao.visibilidadeVoto}
+            aoEscolher={(visibilidadeVoto) =>
+              enviar({ t: 'configurar', config: { espiao: { ...config.espiao, visibilidadeVoto } } })
+            }
+          />
+
+          <div className="flex flex-col gap-3">
+            <Escolha
+              rotulo="Tempo de rodada"
+              dica="Tempo até a votação abrir automaticamente."
+              opcoes={opcoesDeTempoRodada}
+              atual={tempoRodadaAtualVal}
+              aoEscolher={(val) => {
+                if (val === 'personalizado') {
+                  setModoTempoRodada('personalizado')
+                } else {
+                  setModoTempoRodada('preset')
+                  enviar({
+                    t: 'configurar',
+                    config: {
+                      espiao: {
+                        ...config.espiao,
+                        tempoRodadaSeg: val === 'sem-limite' ? null : Number(val),
+                      },
+                    },
+                  })
+                }
+              }}
+            />
+            {(modoTempoRodada === 'personalizado' || ehTempoRodadaPersonalizado(config.espiao.tempoRodadaSeg)) && (
+              <TempoPersonalizado
+                atual={config.espiao.tempoRodadaSeg}
+                aoEscolher={(tempoRodadaSeg) =>
+                  enviar({ t: 'configurar', config: { espiao: { ...config.espiao, tempoRodadaSeg } } })
+                }
+              />
+            )}
+          </div>
+        </div>
+      ) : (
+        <dl className="flex flex-col">
+          <Leitura
+            rotulo="Pacote de locais"
+            valor={
+              pacotesSelecionados.length > 0
+                ? pacotesSelecionados.map((p) => p.nome).join(', ')
+                : 'Nenhum pacote selecionado'
+            }
+          />
+          <Leitura rotulo="Nº de espiões" valor={String(config.espiao.numEspioes)} />
+          <Leitura rotulo="Espiões se veem" valor={config.espiao.espioesSeVeem ? 'Sim' : 'Não'} />
+          <Leitura
+            rotulo="Visibilidade do voto"
+            valor={rotuloDe(OPCOES_VISIBILIDADE_VOTO, config.espiao.visibilidadeVoto)}
+          />
+          <Leitura rotulo="Tempo de rodada" valor={rotuloDoTempo(config.espiao.tempoRodadaSeg)} />
         </dl>
       )}
     </div>
