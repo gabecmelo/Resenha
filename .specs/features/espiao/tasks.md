@@ -155,10 +155,10 @@ T11 → T12 → T13 → T14 → T15
 - Skill: NONE
 
 **Done when**:
-- [ ] `embaralhar()` não muta a lista recebida; determinístico dado um `aleatorio` fixo
-- [ ] `sortearEspioes()` retorna exatamente `quantidade` ids distintos, todos dentre `ativos`
-- [ ] Testes cobrem: distribuição sem repetição, `quantidade === 1` e `quantidade > 1`, imutabilidade do array de entrada
-- [ ] Gate check passa: `npm run typecheck && npm run test:unit`
+- [x] `embaralhar()` não muta a lista recebida; determinístico dado um `aleatorio` fixo
+- [x] `sortearEspioes()` retorna exatamente `quantidade` ids distintos, todos dentre `ativos`
+- [x] Testes cobrem: distribuição sem repetição, `quantidade === 1` e `quantidade > 1`, imutabilidade do array de entrada
+- [x] Gate check passa: `npm run typecheck && npm run test:unit`
 
 **Tests**: unit
 **Gate**: quick
@@ -180,16 +180,16 @@ T11 → T12 → T13 → T14 → T15
 - Skill: NONE
 
 **Done when**:
-- [ ] `iniciarRodada`: menos de 3 ativos → `JOGADORES_INSUFICIENTES`; nº de espiões configurado não deixa 2+ não-espiões → `JOGADORES_INSUFICIENTES` (validado aqui, não em `configValida` — `ESP-02`); caso válido sorteia local (via `montarPoolDeCartas` + pacotes recebidos), espiões e quem começa perguntando; `prontos: []`; `rodadaIniciada: false`
-- [ ] `marcarPronto`: quando todos os ativos marcam pronto, `rodadaIniciada` vira `true` e `prazos.turno` é setado a partir de `config.espiao.tempoRodadaSeg` (`null` = sem prazo)
-- [ ] `abrirVotacao`: qualquer jogador ativo pode abrir durante `rodadaIniciada`; evento `venceuPrazoTurno` (timer esgotado) também abre votação automaticamente; prazo pausado (`prazos.turno: null`) enquanto a votação está aberta
-- [ ] `votar`: um voto por jogador ativo, substitui voto anterior do mesmo jogador; `alvoId` fora dos ativos → `COMANDO_INVALIDO`
-- [ ] `encerrarVotacao`/todos os ativos conectados votaram: fecha a votação e computa maioria absoluta sobre o total de ativos (não só votantes); acerto (maioria em um espião de fato) → `faseSeguinte: 'encerrada'`, revela local e espiões; qualquer outro resultado (empate, maioria errada, maioria em "pular", 0 votos válidos) → reabre o prazo da rodada, partida continua
-- [ ] `encerrar` (host, a qualquer momento da fase de jogo) → `faseSeguinte: 'encerrada'`, revela local e espiões
-- [ ] `notas`: persiste nota privada do autor, mesmo padrão de "Quem Sou Eu"
-- [ ] Edge cases: jogador sai e ativos caem abaixo de 3 → cancela partida, `promoverAguardando: true`, volta ao lobby; único espião sai e sobram ativos suficientes → partida segue sem espião algum; jogador desconecta durante votação aberta → "todos votaram" conta só ativos conectados
-- [ ] Comandos de votação fora da fase/estado certo → `FASE_INVALIDA`/`COMANDO_INVALIDO`; `encerrarVotacao`/`encerrar` por não-host → `SEM_AUTORIDADE`
-- [ ] Gate check passa: `npm run typecheck && npm run test:unit`
+- [x] `iniciarRodada`: menos de 3 ativos → `JOGADORES_INSUFICIENTES`; nº de espiões configurado não deixa 2+ não-espiões → `JOGADORES_INSUFICIENTES` (validado aqui, não em `configValida` — `ESP-02`); caso válido sorteia local (via `montarPoolDeCartas` + pacotes recebidos), espiões e quem começa perguntando; `prontos: []`; `rodadaIniciada: false`
+- [x] `marcarPronto`: quando todos os ativos marcam pronto, `rodadaIniciada` vira `true` e `prazos.turno` é setado a partir de `config.espiao.tempoRodadaSeg` (`null` = sem prazo)
+- [x] `abrirVotacao`: qualquer jogador ativo pode abrir durante `rodadaIniciada`; evento `venceuPrazoTurno` (timer esgotado) também abre votação automaticamente; prazo pausado (`prazos.turno: null`) enquanto a votação está aberta
+- [x] `votar`: um voto por jogador ativo, substitui voto anterior do mesmo jogador; `alvoId` fora dos ativos → `COMANDO_INVALIDO`
+- [x] `encerrarVotacao`/todos os ativos conectados votaram: fecha a votação e computa maioria absoluta sobre o total de ativos (não só votantes); acerto (maioria em um espião de fato) → `faseSeguinte: 'encerrada'`, revela local e espiões; qualquer outro resultado (empate, maioria errada, maioria em "pular", 0 votos válidos) → reabre o prazo da rodada, partida continua
+- [x] `encerrar` (host, a qualquer momento da fase de jogo) → `faseSeguinte: 'encerrada'`, revela local e espiões
+- [x] `notas`: persiste nota privada do autor, mesmo padrão de "Quem Sou Eu"
+- [x] Edge cases: jogador sai e ativos caem abaixo de 3 → cancela partida, `promoverAguardando: true`, volta ao lobby; único espião sai e sobram ativos suficientes → partida segue sem espião algum; jogador desconecta durante votação aberta → "todos votaram" conta só ativos conectados
+- [x] Comandos de votação fora da fase/estado certo → `FASE_INVALIDA`/`COMANDO_INVALIDO`; `encerrarVotacao`/`encerrar` por não-host → `SEM_AUTORIDADE`
+- [x] Gate check passa: `npm run typecheck && npm run test:unit`
 
 **Tests**: unit
 **Gate**: quick
@@ -211,12 +211,12 @@ T11 → T12 → T13 → T14 → T15
 - Skill: NONE
 
 **Done when**:
-- [ ] `souEspiao === true` → `local` ausente da projeção; `souEspiao === false` → `local` presente
-- [ ] `souEspiao && espioesSeVeem` → `espioes` presente com os outros espiões; `souEspiao && !espioesSeVeem` → `espioes` ausente (só sabe que é espião)
-- [ ] Fase `encerrada` → `local` e `espioes` presentes pra todos, inclusive quem entrou depois de encerrada
-- [ ] `visibilidadeVoto === 'tempoReal'` → `votacaoAberta.votos` presente e atualizado; `'oculta'` → `votos` ausente até a votação fechar
-- [ ] `votacaoAberta.meuVoto` reflete o voto do próprio jogador; `quantosVotaram`/`total` contam só ativos conectados
-- [ ] Gate check passa: `npm run typecheck && npm run test:unit`
+- [x] `souEspiao === true` → `local` ausente da projeção; `souEspiao === false` → `local` presente
+- [x] `souEspiao && espioesSeVeem` → `espioes` presente com os outros espiões; `souEspiao && !espioesSeVeem` → `espioes` ausente (só sabe que é espião)
+- [x] Fase `encerrada` → `local` e `espioes` presentes pra todos, inclusive quem entrou depois de encerrada
+- [x] `visibilidadeVoto === 'tempoReal'` → `votacaoAberta.votos` presente e atualizado; `'oculta'` → `votos` ausente até a votação fechar
+- [x] `votacaoAberta.meuVoto` reflete o voto do próprio jogador; `quantosVotaram`/`total` contam só ativos conectados
+- [x] Gate check passa: `npm run typecheck && npm run test:unit`
 
 **Tests**: unit
 **Gate**: quick
