@@ -284,11 +284,11 @@ T11 → T12 → T13 → T14 → T15
 - Skill: NONE
 
 **Done when**:
-- [ ] `configValida` recusa `numEspioes` não-inteiro ou ≤ 0; `visibilidadeVoto` fora de `'oculta'`/`'tempoReal'`; `tempoRodadaSeg` fora da faixa (quando não `null`); aceita valores válidos incluindo `tempoRodadaSeg: null`
-- [ ] `configurar()` remonta `sala.config.espiao` campo a campo (sem espalhamento), mesmo padrão dos demais campos de `Config`
-- [ ] Sem importar nada de `games/` (checagem visual/grep — mesma garantia de isolamento já mantida no arquivo)
-- [ ] Testes novos cobrem cada bound/enum inválido e o caminho válido
-- [ ] Gate check passa: `npm run typecheck && npm run test:unit`
+- [x] `configValida` recusa `numEspioes` não-inteiro ou ≤ 0; `visibilidadeVoto` fora de `'oculta'`/`'tempoReal'`; `tempoRodadaSeg` fora da faixa (quando não `null`); aceita valores válidos incluindo `tempoRodadaSeg: null`
+- [x] `configurar()` remonta `sala.config.espiao` campo a campo (sem espalhamento), mesmo padrão dos demais campos de `Config`
+- [x] Sem importar nada de `games/` (checagem visual/grep — mesma garantia de isolamento já mantida no arquivo)
+- [x] Testes novos cobrem cada bound/enum inválido e o caminho válido
+- [x] Gate check passa: `npm run typecheck && npm run test:unit`
 
 **Tests**: unit
 **Gate**: quick

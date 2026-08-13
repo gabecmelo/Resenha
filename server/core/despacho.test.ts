@@ -487,6 +487,141 @@ describe('validação de `pacoteIds`/`dificuldades` no `configurar` (T8, `PKT2-0
   })
 })
 
+describe('validação de `config.espiao` no `configurar` (T9, `ESP-01`)', () => {
+  it('recusa `numEspioes` não inteiro ou não positivo e mantém a configuração anterior', async () => {
+    const recusados = [0, -1, 1.5, Number.NaN]
+
+    for (const numEspioes of recusados) {
+      const sala = salaEmLobby()
+
+      const resultado = await despachar(
+        sala,
+        REGISTRO_DE_JOGOS,
+        'j1',
+        { t: 'configurar', config: { espiao: { ...CONFIG_PADRAO.espiao, numEspioes } } },
+        AMBIENTE,
+      )
+
+      expect({ numEspioes, resultado, config: sala.config }).toEqual({
+        numEspioes,
+        resultado: { ok: false, erro: 'COMANDO_INVALIDO' },
+        config: CONFIG_PADRAO,
+      })
+    }
+  })
+
+  it('recusa `visibilidadeVoto` fora do enum e mantém a configuração anterior', async () => {
+    const sala = salaEmLobby()
+
+    const resultado = await despachar(
+      sala,
+      REGISTRO_DE_JOGOS,
+      'j1',
+      {
+        t: 'configurar',
+        config: { espiao: { ...CONFIG_PADRAO.espiao, visibilidadeVoto: 'publica' as 'oculta' } },
+      },
+      AMBIENTE,
+    )
+
+    expect(resultado).toEqual({ ok: false, erro: 'COMANDO_INVALIDO' })
+    expect(sala.config).toEqual(CONFIG_PADRAO)
+  })
+
+  it('recusa `tempoRodadaSeg` fora da faixa (quando não `null`) e mantém a configuração anterior', async () => {
+    const sala = salaEmLobby()
+
+    const resultado = await despachar(
+      sala,
+      REGISTRO_DE_JOGOS,
+      'j1',
+      {
+        t: 'configurar',
+        config: { espiao: { ...CONFIG_PADRAO.espiao, tempoRodadaSeg: TEMPO_TURNO_MAX_SEG + 1 } },
+      },
+      AMBIENTE,
+    )
+
+    expect(resultado).toEqual({ ok: false, erro: 'COMANDO_INVALIDO' })
+    expect(sala.config).toEqual(CONFIG_PADRAO)
+  })
+
+  it('aceita `tempoRodadaSeg: null` como "sem limite"', async () => {
+    const sala = salaEmLobby()
+
+    const resultado = await despachar(
+      sala,
+      REGISTRO_DE_JOGOS,
+      'j1',
+      { t: 'configurar', config: { espiao: { ...CONFIG_PADRAO.espiao, tempoRodadaSeg: null } } },
+      AMBIENTE,
+    )
+
+    expect(resultado.ok).toBe(true)
+    expect(sala.config.espiao.tempoRodadaSeg).toBeNull()
+  })
+
+  it('recusa `espioesSeVeem` não booleano e mantém a configuração anterior', async () => {
+    const sala = salaEmLobby()
+
+    const resultado = await despachar(
+      sala,
+      REGISTRO_DE_JOGOS,
+      'j1',
+      {
+        t: 'configurar',
+        config: { espiao: { ...CONFIG_PADRAO.espiao, espioesSeVeem: 'sim' as unknown as boolean } },
+      },
+      AMBIENTE,
+    )
+
+    expect(resultado).toEqual({ ok: false, erro: 'COMANDO_INVALIDO' })
+    expect(sala.config).toEqual(CONFIG_PADRAO)
+  })
+
+  it('aplica `config.espiao` válido em `sala.config`, campo a campo', async () => {
+    const sala = salaEmLobby()
+
+    const resultado = await despachar(
+      sala,
+      REGISTRO_DE_JOGOS,
+      'j1',
+      {
+        t: 'configurar',
+        config: { espiao: { numEspioes: 2, espioesSeVeem: false, visibilidadeVoto: 'tempoReal', tempoRodadaSeg: 180 } },
+      },
+      AMBIENTE,
+    )
+
+    expect(resultado.ok).toBe(true)
+    expect(sala.config.espiao).toEqual({
+      numEspioes: 2,
+      espioesSeVeem: false,
+      visibilidadeVoto: 'tempoReal',
+      tempoRodadaSeg: 180,
+    })
+  })
+
+  it('alteração de `config.espiao` preserva as demais configurações da sala (`CFG-06`)', async () => {
+    const sala = salaEmLobby()
+    await despachar(sala, REGISTRO_DE_JOGOS, 'j1', { t: 'configurar', config: { ordemTurnos: 'entrada' } }, AMBIENTE)
+
+    await despachar(
+      sala,
+      REGISTRO_DE_JOGOS,
+      'j1',
+      { t: 'configurar', config: { espiao: { ...CONFIG_PADRAO.espiao, numEspioes: 3 } } },
+      AMBIENTE,
+    )
+
+    expect(sala.config).toEqual({
+      ...CONFIG_PADRAO,
+      ordemTurnos: 'entrada',
+      espiao: { ...CONFIG_PADRAO.espiao, numEspioes: 3 },
+    })
+  })
+})
+
 describe('bloco de notas', () => {
   it('grava a nota do autor no estado do jogo (`NOTA-01`)', async () => {
     const sala = await salaEmJogo()

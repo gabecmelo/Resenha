@@ -2,6 +2,7 @@ import type {
   Ambiente,
   Comando,
   Config,
+  ConfigEspiao,
   ContextoDeSala,
   Dificuldade,
   EstadoSala,
@@ -193,6 +194,15 @@ function configurar(
     pacoteIds: parcial.pacoteIds ?? sala.config.pacoteIds,
     dificuldades: parcial.dificuldades ?? sala.config.dificuldades,
     modoDistribuicao: parcial.modoDistribuicao ?? sala.config.modoDistribuicao,
+    espiao: {
+      numEspioes: parcial.espiao?.numEspioes ?? sala.config.espiao.numEspioes,
+      espioesSeVeem: parcial.espiao?.espioesSeVeem ?? sala.config.espiao.espioesSeVeem,
+      visibilidadeVoto: parcial.espiao?.visibilidadeVoto ?? sala.config.espiao.visibilidadeVoto,
+      tempoRodadaSeg:
+        parcial.espiao?.tempoRodadaSeg === undefined
+          ? sala.config.espiao.tempoRodadaSeg
+          : parcial.espiao.tempoRodadaSeg,
+    },
   }
   return { ok: true, valor: SEM_EFEITOS }
 }
@@ -227,10 +237,31 @@ function configValida(parcial: Partial<Config>): boolean {
     if (!Array.isArray(parcial.dificuldades) || parcial.dificuldades.length === 0) return false
     if (parcial.dificuldades.some((d) => !DIFICULDADES_VALIDAS.includes(d))) return false
   }
+  if (parcial.espiao !== undefined && !configEspiaoValida(parcial.espiao)) return false
   return true
 }
 
 const DIFICULDADES_VALIDAS: readonly Dificuldade[] = ['facil', 'medio', 'dificil']
+
+/** `ESP-01` — `numEspioes` só é checado contra os ativos no início da rodada (`ESP-02`), não aqui. */
+function configEspiaoValida(parcial: Partial<ConfigEspiao>): boolean {
+  if (parcial.numEspioes !== undefined) {
+    if (!Number.isInteger(parcial.numEspioes) || parcial.numEspioes <= 0) return false
+  }
+  if (
+    parcial.visibilidadeVoto !== undefined &&
+    !['oculta', 'tempoReal'].includes(parcial.visibilidadeVoto)
+  ) {
+    return false
+  }
+  const segundos = parcial.tempoRodadaSeg
+  if (segundos !== undefined && segundos !== null) {
+    if (!Number.isInteger(segundos)) return false
+    if (segundos < TEMPO_TURNO_MIN_SEG || segundos > TEMPO_TURNO_MAX_SEG) return false
+  }
+  if (parcial.espioesSeVeem !== undefined && typeof parcial.espioesSeVeem !== 'boolean') return false
+  return true
+}
 
 /**
  * `HUB-06`–`HUB-09`, `HUB-11` — troca o jogo da sala. `HUB-12` (broadcast
