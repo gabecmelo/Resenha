@@ -1,0 +1,150 @@
+# Espião Specification
+
+## Problem Statement
+
+O Resenha é um hub de party games; "Quem Sou Eu?" é o primeiro jogo, e o hub de seleção (`hub-selecao-jogos`, concluído) já está pronto pra receber um segundo jogo pelo registro (`AD-013`). O Espião (Spyfall) é esse segundo jogo: um local secreto é sorteado e visto por todos os jogadores, exceto o(s) espião(ões), que tentam descobrir o local através das perguntas dos outros sem se denunciar — enquanto o resto do grupo tenta identificar quem é o espião.
+
+## Goals
+
+- [ ] Uma sala consegue jogar uma rodada completa de Espião do início (lobby, configuração) ao fim (revelação de local e espiões), com 3+ jogadores.
+- [ ] O jogo entra no hub só por registro (`server/games/registro.ts`), sem tocar `core/despacho.ts` nem `core/sala-do.ts` além do que `AD-013` já generalizou.
+
+## Out of Scope
+
+| Feature | Reason |
+| --- | --- |
+| Espião "chuta" o local pra vencer na hora | Confirmado explicitamente fora do escopo desta rodada ("por enquanto não") — mecânica adiada. |
+| Papel/profissão além do local (ex.: "você é o médico do hospital") | Confirmado: v1 só tem o local, sem papéis. |
+| Estatísticas, placar entre partidas, ranking | Mesma decisão de `AD-003` — o sistema é tabuleiro, não árbitro; vale pra todos os jogos do hub. |
+| Múltiplos pacotes temáticos de locais completos (Natureza, Assustador, Cidade, Antiguidade...) | MVP entra com pelo menos um pacote jogável; os demais temas são conteúdo incremental, mesmo padrão das rodadas de conteúdo que já expandiram os pacotes de "Quem Sou Eu" (`pacotes-avancados`). |
+
+---
+
+## Assumptions & Open Questions
+
+| Assumption / decision | Chosen default | Rationale | Confirmed? |
+| --- | --- | --- | --- |
+| `Config` de sala hoje é 100% moldado em cima de "Quem Sou Eu" (`ordemTurnos`, `pacoteIds`, `dificuldades`, `modoDistribuicao`) e é compartilhado por toda sala, independente do jogo (`shared/protocolo.ts`). Espião precisa de campos de configuração próprios (nº de espiões, espiões se veem, visibilidade do voto, tempo de rodada) que não fazem sentido pra "Quem Sou Eu". | Resolver na fase de Design — provável nova decisão de arquitetura (`AD-014`), não decidida aqui. | É exatamente o momento que `AD-011`/`AD-012` já previam ("reavaliar quando o segundo jogo chegar"); a fase de Specify capta o requisito, não a forma de implementar. | n (deferido pro Design) |
+| `MIN_JOGADORES` hoje é uma constante única e compartilhada (`shared/protocolo.ts`, valor 2) usada por "Quem Sou Eu". Espião precisa de mínimo 3. | Resolver na fase de Design junto com o item acima — mesma tensão, mesma origem. | Mínimo de jogadores é regra de jogo (quantas perguntas cabem, quão fácil é achar o espião), não do `core`. | n (deferido pro Design) |
+| Empate na votação (dois ou mais jogadores empatados em 1º lugar) ou maioria em "pular" | Tratado como "não acertou" — a votação fecha sem terminar a partida, o jogo continua. | Único critério de sucesso claro e sem ambiguidade: só termina a partida quando UM jogador tem maioria absoluta de votos E é de fato espião. | y |
+| Validação do nº de espiões configurado pelo host | Deve deixar pelo menos 2 jogadores ativos não-espiões (`espiões ≤ ativos - 2`) | Sem isso a votação não tem sentido (não sobra "grupo" pra investigar) e o mínimo de 3 jogadores já é curto. | y |
+| Jogador que sai da sala durante uma rodada de Espião | Mesmo padrão de "Quem Sou Eu": se os ativos restantes caem abaixo do mínimo (3), a partida é cancelada e a sala volta ao lobby. Se o espiao que saiu era o único e ainda sobram ativos suficientes, a partida segue sem revalidar o nº configurado de espiões (não redistribui papéis no meio da rodada — mesma filosofia de `JOGO-10`, a carta/atribuição de quem sai simplesmente some). | Consistência com o padrão já estabelecido em "Quem Sou Eu" pra saída de jogador em partida — evita reinventar uma regra nova sem necessidade. | y |
+| Tempo de rodada (`tempoTurnoSeg`-equivalente) — padrão e faixa configurável | Padrão 5 minutos (300s); faixa de configuração a definir no Design (provavelmente reaproveita `TEMPO_TURNO_MIN_SEG`/`TEMPO_TURNO_MAX_SEG` como ponto de partida). | Único valor numérico confirmado explicitamente pelo dono nesta conversa. | y |
+| Visibilidade do voto (oculta até todos votarem vs. tempo real) | Configurável pelo host; padrão = oculta até todos votarem (ou o host encerrar a votação manualmente). | Dono confirmou que é configurável; o padrão "oculto" evita voto em cadeia (todo mundo esperando ver no que os outros votam antes de decidir) — mesmo raciocínio já usado em jogos de dedução social. | y |
+
+**Open questions:** nenhuma sem resposta — as duas primeiras linhas acima são deliberadamente deferidas pro Design (não são ambiguidade de requisito, são decisão de arquitetura).
+
+---
+
+## User Stories
+
+### P1: Jogar uma rodada completa de Espião ⭐ MVP
+
+**User Story**: Como host, quero configurar e iniciar uma partida de Espião na minha sala, e como jogador, quero receber o local (ou saber que sou espião), fazer perguntas livremente, votar em quem acho que é o espião, e ver o resultado — pra jogar uma rodada completa do início ao fim.
+
+**Why P1**: Sem isso não existe o jogo. É o núcleo que já cobre a promessa do roadmap ("Espião jogável").
+
+**Acceptance Criteria**:
+
+1. WHEN o host está no lobby de uma sala com jogo Espião THEN o sistema SHALL permitir configurar: nº de espiões (padrão 1), pacote(s) de locais, tempo de rodada (padrão 5 min)
+2. WHEN o host clica "Começar" com um nº de espiões configurado que não deixa ao menos 2 jogadores ativos não-espiões THEN o sistema SHALL recusar com o mesmo erro de jogadores insuficientes (validado no início da rodada, não na configuração — número de jogadores ativos muda enquanto a sala está no lobby, então validar só na configuração ficaria obsoleto; decisão de precisão tomada no Design, mesmo padrão que `JOGADORES_INSUFICIENTES` já usa para o total de jogadores)
+3. WHEN o host clica "Começar" com menos de 3 jogadores ativos THEN o sistema SHALL recusar com o mesmo erro de jogadores insuficientes já usado em "Quem Sou Eu"
+4. WHEN o host clica "Começar" com jogadores e configuração válidos THEN o sistema SHALL sortear: um local dentre o(s) pacote(s) selecionados, quais jogadores são espiões (respeitando o nº configurado), e quem "começa perguntando"
+5. WHEN a rodada começa THEN o sistema SHALL mostrar uma tela informando quem começa perguntando, com um botão PRONTO por jogador
+6. WHEN todos os jogadores ativos marcam PRONTO THEN o sistema SHALL liberar o timer da rodada e trocar pra tela padrão do jogo (local ou "você é espião", bloco de notas, botão de dica de pergunta)
+7. WHEN um jogador não-espião abre sua projeção durante a rodada THEN o sistema SHALL mostrar o local secreto
+8. WHEN um jogador espião abre sua projeção durante a rodada THEN o sistema SHALL mostrar que ele é espião, sem revelar o local
+9. WHEN qualquer jogador ativo aciona "abrir votação" durante a fase de jogo THEN o sistema SHALL abrir a fase de votação pra todos
+10. WHEN o timer da rodada esgota sem ninguém ter aberto votação THEN o sistema SHALL abrir a votação automaticamente
+11. WHEN a votação está aberta THEN o sistema SHALL permitir que cada jogador ativo vote em um único jogador (qualquer um, inclusive outro espião) ou "pular", uma vez por votação
+12. WHEN todos os jogadores ativos votaram, OU o host encerra a votação manualmente THEN o sistema SHALL fechar a votação e revelar o resultado (contagem de votos) pra todos
+13. WHEN a votação fecha com um único jogador tendo maioria absoluta de votos E esse jogador é de fato espião THEN o sistema SHALL encerrar a partida, revelando o local e todos os espiões
+14. WHEN a votação fecha sem essa condição (empate, maioria errada, ou maioria em "pular") THEN o sistema SHALL manter a partida em andamento, reabrindo o timer da rodada
+15. WHEN o host encerra a partida manualmente a qualquer momento da fase de jogo THEN o sistema SHALL revelar o local e todos os espiões, encerrando a partida
+16. WHEN a partida está encerrada THEN o sistema SHALL mostrar a tela de revelação (local + quem eram os espiões) pra todos os jogadores, inclusive quem entrou depois de encerrada
+
+**Independent Test**: Criar uma sala com Espião, 3 jogadores, 1 espião configurado; completar uma rodada até a revelação final por dois caminhos — votação certeira e encerramento manual do host — e conferir que o local e os espiões aparecem certos nos dois casos.
+
+---
+
+### P2: Ajustes de configuração e qualidade de vida
+
+**User Story**: Como host, quero ajustar detalhes de como a rodada se comporta (espiões se veem, visibilidade do voto), e como jogador, quero uma dica de pergunta pra travar menos e um bloco de notas privado — pra jogar rodadas melhor calibradas pro meu grupo.
+
+**Why P2**: Não bloqueia a primeira partida jogável, mas é o que o dono já descreveu como parte do desenho original do jogo.
+
+**Acceptance Criteria**:
+
+1. WHEN há 2+ espiões numa rodada E o host configurou "espiões se veem" (padrão: sim) THEN o sistema SHALL mostrar a cada espião quem são os outros espiões da mesma partida
+2. WHEN há 2+ espiões numa rodada E o host configurou "espiões não se veem" THEN o sistema SHALL mostrar a cada espião apenas que ele mesmo é espião
+3. WHEN o host configura a visibilidade do voto como "tempo real" THEN o sistema SHALL mostrar a contagem de votos atualizando conforme cada jogador vota, em vez de ocultar até o fim
+4. WHEN um jogador clica no botão de dica de pergunta durante a fase de jogo THEN o sistema SHALL mostrar uma pergunta genérica sorteada de uma lista fixa embutida (não ligada ao local, mantendo `AD-003`)
+5. WHEN um jogador escreve no bloco de notas durante a rodada THEN o sistema SHALL persistir a nota, privada pra ele, no mesmo padrão de `NOTA-*` de "Quem Sou Eu"
+
+**Independent Test**: Rodada com 2 espiões e "espiões se veem" ligado — confirmar que cada espião vê o outro; desligar a config e confirmar que não vê mais. Clicar dica de pergunta e ver uma pergunta aparecer.
+
+---
+
+### P3: Conteúdo — pacotes temáticos de locais
+
+**User Story**: Como jogador, quero variedade de temas de locais (não só um pacote fixo), pra rodadas não ficarem repetitivas.
+
+**Why P3**: Conteúdo incremental — o mesmo padrão que "Quem Sou Eu" já seguiu (pacote inicial → rodada de conteúdo expandindo pra mais pacotes depois).
+
+**Acceptance Criteria**:
+
+1. WHEN o host abre a seleção de pacotes de locais no lobby de Espião THEN o sistema SHALL mostrar mais de um pacote temático disponível (ex.: Natureza, Assustador, Cidade)
+
+---
+
+## Edge Cases
+
+- WHEN um jogador sai da sala durante a fase de "aguardando prontos" ou "jogo" e os ativos restantes ficam abaixo de 3 THEN o sistema SHALL cancelar a partida e voltar a sala ao lobby (mesmo padrão de "Quem Sou Eu")
+- WHEN o espião que saiu da sala era o único espião e ainda sobram jogadores suficientes THEN o sistema SHALL deixar a partida seguir sem espião algum (não redistribui papéis no meio da rodada)
+- WHEN um jogador entra na sala durante uma rodada de Espião em andamento THEN o sistema SHALL colocá-lo como `aguardando`, sem lugar na rodada corrente (mesmo padrão `SALA-10`/`ESCR-10` de "Quem Sou Eu")
+- WHEN um jogador desconecta durante uma votação aberta THEN o sistema SHALL considerar a votação "todos votaram" contando apenas jogadores ativos conectados, sem travar esperando por quem caiu
+- WHEN um jogador tenta votar mais de uma vez na mesma votação THEN o sistema SHALL substituir o voto anterior dele, não somar um segundo voto
+- WHEN a votação fecha com 0 votos válidos (todos escolheram "pular" ou ninguém votou e o host encerrou) THEN o sistema SHALL tratar como "não acertou" (mesma regra do empate)
+
+---
+
+## Requirement Traceability
+
+| Requirement ID | Story | Phase | Status |
+| --- | --- | --- | --- |
+| ESP-01 | P1: Jogar uma rodada completa | Design | Pending |
+| ESP-02 | P1: Jogar uma rodada completa | Design | Pending |
+| ESP-03 | P1: Jogar uma rodada completa | Design | Pending |
+| ESP-04 | P1: Jogar uma rodada completa | Design | Pending |
+| ESP-05 | P1: Jogar uma rodada completa | Design | Pending |
+| ESP-06 | P1: Jogar uma rodada completa | Design | Pending |
+| ESP-07 | P1: Jogar uma rodada completa | Design | Pending |
+| ESP-08 | P1: Jogar uma rodada completa | Design | Pending |
+| ESP-09 | P1: Jogar uma rodada completa | Design | Pending |
+| ESP-10 | P1: Jogar uma rodada completa | Design | Pending |
+| ESP-11 | P1: Jogar uma rodada completa | Design | Pending |
+| ESP-12 | P1: Jogar uma rodada completa | Design | Pending |
+| ESP-13 | P1: Jogar uma rodada completa | Design | Pending |
+| ESP-14 | P1: Jogar uma rodada completa | Design | Pending |
+| ESP-15 | P1: Jogar uma rodada completa | Design | Pending |
+| ESP-16 | P1: Jogar uma rodada completa | Design | Pending |
+| ESP-17 | P2: Ajustes de configuração | Design | Pending |
+| ESP-18 | P2: Ajustes de configuração | Design | Pending |
+| ESP-19 | P2: Ajustes de configuração | Design | Pending |
+| ESP-20 | P2: Ajustes de configuração | Design | Pending |
+| ESP-21 | P2: Ajustes de configuração | Design | Pending |
+| ESP-22 | P3: Conteúdo — pacotes temáticos | Design | Pending |
+
+**ID format:** `ESP-[NUMBER]`, mapeado em ordem às ACs de P1 (01–16), P2 (17–21) e P3 (22) acima.
+
+**Status values:** Pending → In Design → In Tasks → Implementing → Verified
+
+**Coverage:** 22 total, 0 mapeados a tasks ainda, 22 não mapeados ⚠️ (normal nesta fase — Tasks ainda não rodou)
+
+---
+
+## Success Criteria
+
+- [ ] Uma sala de 3+ jogadores completa uma rodada de Espião do lobby até a revelação final, pelos dois caminhos de encerramento (votação certeira e encerramento manual do host)
+- [ ] O jogo entra no registro (`server/games/registro.ts`) sem alterar `core/despacho.ts`/`core/sala-do.ts` além do que `AD-013` já preparou (registro por `jogoId`)
+- [ ] Zero regressão nos 495 testes unitários + 86 de integração existentes
