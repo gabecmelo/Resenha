@@ -335,11 +335,11 @@ T11 → T12 → T13 → T14 → T15
 - Skill: NONE
 
 **Done when**:
-- [ ] Painel de "Quem Sou Eu" só aparece quando `jogoId === 'quem-sou-eu'`
-- [ ] Painel de Espião só aparece quando `jogoId === 'espiao'`, com todos os 4 controles + seleção de pacotes de locais
-- [ ] `configurar` enviado reflete `config.espiao` (rascunho + confirmar, mesmo padrão existente)
-- [ ] Verificado manualmente no navegador: abrir lobby de sala Espião mostra o painel certo, salvar config reflete na projeção
-- [ ] Gate check passa: `npm run typecheck && npm run lint`
+- [x] Painel de "Quem Sou Eu" só aparece quando `jogoId === 'quem-sou-eu'`
+- [x] Painel de Espião só aparece quando `jogoId === 'espiao'`, com todos os 4 controles + seleção de pacotes de locais
+- [x] `configurar` enviado reflete `config.espiao` (rascunho + confirmar, mesmo padrão existente)
+- [x] Verificado manualmente no navegador: abrir lobby de sala Espião mostra o painel certo, salvar config reflete na projeção
+- [x] Gate check passa: `npm run typecheck && npm run lint`
 
 **Tests**: none
 **Gate**: build
@@ -361,9 +361,9 @@ T11 → T12 → T13 → T14 → T15
 - Skill: NONE
 
 **Done when**:
-- [ ] Mostra quem "começa perguntando" e contagem de prontos (`prontos`/`total`)
-- [ ] Botão PRONTO envia `marcarPronto`
-- [ ] Gate check passa: `npm run typecheck && npm run lint`
+- [x] Mostra quem "começa perguntando" e contagem de prontos (`prontos`/`total`)
+- [x] Botão PRONTO envia `marcarPronto`
+- [x] Gate check passa: `npm run typecheck && npm run lint`
 
 **Tests**: none
 **Gate**: build
@@ -385,14 +385,14 @@ T11 → T12 → T13 → T14 → T15
 - Skill: NONE
 
 **Done when**:
-- [ ] Jogador não-espião vê o local; espião vê que é espião, sem local
-- [ ] Espiões visíveis entre si só quando `config.espiao.espioesSeVeem` e a projeção trouxer `espioes`
-- [ ] Botão de dica de pergunta sorteia localmente de uma lista estática embutida (sem comando ao servidor)
-- [ ] Bloco de notas envia `notas` (mesmo padrão de "Quem Sou Eu")
-- [ ] Botão "abrir votação" visível pra qualquer jogador ativo durante a rodada; envia `abrirVotacao`
-- [ ] UI de votação: um voto por clique (`votar`), opção "pular"; contagem em tempo real quando `visibilidadeVoto === 'tempoReal'`, oculta até fechar quando `'oculta'`; host vê botão "encerrar votação" (`encerrarVotacao`)
-- [ ] Host vê botão "encerrar partida" a qualquer momento da fase de jogo (`encerrar`)
-- [ ] Gate check passa: `npm run typecheck && npm run lint`
+- [x] Jogador não-espião vê o local; espião vê que é espião, sem local
+- [x] Espiões visíveis entre si só quando `config.espiao.espioesSeVeem` e a projeção trouxer `espioes`
+- [x] Botão de dica de pergunta sorteia localmente de uma lista estática embutida (sem comando ao servidor)
+- [x] Bloco de notas envia `notas` (mesmo padrão de "Quem Sou Eu")
+- [x] Botão "abrir votação" visível pra qualquer jogador ativo durante a rodada; envia `abrirVotacao`
+- [x] UI de votação: um voto por clique (`votar`), opção "pular"; contagem em tempo real quando `visibilidadeVoto === 'tempoReal'`, oculta até fechar quando `'oculta'`; host vê botão "encerrar votação" (`encerrarVotacao`)
+- [x] Host vê botão "encerrar partida" a qualquer momento da fase de jogo (`encerrar`)
+- [x] Gate check passa: `npm run typecheck && npm run lint`
 
 **Tests**: none
 **Gate**: build
@@ -414,9 +414,9 @@ T11 → T12 → T13 → T14 → T15
 - Skill: NONE
 
 **Done when**:
-- [ ] Mostra o local revelado e a lista de espiões
-- [ ] Host vê botão "nova partida" (`novaPartida`)
-- [ ] Gate check passa: `npm run typecheck && npm run lint`
+- [x] Mostra o local revelado e a lista de espiões
+- [x] Host vê botão "nova partida" (`novaPartida`)
+- [x] Gate check passa: `npm run typecheck && npm run lint`
 
 **Tests**: none
 **Gate**: build
@@ -438,12 +438,12 @@ T11 → T12 → T13 → T14 → T15
 - Skill: NONE
 
 **Done when**:
-- [ ] `fase === 'jogo'` e `jogoId === 'espiao'` e `!jogo.espiao.rodadaIniciada` → `EspiaoAguardando`
-- [ ] `fase === 'jogo'` e `jogoId === 'espiao'` e `jogo.espiao.rodadaIniciada` → `EspiaoJogo`
-- [ ] `fase === 'encerrada'` e `jogoId === 'espiao'` → `EspiaoEncerrada`
-- [ ] Telas de "Quem Sou Eu" continuam roteando como antes quando `jogoId === 'quem-sou-eu'` (sem regressão)
-- [ ] Verificado manualmente no navegador, ponta a ponta: criar sala Espião, configurar (3+ jogadores, 1 espião, pacote de locais), começar, marcar todos prontos, ver local/espião conforme o papel, abrir votação, votar até maioria certa → tela de revelação; repetir e encerrar manualmente pelo host → mesma tela de revelação
-- [ ] Gate check passa: `npm run typecheck && npm run lint && npm run build`
+- [x] `fase === 'jogo'` e `jogoId === 'espiao'` e `!jogo.espiao.rodadaIniciada` → `EspiaoAguardando`
+- [x] `fase === 'jogo'` e `jogoId === 'espiao'` e `jogo.espiao.rodadaIniciada` → `EspiaoJogo`
+- [x] `fase === 'encerrada'` e `jogoId === 'espiao'` → `EspiaoEncerrada`
+- [x] Telas de "Quem Sou Eu" continuam roteando como antes quando `jogoId === 'quem-sou-eu'` (sem regressão)
+- [x] Verificado manualmente no navegador, ponta a ponta: criar sala Espião, configurar (3+ jogadores, 1 espião, pacote de locais), começar, marcar todos prontos, ver local/espião conforme o papel, abrir votação, votar até maioria certa → tela de revelação; repetir e encerrar manualmente pelo host → mesma tela de revelação
+- [x] Gate check passa: `npm run typecheck && npm run lint && npm run build`
 
 **Tests**: none
 **Gate**: build
