@@ -80,11 +80,11 @@ T11 → T12 → T13 → T14 → T15
 - Skill: NONE
 
 **Done when**:
-- [ ] `Comando` inclui `abrirVotacao`, `votar`, `encerrarVotacao`
-- [ ] `ConfigEspiao`/`CONFIG_ESPIAO_PADRAO` definidos; `Config.espiao: ConfigEspiao` obrigatório; `CONFIG_PADRAO.espiao = CONFIG_ESPIAO_PADRAO`
-- [ ] `ProjecaoEspiao` definido; `Projecao.jogo.espiao?: ProjecaoEspiao` adicionado
-- [ ] `PacoteResumo.jogoId: string` adicionado
-- [ ] Gate check passa: `npm run typecheck` (vermelho esperado em consumidores existentes de `PacoteResumo`/`Config` até tasks posteriores preencherem `jogoId`/`espiao` — mesmo padrão já documentado em `hub-selecao-jogos` T1)
+- [x] `Comando` inclui `abrirVotacao`, `votar`, `encerrarVotacao`
+- [x] `ConfigEspiao`/`CONFIG_ESPIAO_PADRAO` definidos; `Config.espiao: ConfigEspiao` obrigatório; `CONFIG_PADRAO.espiao = CONFIG_ESPIAO_PADRAO`
+- [x] `ProjecaoEspiao` definido; `Projecao.jogo.espiao?: ProjecaoEspiao` adicionado
+- [x] `PacoteResumo.jogoId: string` adicionado
+- [x] Gate check passa: `npm run typecheck` (vermelho esperado em consumidores existentes de `PacoteResumo`/`Config` até tasks posteriores preencherem `jogoId`/`espiao` — mesmo padrão já documentado em `hub-selecao-jogos` T1)
 
 **Tests**: none
 **Gate**: build
@@ -106,9 +106,9 @@ T11 → T12 → T13 → T14 → T15
 - Skill: NONE
 
 **Done when**:
-- [ ] `LOCAIS` contém ao menos um pacote com locais nas três dificuldades
-- [ ] Teste unitário garante ids de pacote únicos e ids de carta únicos dentro de cada pacote (mesmo padrão de `shared/jogos-catalogo.test.ts`)
-- [ ] Gate check passa: `npm run typecheck && npm run test:unit`
+- [x] `LOCAIS` contém ao menos um pacote com locais nas três dificuldades
+- [x] Teste unitário garante ids de pacote únicos e ids de carta únicos dentro de cada pacote (mesmo padrão de `shared/jogos-catalogo.test.ts`)
+- [x] Gate check passa: `npm run typecheck && npm run test:unit`
 
 **Tests**: unit
 **Gate**: quick
@@ -130,10 +130,10 @@ T11 → T12 → T13 → T14 → T15
 - Skill: NONE
 
 **Done when**:
-- [ ] `JogoCatalogo.minJogadores` adicionado; `quem-sou-eu.minJogadores === 2`
-- [ ] Entrada `espiao` adicionada com `minJogadores === 3`
-- [ ] Teste atualizado garante `minJogadores` presente e positivo em toda entrada do catálogo
-- [ ] Gate check passa: `npm run typecheck && npm run test:unit`
+- [x] `JogoCatalogo.minJogadores` adicionado; `quem-sou-eu.minJogadores === 2`
+- [x] Entrada `espiao` adicionada com `minJogadores === 3`
+- [x] Teste atualizado garante `minJogadores` presente e positivo em toda entrada do catálogo
+- [x] Gate check passa: `npm run typecheck && npm run test:unit`
 
 **Tests**: unit
 **Gate**: quick
