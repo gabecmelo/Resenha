@@ -1,4 +1,5 @@
 import type { JogoDaSala } from '../core/despacho'
+import { espiao } from './espiao'
 import { quemSouEu } from './quem-sou-eu'
 
 /**
@@ -12,4 +13,5 @@ import { quemSouEu } from './quem-sou-eu'
  */
 export const REGISTRO_DE_JOGOS: Record<string, JogoDaSala<unknown>> = {
   'quem-sou-eu': quemSouEu as JogoDaSala<unknown>,
+  espiao: espiao as JogoDaSala<unknown>,
 }

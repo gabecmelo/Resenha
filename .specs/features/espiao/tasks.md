@@ -261,8 +261,8 @@ T11 → T12 → T13 → T14 → T15
 - Skill: NONE
 
 **Done when**:
-- [ ] `REGISTRO_DE_JOGOS` inclui a chave `'espiao'`
-- [ ] Gate check passa: `npm run typecheck && npm run test:unit && npm run test:integration` (agora exercitado transitivamente pelos testes de integração existentes de `sala-do`/`server/index`)
+- [x] `REGISTRO_DE_JOGOS` inclui a chave `'espiao'`
+- [x] Gate check passa: `npm run typecheck && npm run test:unit && npm run test:integration` (agora exercitado transitivamente pelos testes de integração existentes de `sala-do`/`server/index`)
 
 **Tests**: none
 **Gate**: full
