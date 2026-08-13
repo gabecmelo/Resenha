@@ -21,6 +21,8 @@ export interface PacoteResumo {
   nome: string
   descricao: string
   quantidade: number
+  /** `HUB-01` — a qual jogo este pacote pertence, para filtrar o catálogo por sala. */
+  jogoId: string
 }
 
 
@@ -104,6 +106,25 @@ export interface Jogador {
 /** `PKT2-01`…`PKT2-04` — nível de dificuldade de uma carta de pacote. */
 export type Dificuldade = 'facil' | 'medio' | 'dificil'
 
+/** `AD-014` — configuração própria de Espião, aninhada em `Config.espiao`. */
+export interface ConfigEspiao {
+  /** Padrão 1. Validado estruturalmente em `configValida`; validado contra os jogadores ativos só no início da rodada (`ESP-02`). */
+  numEspioes: number
+  /** Padrão true. */
+  espioesSeVeem: boolean
+  /** Padrão 'oculta'. */
+  visibilidadeVoto: 'oculta' | 'tempoReal'
+  /** Padrão 300 (5min). `null` = sem limite, mesmo padrão de `tempoTurnoSeg`. */
+  tempoRodadaSeg: number | null
+}
+
+export const CONFIG_ESPIAO_PADRAO: ConfigEspiao = {
+  numEspioes: 1,
+  espioesSeVeem: true,
+  visibilidadeVoto: 'oculta',
+  tempoRodadaSeg: 300,
+}
+
 export interface Config {
   /** `CFG-01` */
   ordemTurnos: 'sorteada' | 'entrada'
@@ -117,6 +138,8 @@ export interface Config {
   dificuldades: Dificuldade[]
   /** `PKT-03` */
   modoDistribuicao: ModoDistribuicao
+  /** `AD-014` — sempre presente, independente de qual jogo a sala roda no momento. */
+  espiao: ConfigEspiao
 }
 
 /** Padrões de uma sala recém-criada (`CFG-05`). */
@@ -127,6 +150,7 @@ export const CONFIG_PADRAO: Config = {
   pacoteIds: [],
   dificuldades: ['facil', 'medio', 'dificil'],
   modoDistribuicao: 'aleatoria',
+  espiao: CONFIG_ESPIAO_PADRAO,
 }
 
 /**
@@ -255,6 +279,9 @@ export type Comando =
   | { t: 'notas'; texto: string }
   | { t: 'sair' }
   | { t: 'trocarJogo'; jogoId: string }
+  | { t: 'abrirVotacao' }
+  | { t: 'votar'; alvoId: JogadorId | null }
+  | { t: 'encerrarVotacao' }
 
 /** Servidor → cliente. */
 export type Mensagem =
@@ -266,6 +293,28 @@ export type Mensagem =
 // ---------------------------------------------------------------------------
 // Projeção — o que UM jogador pode ver (AD-008)
 // ---------------------------------------------------------------------------
+
+/** `AD-014` — projeção própria de Espião, aninhada em `Projecao.jogo.espiao`. */
+export interface ProjecaoEspiao {
+  comecaPerguntando: { id: JogadorId; apelido: string }
+  rodadaIniciada: boolean
+  prontos: number
+  total: number
+  /** Instante absoluto de vencimento do relógio da rodada; `null` = sem limite ou relógio pausado (votação aberta). */
+  prazoRodada: number | null
+  souEspiao: boolean
+  /** Presente quando `!souEspiao`, ou quando a partida está `encerrada` (revelado a todos). */
+  local?: string
+  /** Presente quando (`souEspiao && config.espiao.espioesSeVeem`), ou quando `encerrada`. */
+  espioes?: { id: JogadorId; apelido: string }[]
+  votacaoAberta?: {
+    meuVoto: JogadorId | 'pular' | null
+    quantosVotaram: number
+    total: number
+    /** Presente só se `config.espiao.visibilidadeVoto === 'tempoReal'`. */
+    votos?: Record<JogadorId, JogadorId | 'pular'>
+  }
+}
 
 export interface Projecao {
   agoraServidor: number
@@ -322,6 +371,8 @@ export interface Projecao {
     prontos: number
     total: number
     declaracaoPendente?: { jogadorId: JogadorId }
+    /** `AD-014` — presente só quando `sala.jogoId === 'espiao'`. */
+    espiao?: ProjecaoEspiao
   }
   /** `CHAT-04` */
   chat: MensagemChat[]
