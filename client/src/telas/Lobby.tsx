@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import {
   MIN_JOGADORES,
   type Config,
@@ -763,6 +763,16 @@ function RegrasEspiao({
     setPacoteIdsRascunho(config.pacoteIds)
     setModalLocaisAberto(true)
   }
+
+  // Espião sempre opera em modo pacote (não existe "escrita livre" de local,
+  // `AD-014`); sem isso o servidor nunca anexa `pacotesDisponiveis` à
+  // projeção do lobby (`sala-do.ts::confirmar`), e a seleção não tem o que
+  // listar.
+  useEffect(() => {
+    if (souHost && config.modoPacote !== 'pacote') {
+      enviar({ t: 'configurar', config: { modoPacote: 'pacote' } })
+    }
+  }, [souHost, config.modoPacote, enviar])
 
   const pacotesSelecionados = pacotesDisponiveis?.filter((p) => config.pacoteIds.includes(p.id)) ?? []
   const poolAtual = montarPoolDeCartas(
