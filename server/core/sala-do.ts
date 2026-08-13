@@ -327,7 +327,9 @@ export class SalaDeJogo {
 
     let pacotes: PacoteResumo[] | undefined = undefined;
     if (sala.fase === 'lobby' && sala.config.modoPacote === 'pacote') {
-      pacotes = await this.getPacotesDisponiveis();
+      const todos = await this.getPacotesDisponiveis();
+      // `ESP-22` — cada jogo só vê os pacotes que ele mesmo pode jogar.
+      pacotes = todos.filter((p) => p.jogoId === sala.jogoId);
     }
 
     // Cenário de ops (jogo removido do registro): pula a difusão neste ciclo
@@ -355,8 +357,10 @@ export class SalaDeJogo {
         } else {
           // Fallback para ambiente local de dev onde o miniflare pode não ter lido o SQLite do script
           const { PACOTES } = await import('../../shared/pacotes-dados');
-          this.pacotesDisponiveis = PACOTES.map(p => ({
+          const { LOCAIS } = await import('../../shared/locais-dados');
+          this.pacotesDisponiveis = [...PACOTES, ...LOCAIS].map(p => ({
             id: p.id,
+            jogoId: p.jogoId,
             nome: p.nome,
             descricao: p.descricao,
             emoji: p.emoji,

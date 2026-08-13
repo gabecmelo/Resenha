@@ -3,7 +3,7 @@ import type { PacoteCompleto } from './pacotes-dados'
 import { montarPoolDeCartas } from './pacotes'
 
 function pacote(id: string, cartas: PacoteCompleto['cartas']): PacoteCompleto {
-  return { id, emoji: '🎲', nome: id, descricao: '', quantidade: cartas.length, cartas }
+  return { id, jogoId: 'quem-sou-eu', emoji: '🎲', nome: id, descricao: '', quantidade: cartas.length, cartas }
 }
 
 describe('montarPoolDeCartas', () => {

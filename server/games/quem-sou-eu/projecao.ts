@@ -56,6 +56,7 @@ export function projetar(
   if (estado.pacotesSelecionados && estado.pacotesSelecionados.length > 0) {
     projecao.sala.pacotesSelecionados = estado.pacotesSelecionados.map((p) => ({
       id: p.id,
+      jogoId: 'quem-sou-eu',
       nome: p.nome,
       emoji: p.emoji,
       descricao: '',

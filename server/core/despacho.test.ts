@@ -854,6 +854,7 @@ describe('roteamento ao módulo de jogo', () => {
 describe('buscarPacotes (T6, `PKT2-09`, `PKT2-21`)', () => {
   const PACOTE_DO_KV: PacoteCompleto = {
     id: 'filmes',
+    jogoId: 'quem-sou-eu',
     emoji: '🎥',
     nome: 'Filmes (do KV)',
     descricao: 'vindo do KV',

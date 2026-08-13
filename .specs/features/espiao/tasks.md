@@ -310,10 +310,10 @@ T11 → T12 → T13 → T14 → T15
 - Skill: NONE
 
 **Done when**:
-- [ ] `PacoteResumo` anexado à projeção é filtrado por `pacotes.filter((p) => p.jogoId === sala.jogoId)`
-- [ ] Fallback estático (`PACOTES`/`LOCAIS`) já carrega `jogoId` correto por entrada
-- [ ] Teste de integração: sala Espião só vê pacotes com `jogoId === 'espiao'`; sala Quem Sou Eu continua vendo só os seus (sem regressão)
-- [ ] Gate check passa: `npm run typecheck && npm run test:unit && npm run test:integration`
+- [x] `PacoteResumo` anexado à projeção é filtrado por `pacotes.filter((p) => p.jogoId === sala.jogoId)`
+- [x] Fallback estático (`PACOTES`/`LOCAIS`) já carrega `jogoId` correto por entrada
+- [x] Teste de integração: sala Espião só vê pacotes com `jogoId === 'espiao'`; sala Quem Sou Eu continua vendo só os seus (sem regressão)
+- [x] Gate check passa: `npm run typecheck && npm run test:unit && npm run test:integration`
 
 **Tests**: integration
 **Gate**: full

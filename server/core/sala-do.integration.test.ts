@@ -30,6 +30,13 @@ async function novaSala(nome: string): Promise<DurableObjectStub> {
   return stub
 }
 
+async function novaSalaComJogo(nome: string, jogoId: string): Promise<DurableObjectStub> {
+  const stub = env.SALA.get(env.SALA.idFromName(nome))
+  const criada = await stub.fetch(`http://sala/criar?codigo=ABCDE&jogoId=${jogoId}`, { method: 'POST' })
+  if (criada.status !== 201) throw new Error(`criar devolveu ${criada.status}`)
+  return stub
+}
+
 async function abrir(stub: DurableObjectStub, token?: string): Promise<Cliente> {
   const url = token === undefined ? 'http://sala/ws' : `http://sala/ws?token=${token}`
   const resposta = await stub.fetch(url, { headers: { Upgrade: 'websocket' } })
@@ -663,6 +670,32 @@ describe('registro de jogos (`HUB-01`, `HUB-05`, `HUB-12`)', () => {
     mandar(ana, { t: 'chat', texto: 'segundo comando' })
     await assentar()
     expect((await lerSala(stub))?.chat.at(-1)?.texto).toBe('segundo comando')
+  })
+})
+
+describe('filtro de pacotes por jogoId na projeção (T10, `ESP-22`)', () => {
+  it('sala de Espião só vê pacotes com jogoId === "espiao"', async () => {
+    const stub = await novaSalaComJogo('DO-PACOTES-ESPIAO', 'espiao')
+    const ana = await entrar(stub, 'Ana')
+
+    mandar(ana, { t: 'configurar', config: { modoPacote: 'pacote' } })
+    await assentar()
+
+    const pacotes = ultimaProjecao(ana).sala.pacotesDisponiveis ?? []
+    expect(pacotes.length).toBeGreaterThan(0)
+    expect(pacotes.every((p) => p.jogoId === 'espiao')).toBe(true)
+  })
+
+  it('sala de Quem Sou Eu só vê pacotes com jogoId === "quem-sou-eu" (sem regressão)', async () => {
+    const stub = await novaSala('DO-PACOTES-QSE')
+    const ana = await entrar(stub, 'Ana')
+
+    mandar(ana, { t: 'configurar', config: { modoPacote: 'pacote' } })
+    await assentar()
+
+    const pacotes = ultimaProjecao(ana).sala.pacotesDisponiveis ?? []
+    expect(pacotes.length).toBeGreaterThan(0)
+    expect(pacotes.every((p) => p.jogoId === 'quem-sou-eu')).toBe(true)
   })
 })
 

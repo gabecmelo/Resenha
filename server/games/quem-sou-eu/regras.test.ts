@@ -61,6 +61,7 @@ function paraPacotes(pacote?: {
   return [
     {
       id: pacote.id,
+      jogoId: 'quem-sou-eu',
       nome: pacote.nome,
       emoji: pacote.emoji,
       descricao: '',
@@ -270,6 +271,7 @@ describe('iniciarRodada com pacote (PKT-08, PKT-09, PKT-11)', () => {
 describe('iniciarRodada com pool combinado de pacotes (T7, `PKT2-06`, `PKT2-08`, `PKT2-21`)', () => {
   const pacoteA: PacoteCompleto = {
     id: 'filmes',
+    jogoId: 'quem-sou-eu',
     nome: 'Filmes',
     emoji: '🎬',
     descricao: '',
@@ -281,6 +283,7 @@ describe('iniciarRodada com pool combinado de pacotes (T7, `PKT2-06`, `PKT2-08`,
   }
   const pacoteB: PacoteCompleto = {
     id: 'anime',
+    jogoId: 'quem-sou-eu',
     nome: 'Anime',
     emoji: '🍥',
     descricao: '',
