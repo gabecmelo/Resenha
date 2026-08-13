@@ -9,6 +9,8 @@ export interface JogoCatalogo {
   id: string
   nome: string
   descricao: string
+  /** `AD-014` — mínimo de jogadores ativos exigido por este jogo, substitui o antigo `MIN_JOGADORES` único. */
+  minJogadores: number
 }
 
 /** `HUB-04` — jogo assumido quando a criação da sala não escolhe nenhum. */
@@ -19,5 +21,12 @@ export const CATALOGO_DE_JOGOS: JogoCatalogo[] = [
     id: 'quem-sou-eu',
     nome: 'Quem Sou Eu?',
     descricao: 'Cada um recebe uma carta que todos veem menos ele.',
+    minJogadores: 2,
+  },
+  {
+    id: 'espiao',
+    nome: 'Espião',
+    descricao: 'Um local secreto é sorteado; só o espião não sabe qual é.',
+    minJogadores: 3,
   },
 ]
