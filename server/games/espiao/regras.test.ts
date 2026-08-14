@@ -528,6 +528,48 @@ describe('resultado da votação — maioria absoluta sobre o total de ativos (E
 
     expect(resultado.faseSeguinte).toBeUndefined()
   })
+
+  /**
+   * O denominador da maioria é o total de **ativos**, não o de quem votou
+   * (tech decision de `design.md`). Só um caso de comparecimento parcial
+   * separa as duas leituras: com todos votando elas coincidem sempre.
+   */
+  it('maioria entre quem votou, sem ser maioria dos ativos, não encerra a partida (ESP-13)', () => {
+    const jogadores = ['a', 'b', 'c', 'd', 'e'].map((id) => jogador(id))
+    const base = ctx({ jogadores })
+    const pronto = comTodosProntos(rodadaDe(jogadores), base)
+    let atual = reduzirOk(pronto, base, { t: 'abrirVotacao' }).estado
+
+    // 'b' é o espião; 2 dos 3 que votaram acusam 'b' — maioria entre votantes
+    // (2 de 3), mas não dos 5 ativos (precisa de 3).
+    for (const [votante, alvo] of [['a', 'b'], ['c', 'b'], ['d', null]] as const) {
+      atual = reduzirOk(atual, { ...base, autorId: votante }, { t: 'votar', alvoId: alvo }).estado
+    }
+    const resultado = reduzirOk(atual, base, { t: 'encerrarVotacao' })
+
+    expect({ espioes: resultado.estado.espioes, faseSeguinte: resultado.faseSeguinte }).toEqual({
+      espioes: ['b'],
+      faseSeguinte: undefined,
+    })
+  })
+
+  it('exatamente metade dos ativos não é maioria absoluta (ESP-13)', () => {
+    const jogadores = ['a', 'b', 'c', 'd'].map((id) => jogador(id))
+    const base = ctx({ jogadores })
+    const pronto = comTodosProntos(rodadaDe(jogadores), base)
+    let atual = reduzirOk(pronto, base, { t: 'abrirVotacao' }).estado
+
+    // 'b' é o espião; 2 de 4 ativos o acusam — metade exata, não maioria.
+    for (const [votante, alvo] of [['a', 'b'], ['c', 'b'], ['d', null]] as const) {
+      atual = reduzirOk(atual, { ...base, autorId: votante }, { t: 'votar', alvoId: alvo }).estado
+    }
+    const resultado = reduzirOk(atual, base, { t: 'encerrarVotacao' })
+
+    expect({ espioes: resultado.estado.espioes, faseSeguinte: resultado.faseSeguinte }).toEqual({
+      espioes: ['b'],
+      faseSeguinte: undefined,
+    })
+  })
 })
 
 // ---------------------------------------------------------------------------

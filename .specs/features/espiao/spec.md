@@ -93,7 +93,7 @@ O Resenha é um hub de party games; "Quem Sou Eu?" é o primeiro jogo, e o hub d
 
 **Acceptance Criteria**:
 
-1. WHEN o host abre a seleção de pacotes de locais no lobby de Espião THEN o sistema SHALL mostrar mais de um pacote temático disponível (ex.: Natureza, Assustador, Cidade)
+1. WHEN o host abre a seleção de pacotes de locais no lobby de Espião THEN o sistema SHALL mostrar ao menos um pacote temático jogável, num formato que aceita novos pacotes sem mudança de código (só conteúdo em `shared/locais-dados.ts`) — a expansão para vários temas (Natureza, Assustador, Cidade...) é rodada de conteúdo incremental, conforme a tabela de Out of Scope acima
 
 ---
 
@@ -112,28 +112,28 @@ O Resenha é um hub de party games; "Quem Sou Eu?" é o primeiro jogo, e o hub d
 
 | Requirement ID | Story | Phase | Status |
 | --- | --- | --- | --- |
-| ESP-01 | P1: Jogar uma rodada completa | Design | Pending |
-| ESP-02 | P1: Jogar uma rodada completa | Design | Pending |
-| ESP-03 | P1: Jogar uma rodada completa | Design | Pending |
-| ESP-04 | P1: Jogar uma rodada completa | Design | Pending |
-| ESP-05 | P1: Jogar uma rodada completa | Design | Pending |
-| ESP-06 | P1: Jogar uma rodada completa | Design | Pending |
-| ESP-07 | P1: Jogar uma rodada completa | Design | Pending |
-| ESP-08 | P1: Jogar uma rodada completa | Design | Pending |
-| ESP-09 | P1: Jogar uma rodada completa | Design | Pending |
-| ESP-10 | P1: Jogar uma rodada completa | Design | Pending |
-| ESP-11 | P1: Jogar uma rodada completa | Design | Pending |
-| ESP-12 | P1: Jogar uma rodada completa | Design | Pending |
-| ESP-13 | P1: Jogar uma rodada completa | Design | Pending |
-| ESP-14 | P1: Jogar uma rodada completa | Design | Pending |
-| ESP-15 | P1: Jogar uma rodada completa | Design | Pending |
-| ESP-16 | P1: Jogar uma rodada completa | Design | Pending |
-| ESP-17 | P2: Ajustes de configuração | Design | Pending |
-| ESP-18 | P2: Ajustes de configuração | Design | Pending |
-| ESP-19 | P2: Ajustes de configuração | Design | Pending |
-| ESP-20 | P2: Ajustes de configuração | Design | Pending |
-| ESP-21 | P2: Ajustes de configuração | Design | Pending |
-| ESP-22 | P3: Conteúdo — pacotes temáticos | Design | Pending |
+| ESP-01 | P1: Jogar uma rodada completa | Tasks | Verified |
+| ESP-02 | P1: Jogar uma rodada completa | Tasks | Verified |
+| ESP-03 | P1: Jogar uma rodada completa | Tasks | Verified |
+| ESP-04 | P1: Jogar uma rodada completa | Tasks | Verified |
+| ESP-05 | P1: Jogar uma rodada completa | Tasks | Verified |
+| ESP-06 | P1: Jogar uma rodada completa | Tasks | Verified |
+| ESP-07 | P1: Jogar uma rodada completa | Tasks | Verified |
+| ESP-08 | P1: Jogar uma rodada completa | Tasks | Verified |
+| ESP-09 | P1: Jogar uma rodada completa | Tasks | Verified |
+| ESP-10 | P1: Jogar uma rodada completa | Tasks | Verified |
+| ESP-11 | P1: Jogar uma rodada completa | Tasks | Verified |
+| ESP-12 | P1: Jogar uma rodada completa | Tasks | Verified |
+| ESP-13 | P1: Jogar uma rodada completa | Tasks | Verified |
+| ESP-14 | P1: Jogar uma rodada completa | Tasks | Verified |
+| ESP-15 | P1: Jogar uma rodada completa | Tasks | Verified |
+| ESP-16 | P1: Jogar uma rodada completa | Tasks | Verified |
+| ESP-17 | P2: Ajustes de configuração | Tasks | Verified |
+| ESP-18 | P2: Ajustes de configuração | Tasks | Verified |
+| ESP-19 | P2: Ajustes de configuração | Tasks | Verified |
+| ESP-20 | P2: Ajustes de configuração | Tasks | Verified |
+| ESP-21 | P2: Ajustes de configuração | Tasks | Verified |
+| ESP-22 | P3: Conteúdo — pacotes temáticos | Tasks | Verified |
 
 **ID format:** `ESP-[NUMBER]`, mapeado em ordem às ACs de P1 (01–16), P2 (17–21) e P3 (22) acima.
 
