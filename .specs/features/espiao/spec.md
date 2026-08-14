@@ -97,6 +97,23 @@ O Resenha é um hub de party games; "Quem Sou Eu?" é o primeiro jogo, e o hub d
 
 ---
 
+### P4: Acertos de UX levantados no review
+
+**User Story**: Como jogador, quero que o lobby e a entrada digam a verdade sobre o que vai acontecer, pra não clicar em algo que o servidor recusa depois.
+
+**Why P4**: Regras combinadas em conversa que não chegaram ao código na primeira rodada — ficaram fora do spec e por isso nenhum gate as protegia. Ficam aqui pra que uma regressão futura seja pega.
+
+**Acceptance Criteria**:
+
+1. WHEN o host escolhe `numEspioes: 'auto'` (padrão) E a rodada inicia THEN o sistema SHALL sortear 1 espião com até 6 jogadores ativos e 2 a partir de 7, resolvido no início da rodada contra o número de ativos — e um número fixo escolhido pelo host SHALL vencer o automático
+2. WHEN o lobby mostra o mínimo de jogadores ou o motivo de espera THEN o sistema SHALL usar o mínimo do jogo da sala (`minJogadores` do catálogo, 3 no Espião) e não o mínimo global do produto, de modo que o botão nunca ofereça iniciar uma partida que o servidor recusaria
+3. WHEN alguém abre a tela de entrada por link de convite THEN o sistema SHALL omitir o seletor de jogo — o jogo é do host e quem entra não escolhe nada
+4. WHEN um jogador entra na fase de jogo, a votação abre, o tempo entra na reta final ou a partida é revelada THEN o sistema SHALL dar retorno sonoro, no mesmo padrão de `FBK-*` de "Quem Sou Eu"
+
+**Independent Test**: Lobby de Espião com 1 pessoa mostra "Precisa de pelo menos 3 pessoas"; trocar o jogo pra "Quem Sou Eu" volta pra 2. Abrir `/CODIGO` direto não mostra "Escolha o jogo". Mesa de 7 com "Auto" sorteia 2 espiões.
+
+---
+
 ## Edge Cases
 
 - WHEN um jogador sai da sala durante a fase de "aguardando prontos" ou "jogo" e os ativos restantes ficam abaixo de 3 THEN o sistema SHALL cancelar a partida e voltar a sala ao lobby (mesmo padrão de "Quem Sou Eu")
@@ -134,12 +151,16 @@ O Resenha é um hub de party games; "Quem Sou Eu?" é o primeiro jogo, e o hub d
 | ESP-20 | P2: Ajustes de configuração | Tasks | Verified |
 | ESP-21 | P2: Ajustes de configuração | Tasks | Verified |
 | ESP-22 | P3: Conteúdo — pacotes temáticos | Tasks | Verified |
+| ESP-23 | P4: Acertos de UX do review | Review | Verified |
+| ESP-24 | P4: Acertos de UX do review | Review | Verified |
+| ESP-25 | P4: Acertos de UX do review | Review | Verified |
+| ESP-26 | P4: Acertos de UX do review | Review | Verified |
 
-**ID format:** `ESP-[NUMBER]`, mapeado em ordem às ACs de P1 (01–16), P2 (17–21) e P3 (22) acima.
+**ID format:** `ESP-[NUMBER]`, mapeado em ordem às ACs de P1 (01–16), P2 (17–21), P3 (22) e P4 (23–26) acima.
 
 **Status values:** Pending → In Design → In Tasks → Implementing → Verified
 
-**Coverage:** 22 total, 0 mapeados a tasks ainda, 22 não mapeados ⚠️ (normal nesta fase — Tasks ainda não rodou)
+**Coverage:** 26 total, 26 implementados e verificados.
 
 ---
 
