@@ -1,18 +1,25 @@
 import { execSync } from 'child_process';
 import { writeFileSync, unlinkSync } from 'fs';
 import { PACOTES } from '../shared/pacotes-dados';
+import { LOCAIS } from '../shared/locais-dados';
+import type { PacoteResumo } from '../shared/protocolo';
 
-const resumos = PACOTES.map(p => ({
+// `AD-014` — o índice cobre todos os jogos: sem os locais aqui, o Espião só
+// funcionaria no fallback local. E sem `jogoId` o filtro por jogo devolve vazio.
+const TODOS = [...PACOTES, ...LOCAIS];
+
+const resumos: PacoteResumo[] = TODOS.map(p => ({
   id: p.id,
   emoji: p.emoji,
   nome: p.nome,
   descricao: p.descricao,
-  quantidade: p.quantidade
+  quantidade: p.quantidade,
+  jogoId: p.jogoId
 }));
 
 const isRemote = process.argv.includes('--remote');
 
-function putKv(key: string, value: any) {
+function putKv(key: string, value: unknown) {
   const tmpFile = `temp_${key.replace(':', '_')}.json`;
   writeFileSync(tmpFile, JSON.stringify(value));
   try {
@@ -30,7 +37,7 @@ function putKv(key: string, value: any) {
 console.log('Iniciando seed dos pacotes no KV...');
 putKv('pacotes:indice', resumos);
 
-for (const pacote of PACOTES) {
+for (const pacote of TODOS) {
   putKv(`pacote:${pacote.id}`, pacote);
 }
 
