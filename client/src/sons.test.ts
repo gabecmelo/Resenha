@@ -10,36 +10,50 @@ import {
   _resetParaTestes
 } from './sons';
 
+// Dublês da Web Audio API — só os membros que `sons.ts` realmente toca.
+function criarOscilador() {
+  return {
+    type: '',
+    frequency: { setValueAtTime: vi.fn() },
+    connect: vi.fn(),
+    start: vi.fn(),
+    stop: vi.fn(),
+  }
+}
+
+function criarGanho() {
+  return {
+    gain: {
+      setValueAtTime: vi.fn(),
+      exponentialRampToValueAtTime: vi.fn(),
+    },
+    connect: vi.fn(),
+  }
+}
+
+function criarContexto(
+  oscilador: ReturnType<typeof criarOscilador>,
+  ganho: ReturnType<typeof criarGanho>,
+) {
+  return {
+    state: 'running',
+    currentTime: 0,
+    resume: vi.fn(),
+    createOscillator: vi.fn(() => oscilador),
+    createGain: vi.fn(() => ganho),
+    destination: {},
+  }
+}
+
 describe('sons', () => {
-  let mockAudioContext: any;
-  let mockOscillator: any;
-  let mockGain: any;
+  let mockAudioContext: ReturnType<typeof criarContexto>;
+  let mockOscillator: ReturnType<typeof criarOscilador>;
+  let mockGain: ReturnType<typeof criarGanho>;
 
   beforeEach(() => {
-    mockOscillator = {
-      type: '',
-      frequency: { setValueAtTime: vi.fn() },
-      connect: vi.fn(),
-      start: vi.fn(),
-      stop: vi.fn(),
-    };
-    
-    mockGain = {
-      gain: { 
-        setValueAtTime: vi.fn(), 
-        exponentialRampToValueAtTime: vi.fn() 
-      },
-      connect: vi.fn(),
-    };
-
-    mockAudioContext = {
-      state: 'running',
-      currentTime: 0,
-      resume: vi.fn(),
-      createOscillator: vi.fn(() => mockOscillator),
-      createGain: vi.fn(() => mockGain),
-      destination: {},
-    };
+    mockOscillator = criarOscilador();
+    mockGain = criarGanho();
+    mockAudioContext = criarContexto(mockOscillator, mockGain);
 
     vi.stubGlobal('window', {
       AudioContext: vi.fn(function () {

@@ -8,7 +8,7 @@ function carregarPreferencia(): boolean {
     if (salvo !== null) {
       return salvo === 'true';
     }
-  } catch (e) {
+  } catch {
     // Ignora erro de localStorage
   }
   return true; // Default
@@ -18,7 +18,7 @@ function salvarPreferencia(ativo: boolean) {
   if (typeof window === 'undefined') return;
   try {
     window.localStorage.setItem('resenha:som', String(ativo));
-  } catch (e) {
+  } catch {
     // Ignora
   }
 }
@@ -40,10 +40,15 @@ export function ativarSom(ativo: boolean) {
   }
 }
 
+/** Safari antigo só expõe o construtor prefixado. */
+type JanelaComAudio = Window & { webkitAudioContext?: typeof AudioContext };
+
 export function inicializarAudio() {
   somAtivo = carregarPreferencia();
-  if (!audioCtx && typeof window !== 'undefined' && (window.AudioContext || (window as any).webkitAudioContext)) {
-    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+  if (audioCtx || typeof window === 'undefined') return;
+  const AudioContextClass =
+    window.AudioContext ?? (window as JanelaComAudio).webkitAudioContext;
+  if (AudioContextClass) {
     audioCtx = new AudioContextClass();
   }
 }
