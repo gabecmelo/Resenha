@@ -1,6 +1,5 @@
 import { Fragment, useEffect, useState } from 'react'
 import {
-  MIN_JOGADORES,
   type Config,
   type Dificuldade,
   type JogadorId,
@@ -9,7 +8,7 @@ import {
   TEMPO_TURNO_MAX_SEG,
   TEMPO_TURNO_MIN_SEG,
 } from '../../../shared/protocolo'
-import { CATALOGO_DE_JOGOS } from '../../../shared/jogos-catalogo'
+import { CATALOGO_DE_JOGOS, minJogadoresDoJogo } from '../../../shared/jogos-catalogo'
 import { Botao, Chat, FichaDeJogador, Modal, SeletorDeJogos, Shell } from '../componentes'
 import { linkDeConvite, motivoParaIniciar } from '../estado/entrada'
 import { montarPoolDeCartas } from '../../../shared/pacotes'
@@ -36,8 +35,10 @@ export function Lobby({ projecao, enviar, aoSair }: PropsDaTela) {
   const { sala, eu, jogadores } = projecao
   const ativos = jogadores.filter((jogador) => jogador.situacao === 'ativo')
   const host = jogadores.find((jogador) => jogador.id === sala.hostId)
-  // `AJU-34` — o mínimo vem do contrato, não de um número escrito nesta tela.
-  let motivoDeEspera = motivoParaIniciar(ativos.length)
+  // `AJU-34`, `AD-014` — o mínimo vem do catálogo do jogo ativo, não de um
+  // número escrito nesta tela nem da constante única do produto.
+  const minimoDoJogo = minJogadoresDoJogo(sala.jogoId)
+  let motivoDeEspera = motivoParaIniciar(ativos.length, minimoDoJogo)
   if (motivoDeEspera === undefined) {
     if (sala.config.modoPacote === 'pacote' && sala.config.pacoteIds.length === 0) {
       motivoDeEspera = 'Escolha ao menos um pacote para iniciar.'
@@ -56,7 +57,11 @@ export function Lobby({ projecao, enviar, aoSair }: PropsDaTela) {
     >
       <div className="grid grid-cols-1 gap-7 lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)_minmax(0,320px)] lg:items-start lg:gap-8">
         <section className="order-1 lg:order-none lg:col-start-1 lg:row-start-1">
-          <Convite codigo={sala.codigo} sozinho={jogadores.length === 1} />
+          <Convite
+            codigo={sala.codigo}
+            sozinho={jogadores.length === 1}
+            minimoDoJogo={minimoDoJogo}
+          />
         </section>
 
         <section className="order-2 flex flex-col gap-3 lg:order-none lg:col-start-2 lg:row-span-4 lg:row-start-1">
@@ -113,7 +118,9 @@ export function Lobby({ projecao, enviar, aoSair }: PropsDaTela) {
               </Botao>
               {motivoDeEspera === undefined && (
                 <p className="text-apoio text-texto-2">
-                  Cada um vai escrever a carta de outra pessoa.
+                  {sala.jogoId === 'espiao'
+                    ? 'Um local é sorteado pra mesa, menos pro espião.'
+                    : 'Cada um vai escrever a carta de outra pessoa.'}
                 </p>
               )}
             </div>
@@ -140,7 +147,15 @@ function Titulo({ texto, contagem }: { texto: string; contagem?: string }) {
 }
 
 /** `SALA-08` — o código em destaque e o link a um toque. */
-function Convite({ codigo, sozinho }: { codigo: string; sozinho: boolean }) {
+function Convite({
+  codigo,
+  sozinho,
+  minimoDoJogo,
+}: {
+  codigo: string
+  sozinho: boolean
+  minimoDoJogo: number
+}) {
   const [copiado, setCopiado] = useState(false)
 
   return (
@@ -150,7 +165,7 @@ function Convite({ codigo, sozinho }: { codigo: string; sozinho: boolean }) {
           <h2 className="text-titulo text-texto">Chame a galera</h2>
           <p className="text-[15px] leading-relaxed text-texto-2">
             Mande o link no grupo ou dite as cinco letras em voz alta. A partida começa com{' '}
-            {MIN_JOGADORES} pessoas.
+            {minimoDoJogo} pessoas.
           </p>
         </div>
       )}

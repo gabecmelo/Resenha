@@ -113,14 +113,15 @@ export function motivoParaEntrar(apelido: string, codigo: string): string | unde
  * `AJU-06`, `AJU-34` — por que o host ainda não pode iniciar, ou `undefined`
  * quando pode.
  *
- * O mínimo vem do contrato compartilhado: quem recusa de fato é o servidor, e
- * repetir o número aqui foi o que deixou a tela exigindo 3 depois que a regra
- * passou a aceitar 2.
+ * O mínimo é **por jogo** (`AD-014`): vem de `minJogadores` no catálogo, não de
+ * uma constante única. Espião precisa de 3 e "Quem Sou Eu?" de 2 — usar o
+ * global aqui deixava o lobby de Espião oferecendo iniciar com 2 e o servidor
+ * recusando depois do clique.
  */
-export function motivoParaIniciar(ativos: number): string | undefined {
-  const faltam = MIN_JOGADORES - ativos
+export function motivoParaIniciar(ativos: number, minimo: number): string | undefined {
+  const faltam = minimo - ativos
   if (faltam <= 0) return undefined
-  return `Precisa de pelo menos ${MIN_JOGADORES} pessoas — ${
+  return `Precisa de pelo menos ${minimo} pessoas — ${
     faltam === 1 ? 'falta 1' : `faltam ${faltam}`
   }.`
 }

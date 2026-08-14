@@ -105,7 +105,11 @@ export function Inicio({
   return (
     <Shell>
       <div className="mx-auto flex w-full max-w-[420px] flex-col gap-9 pt-4 lg:max-w-none lg:flex-row lg:items-start lg:justify-center lg:gap-20 lg:pt-14">
-        <Apresentacao jogoId={jogoId} aoEscolherJogo={setJogoId} />
+        <Apresentacao
+          jogoId={jogoId}
+          aoEscolherJogo={setJogoId}
+          podeEscolherJogo={codigoInicial === ''}
+        />
 
         <div className="flex w-full flex-col gap-6 lg:max-w-[420px]">
           {dePorta !== null ? (
@@ -233,12 +237,19 @@ function erroDoApelido(erro: ErroDeSala | null): string | undefined {
 }
 
 /** `HUB-01` — o jogo é uma escolha de verdade, não um texto fixo. */
+/**
+ * `podeEscolherJogo` é falso para quem chegou por link de convite: o jogo é
+ * do host, quem entra não escolhe nada. Mostrar o seletor ali daria a impressão
+ * de uma escolha que o "Entrar" descarta em silêncio.
+ */
 function Apresentacao({
   jogoId,
   aoEscolherJogo,
+  podeEscolherJogo,
 }: {
   jogoId: string
   aoEscolherJogo(jogoId: string): void
+  podeEscolherJogo: boolean
 }) {
   return (
     <div className="flex flex-col gap-3 lg:max-w-[420px] lg:pt-1">
@@ -246,15 +257,17 @@ function Apresentacao({
         Party games para jogar com os amigos
       </h1>
       <p className="text-corpo text-texto-2">Sem cadastro. Escolha um apelido e entre.</p>
-      <div className="mt-3 hidden flex-col gap-1.5 border-t border-linha pt-5 lg:flex">
-        <span className="font-mono text-[11px] tracking-[0.12em] text-texto-3 uppercase">
-          escolha o jogo
-        </span>
-        <SeletorDeJogos jogoIdSelecionado={jogoId} aoSelecionar={aoEscolherJogo} />
-        <p className="text-apoio text-texto-2">
-          {MIN_JOGADORES} a {MAX_JOGADORES} pessoas.
-        </p>
-      </div>
+      {podeEscolherJogo && (
+        <div className="mt-3 hidden flex-col gap-1.5 border-t border-linha pt-5 lg:flex">
+          <span className="font-mono text-[11px] tracking-[0.12em] text-texto-3 uppercase">
+            escolha o jogo
+          </span>
+          <SeletorDeJogos jogoIdSelecionado={jogoId} aoSelecionar={aoEscolherJogo} />
+          <p className="text-apoio text-texto-2">
+            {MIN_JOGADORES} a {MAX_JOGADORES} pessoas.
+          </p>
+        </div>
+      )}
     </div>
   )
 }
