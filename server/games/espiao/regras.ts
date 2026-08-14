@@ -10,6 +10,7 @@ import type {
 import type { Config } from '../../../shared/protocolo'
 import type { PacoteCompleto } from '../../../shared/pacotes-dados'
 import { montarPoolDeCartas } from '../../../shared/pacotes'
+import { espioesParaMesa } from '../../../shared/protocolo'
 import { embaralhar, sortearEspioes } from './sorteio'
 
 /**
@@ -89,7 +90,7 @@ export function iniciarRodada(
   const ativos = jogadoresAtivos(ctx)
   if (ativos.length < MIN_JOGADORES_ESPIAO) return { ok: false, erro: 'JOGADORES_INSUFICIENTES' }
 
-  const numEspioes = ctx.config.espiao.numEspioes
+  const numEspioes = espioesParaMesa(ctx.config.espiao.numEspioes, ativos.length)
   if (ativos.length - numEspioes < 2) return { ok: false, erro: 'JOGADORES_INSUFICIENTES' }
 
   if (pacotes === undefined) return { ok: false, erro: 'PACOTE_NAO_ENCONTRADO' }

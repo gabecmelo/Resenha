@@ -245,7 +245,7 @@ const DIFICULDADES_VALIDAS: readonly Dificuldade[] = ['facil', 'medio', 'dificil
 
 /** `ESP-01` — `numEspioes` só é checado contra os ativos no início da rodada (`ESP-02`), não aqui. */
 function configEspiaoValida(parcial: Partial<ConfigEspiao>): boolean {
-  if (parcial.numEspioes !== undefined) {
+  if (parcial.numEspioes !== undefined && parcial.numEspioes !== 'auto') {
     if (!Number.isInteger(parcial.numEspioes) || parcial.numEspioes <= 0) return false
   }
   if (

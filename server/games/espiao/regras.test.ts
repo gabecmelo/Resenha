@@ -145,6 +145,40 @@ describe('iniciarRodada (ESP-01, ESP-03, ESP-04)', () => {
     })
   })
 
+  // `numEspioes: 'auto'` (padrão) — 1 espião até 6 jogadores, 2 a partir de 7.
+  // O automático resolve no início da rodada, quando o nº de ativos já é o
+  // definitivo; escolha manual do host vence o automático.
+  it('auto sorteia 1 espião numa mesa de 6', () => {
+    const seis = ['a', 'b', 'c', 'd', 'e', 'f'].map((id) => jogador(id))
+
+    expect(rodadaDe(seis).espioes).toHaveLength(1)
+  })
+
+  it('auto sorteia 2 espiões a partir de 7 jogadores', () => {
+    const sete = ['a', 'b', 'c', 'd', 'e', 'f', 'g'].map((id) => jogador(id))
+
+    expect(rodadaDe(sete).espioes).toHaveLength(2)
+  })
+
+  it('auto conta só os ativos: 7 na sala com 1 aguardando ainda é mesa de 6', () => {
+    const jogadores = [
+      ...['a', 'b', 'c', 'd', 'e', 'f'].map((id) => jogador(id)),
+      jogador('g', 'aguardando'),
+    ]
+
+    expect(rodadaDe(jogadores).espioes).toHaveLength(1)
+  })
+
+  it('número escolhido pelo host vence o automático', () => {
+    const sete = ['a', 'b', 'c', 'd', 'e', 'f', 'g'].map((id) => jogador(id))
+
+    const estado = rodadaDe(sete, {
+      config: { ...CONFIG_PADRAO, espiao: { ...CONFIG_PADRAO.espiao, numEspioes: 1 } },
+    })
+
+    expect(estado.espioes).toHaveLength(1)
+  })
+
   it('espiões vêm sempre dentre os jogadores ativos, mesmo com jogador aguardando', () => {
     const estado = rodadaDe([
       jogador('a'),

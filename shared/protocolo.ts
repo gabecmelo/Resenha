@@ -108,8 +108,15 @@ export type Dificuldade = 'facil' | 'medio' | 'dificil'
 
 /** `AD-014` — configuração própria de Espião, aninhada em `Config.espiao`. */
 export interface ConfigEspiao {
-  /** Padrão 1. Validado estruturalmente em `configValida`; validado contra os jogadores ativos só no início da rodada (`ESP-02`). */
-  numEspioes: number
+  /**
+   * `'auto'` (padrão) escala com a mesa: 1 espião até 6 jogadores, 2 a partir
+   * de 7 — resolvido no início da rodada, quando o nº de ativos é o definitivo.
+   * Um número fixo é a escolha manual do host e vence o automático.
+   *
+   * Validado estruturalmente em `configValida`; validado contra os jogadores
+   * ativos só no início da rodada (`ESP-02`).
+   */
+  numEspioes: number | 'auto'
   /** Padrão true. */
   espioesSeVeem: boolean
   /** Padrão 'oculta'. */
@@ -118,8 +125,17 @@ export interface ConfigEspiao {
   tempoRodadaSeg: number | null
 }
 
+/** `ESP-01` — a partir desta mesa o automático passa a sortear 2 espiões. */
+export const MESA_GRANDE_ESPIAO = 7
+
+/** Resolve `numEspioes: 'auto'` contra o nº de jogadores ativos da rodada. */
+export function espioesParaMesa(numEspioes: number | 'auto', ativos: number): number {
+  if (numEspioes !== 'auto') return numEspioes
+  return ativos >= MESA_GRANDE_ESPIAO ? 2 : 1
+}
+
 export const CONFIG_ESPIAO_PADRAO: ConfigEspiao = {
-  numEspioes: 1,
+  numEspioes: 'auto',
   espioesSeVeem: true,
   visibilidadeVoto: 'oculta',
   tempoRodadaSeg: 300,

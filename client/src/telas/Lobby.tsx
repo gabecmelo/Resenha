@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useState } from 'react'
 import {
+  MESA_GRANDE_ESPIAO,
   type Config,
   type Dificuldade,
   type JogadorId,
@@ -725,9 +726,10 @@ function Regras({
 // Regras da partida de Espião (`AD-014`, `ESP-01`…`ESP-03`, `ESP-17`…`ESP-19`, `ESP-22`)
 // ---------------------------------------------------------------------------
 
-const OPCOES_NUM_ESPIOES: ReadonlyArray<{ valor: number; rotulo: string }> = [1, 2, 3, 4, 5].map(
-  (n) => ({ valor: n, rotulo: String(n) }),
-)
+const OPCOES_NUM_ESPIOES: ReadonlyArray<{ valor: number | 'auto'; rotulo: string }> = [
+  { valor: 'auto' as const, rotulo: 'Auto' },
+  ...[1, 2, 3, 4, 5].map((n) => ({ valor: n, rotulo: String(n) })),
+]
 
 const OPCOES_SIM_NAO = [
   { valor: true, rotulo: 'Sim' },
@@ -956,7 +958,7 @@ function RegrasEspiao({
 
           <Escolha
             rotulo="Nº de espiões"
-            dica="Precisa sobrar ao menos 2 jogadores não-espiões pra rodada começar."
+            dica={`Auto usa 1 espião até ${MESA_GRANDE_ESPIAO - 1} jogadores e 2 a partir de ${MESA_GRANDE_ESPIAO}. Precisa sobrar ao menos 2 jogadores não-espiões pra rodada começar.`}
             opcoes={OPCOES_NUM_ESPIOES}
             atual={config.espiao.numEspioes}
             aoEscolher={(numEspioes) =>
@@ -1027,7 +1029,7 @@ function RegrasEspiao({
                 : 'Nenhum pacote selecionado'
             }
           />
-          <Leitura rotulo="Nº de espiões" valor={String(config.espiao.numEspioes)} />
+          <Leitura rotulo="Nº de espiões" valor={rotuloDe(OPCOES_NUM_ESPIOES, config.espiao.numEspioes)} />
           <Leitura rotulo="Espiões se veem" valor={config.espiao.espioesSeVeem ? 'Sim' : 'Não'} />
           <Leitura
             rotulo="Visibilidade do voto"
