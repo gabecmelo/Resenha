@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { JogadorId, Projecao, ProjecaoEspiao } from '../../../shared/protocolo'
 import {
   BadgePacote,
@@ -10,6 +10,7 @@ import {
   Shell,
 } from '../componentes'
 import { estaAcabando, formatarTempo, getAgora, restanteAte } from '../estado/relogio'
+import { tocarSuaVez, tocarTempoAcabando, tocarVezOutro } from '../sons'
 import type { PropsDaTela } from './tela'
 
 /**
@@ -46,6 +47,21 @@ export function EspiaoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
   const ativos = jogadores.filter((jogador) => jogador.situacao === 'ativo')
   const [confirmandoEncerrar, setConfirmandoEncerrar] = useState(false)
   const [dica, setDica] = useState<string | null>(null)
+
+  // Esta tela só monta quando a rodada libera: o som marca "seu papel está na
+  // tela", que é o instante em que todo mundo olha pro celular ao mesmo tempo.
+  useEffect(() => {
+    tocarSuaVez()
+  }, [])
+
+  // A votação abrir é o momento que puxa todo mundo de volta pra tela — vale
+  // som mesmo pra quem não abriu, que é justamente quem precisa perceber.
+  const votacaoEstavaAbertaRef = useRef(false)
+  const estaAberta = projecao.jogo?.espiao?.votacaoAberta !== undefined
+  useEffect(() => {
+    if (estaAberta && !votacaoEstavaAbertaRef.current) tocarVezOutro()
+    votacaoEstavaAbertaRef.current = estaAberta
+  }, [estaAberta])
 
   if (espiao === undefined) return null
 
@@ -141,6 +157,14 @@ function RelogioDaRodada({
 }) {
   const restante = useRestante(prazoRodada)
   const acabando = estaAcabando(restante)
+
+  // Só no cruzamento pro "acabando" — o efeito reroda a cada tick do relógio.
+  const avisouRef = useRef(false)
+  useEffect(() => {
+    if (acabando && !avisouRef.current) tocarTempoAcabando()
+    if (!acabando) avisouRef.current = false
+    else avisouRef.current = true
+  }, [acabando])
 
   if (votacaoAberta) {
     return (

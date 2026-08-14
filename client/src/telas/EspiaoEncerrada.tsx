@@ -7,6 +7,8 @@ import {
   MarcadorDeJogador,
   Shell,
 } from '../componentes'
+import { useEffect } from 'react'
+import { tocarAcertou } from '../sons'
 import type { PropsDaTela } from './tela'
 
 /**
@@ -19,6 +21,11 @@ export function EspiaoEncerrada({ projecao, enviar, aoSair }: PropsDaTela) {
   const ativos = jogadores.filter((jogador) => jogador.situacao === 'ativo')
   const aguardando = jogadores.filter((jogador) => jogador.situacao === 'aguardando')
   const host = jogadores.find((jogador) => jogador.id === sala.hostId)
+
+  // A revelação é o clímax da rodada — o mesmo som de acerto de "Quem Sou Eu?".
+  useEffect(() => {
+    tocarAcertou()
+  }, [])
 
   if (espiao === undefined) return null
 

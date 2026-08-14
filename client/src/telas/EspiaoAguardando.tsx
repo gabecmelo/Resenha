@@ -1,4 +1,6 @@
+import { useEffect, useRef } from 'react'
 import { Botao, FichaDeJogador, Shell } from '../componentes'
+import { tocarEntrada } from '../sons'
 import type { PropsDaTela } from './tela'
 
 /**
@@ -11,6 +13,15 @@ export function EspiaoAguardando({ projecao, enviar, aoSair }: PropsDaTela) {
   const { sala, eu, jogadores } = projecao
   const espiao = projecao.jogo?.espiao
   const ativos = jogadores.filter((jogador) => jogador.situacao === 'ativo')
+
+  // Cada PRONTO novo de outra pessoa dá um retorno audível — a espera aqui é
+  // olhando pros outros marcarem, não pra própria tela.
+  const prontosAnteriorRef = useRef(espiao?.prontos ?? 0)
+  const prontos = espiao?.prontos ?? 0
+  useEffect(() => {
+    if (prontos > prontosAnteriorRef.current) tocarEntrada()
+    prontosAnteriorRef.current = prontos
+  }, [prontos])
 
   if (espiao === undefined) return null
 
