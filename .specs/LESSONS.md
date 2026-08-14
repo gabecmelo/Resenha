@@ -62,6 +62,18 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: HUB-12 (spec.md P2 AC7) — no evidence in sala-do.integration.test.ts (server/core)
 - last seen: 2026-08-12T14:57:39Z
 
+### L-009 — When a spec pins a majority/threshold calculation to a specific denominator (e.g. active players, not voters), add a test with partial turnout where the two denominators would diverge, not just full-turnout or coincidental-ratio cases.
+- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `server/games` · harmful: 0
+- features: espiao
+- evidence: server/games/espiao/regras.ts:281 (mutant survived unit suite) (server/games)
+- last seen: 2026-08-13T22:22:37Z
+
+### L-010 — When a spec's Out-of-Scope table narrows a phase's scope below what that phase's own AC text literally says, resolve the contradiction in spec.md itself before Tasks, or flag it explicitly in Requirement Traceability — don't let Verify be the first place it surfaces.
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `specs` · harmful: 0
+- features: espiao
+- evidence: ESP-22 vs spec.md Out-of-Scope table (specs)
+- last seen: 2026-08-13T22:22:44Z
+
 ## Quarantined (failed when applied — ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.
