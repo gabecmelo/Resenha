@@ -1,79 +1,113 @@
 @import 'tailwindcss';
 
 /*
- * Tokens do sistema de design (`design/handoff/project/Resenha - Sistema de
- * Design.dc.html`).
+ * Tokens do sistema de design — direção **Bancada** (`design/handoff/Resenha -
+ * Sistema de Design.dc.html`, v2). Substitui a paleta verde, a tipografia e a
+ * régua da v1: nenhum token daquela versão vale aqui.
  *
- * Claro e escuro s�o dois temas de primeira classe: cada token traz os dois
- * valores num `light-dark()` s�, e quem escolhe entre eles � o `color-scheme`
- * em vigor. Por padr�o o tema segue o dispositivo; o alternador do shell
- * escreve `data-tema` na raiz e vence a prefer�ncia. Nenhum componente carrega
- * variante de tema  eles pintam com o token sem�ntico.
+ * O princípio é físico: a tela é um objeto de papel em cima da mesa. Tinta
+ * sobre papel, esmalte nos botões, carimbo nos estados, pontilhado nas linhas
+ * de valor. Nada de sombra difusa, nada de gradiente, nada de cinza
+ * corporativo.
+ *
+ * Claro e escuro são dois temas de primeira classe: cada token traz os dois
+ * valores num `light-dark()` só, e quem escolhe entre eles é o `color-scheme`
+ * em vigor. Por padrão o tema segue o dispositivo; o alternador do shell
+ * escreve `data-tema` na raiz e vence a preferência. Nenhum componente carrega
+ * variante de tema — eles pintam com o token semântico.
  */
 
 :root {
   color-scheme: light dark;
 
-  --fundo: light-dark(#f7f5f2, #121312);
-  --superficie: light-dark(#ffffff, #1a1b19);
-  --superficie-2: light-dark(#efece7, #232522);
-  --flutuante: light-dark(#ffffff, #1f211e);
-  --linha: light-dark(#e6e1da, #333630);
-  --linha-suave: light-dark(#efece7, #2a2c28);
-  --controle-linha: light-dark(#d8d2c9, #3d403a);
-  --texto: light-dark(#1b1917, #f2f1ee);
-  --texto-2: light-dark(#5f584f, #a5a69f);
-  --texto-3: light-dark(#8a8177, #74766f);
-  --texto-apagado: light-dark(#a39a90, #6a6c65);
-  --acento: light-dark(#2a7a5e, #6fd3a8);
-  --acento-forte: light-dark(#22664e, #85deb7);
-  --acento-suave: light-dark(#e8f1ec, #1b2a24);
-  --acento-linha: light-dark(#cfe2d8, #2b4239);
-  --acento-contraste: light-dark(#ffffff, #0f1a15);
-  --risco: light-dark(#b23a2b, #f58175);
-  --risco-suave: light-dark(#fbece9, #2c1e1b);
-  --risco-linha: light-dark(#f0d5cf, #46302b);
-  --risco-contraste: light-dark(#ffffff, #2a100c);
+  /* Superfícies — "bar de dia" no claro, "bar à noite" no escuro. */
+  --fundo: light-dark(#efe4d2, #141210);
+  --superficie: light-dark(#fbf5e9, #211d19);
+  --superficie-2: light-dark(#e8dcc8, #2a2521);
+  --flutuante: light-dark(#fbf5e9, #211d19);
+  --linha: light-dark(#d5c9b4, #332e28);
+  --linha-suave: light-dark(#e3d8c4, #2a2521);
 
   /*
-   * Espera por decis�o de outra pessoa  a declara��o de "Descobri!" pendente
-   * (`DESC-01`, `DESC-02`). N�o � acento (n�o � sua a��o) nem risco (nada deu
-   * errado): � o terceiro estado que a tela de partida precisa dizer.
+   * Contorno de controle é tinta cheia, não um cinza: o botão secundário desta
+   * direção é contornado em tinta, do jeito que se carimba num papel.
    */
-  --aviso: light-dark(#9e6e12, #d5a03a);
-  --aviso-suave: light-dark(#fbf3e3, #302510);
-  --aviso-linha: light-dark(#e8d9b6, #4c3d1a);
+  --controle-linha: light-dark(#1b1712, #f5eddf);
 
-  /* `light-dark()` s� resolve cor  a sombra monta o valor a partir dela. */
-  --sombra-cor: light-dark(rgb(27 25 23 / 0.1), rgb(0 0 0 / 0.5));
-  --sombra-flutuante: 0 12px 32px var(--sombra-cor);
+  --texto: light-dark(#1b1712, #f5eddf);
+  --texto-2: light-dark(#3a322a, #c9beb0);
+  --texto-3: light-dark(#6e6354, #a2968a);
+  --texto-apagado: light-dark(#8f857a, #7a6f64);
 
   /*
-   * Paleta de jogadores  separada da paleta da interface (`SALA-07`). Nenhuma
-   * destas cores aparece em bot�o, link ou fundo de tela. A cor nunca � o �nico
-   * diferenciador: o marcador leva a inicial e o apelido acompanha sempre.
+   * Esmalte — a cor de ação. Clareia no escuro (#c93a22 → #f2603f) porque
+   * texto claro sobre tomate escuro não passa em contraste.
    */
-  --jogador-contraste: light-dark(#ffffff, #1b1917);
-  --jogador-vermelho: light-dark(#c0453b, #f08a80);
-  --jogador-laranja: light-dark(#be5a22, #f09c5c);
-  --jogador-ambar: light-dark(#9e6e12, #ddaf4c);
-  --jogador-mostarda: light-dark(#7e7a1b, #c6be56);
-  --jogador-oliva: light-dark(#5f8322, #a4cd62);
-  --jogador-folha: light-dark(#2f8a3c, #7bd180);
-  --jogador-esmeralda: light-dark(#0f8c77, #4fd3ac);
-  --jogador-turquesa: light-dark(#12839a, #4ccbd8);
-  --jogador-azul: light-dark(#2073b4, #6fbef2);
-  --jogador-indigo: light-dark(#4a62c4, #96aef7);
-  --jogador-violeta: light-dark(#7154c6, #b2a2f5);
-  --jogador-purpura: light-dark(#9448b2, #c999ea);
-  --jogador-magenta: light-dark(#b0428e, #e191d6);
-  --jogador-framboesa: light-dark(#bb4166, #f28eac);
-  --jogador-terracota: light-dark(#8b5a45, #d89e88);
-  --jogador-taupe: light-dark(#6e6551, #c3b698);
-  --jogador-salvia: light-dark(#4f7a72, #8fc4b8);
-  --jogador-ardosia: light-dark(#556383, #9fb0d0);
-  --jogador-ameixa: light-dark(#8c4f7a, #d296c0);
-  --jogador-grafite: light-dark(#3f4a52, #9ba6ae);
+  --acento: light-dark(#c93a22, #f2603f);
+  --acento-forte: light-dark(#8f2413, #f57a5c);
+  --acento-suave: light-dark(#f7e4de, #33201b);
+  --acento-linha: light-dark(#e8c4ba, #4a2a22);
+  --acento-contraste: light-dark(#fff3e6, #1b1712);
+
+  /* Vinho — só o que não tem volta: expulsar, encerrar, cancelar. */
+  --risco: light-dark(#8f2413, #ff8a6b);
+  --risco-suave: light-dark(#f6ded8, #351a14);
+  --risco-linha: light-dark(#e0b8ad, #4d2820);
+  --risco-contraste: light-dark(#fff3e6, #1b1712);
+
+  /*
+   * Mostarda — a informação virou pública. Aparece na revelação e na espera por
+   * decisão de outra pessoa; nunca em ação própria.
+   */
+  --aviso: light-dark(#e3a32b, #f0b23e);
+  --aviso-suave: light-dark(#f8ecd3, #302510);
+  --aviso-linha: light-dark(#e5d0a4, #4c3d1a);
+  --aviso-contraste: light-dark(#3a2c08, #1b1712);
+
+  /* Pronto — marcação de estado concluído (`✓ pronto`), nunca de ação. */
+  --pronto: light-dark(#2f7a4f, #6fc292);
+  --pronto-suave: light-dark(#e2efe6, #16281e);
+  --pronto-linha: light-dark(#bcd8c6, #294636);
+  --pronto-contraste: light-dark(#fff3e6, #141210);
+
+  /*
+   * Sombra deslocada e dura, nunca difusa — é o objeto de papel projetando
+   * sobre a mesa. Tinta no claro, preto no escuro.
+   */
+  --sombra-cor: light-dark(#1b1712, #000000);
+  --sombra-chip: 2px 2px 0 var(--sombra-cor);
+  --sombra-botao: 3px 3px 0 var(--sombra-cor);
+  --sombra-papel: 4px 4px 0 var(--sombra-cor);
+  --sombra-flutuante: 5px 5px 0 var(--sombra-cor);
+
+  /*
+   * Paleta de jogadores — separada da paleta da interface (`SALA-07`). Matizes
+   * a cada 18°, clareza fixa por tema: oklch(.58 .15 h) no claro, oklch(.79
+   * .13 h) no escuro. Nenhuma destas cores aparece em botão, link, faixa ou
+   * fundo de tela. A cor nunca é o único diferenciador: o disco leva a inicial
+   * e o apelido acompanha sempre.
+   */
+  --jogador-contraste: light-dark(#fbf5e9, #141210);
+  --jogador-vermelho: light-dark(oklch(0.58 0.15 25), oklch(0.79 0.13 25));
+  --jogador-laranja: light-dark(oklch(0.58 0.15 45), oklch(0.79 0.13 45));
+  --jogador-ambar: light-dark(oklch(0.58 0.15 63), oklch(0.79 0.13 63));
+  --jogador-mostarda: light-dark(oklch(0.58 0.15 82), oklch(0.79 0.13 82));
+  --jogador-oliva: light-dark(oklch(0.58 0.15 98), oklch(0.79 0.13 98));
+  --jogador-folha: light-dark(oklch(0.58 0.15 118), oklch(0.79 0.13 118));
+  --jogador-esmeralda: light-dark(oklch(0.58 0.15 138), oklch(0.79 0.13 138));
+  --jogador-turquesa: light-dark(oklch(0.58 0.15 155), oklch(0.79 0.13 155));
+  --jogador-azul: light-dark(oklch(0.58 0.15 172), oklch(0.79 0.13 172));
+  --jogador-indigo: light-dark(oklch(0.58 0.15 190), oklch(0.79 0.13 190));
+  --jogador-violeta: light-dark(oklch(0.58 0.15 205), oklch(0.79 0.13 205));
+  --jogador-purpura: light-dark(oklch(0.58 0.15 220), oklch(0.79 0.13 220));
+  --jogador-magenta: light-dark(oklch(0.58 0.15 236), oklch(0.79 0.13 236));
+  --jogador-framboesa: light-dark(oklch(0.58 0.15 252), oklch(0.79 0.13 252));
+  --jogador-terracota: light-dark(oklch(0.58 0.15 268), oklch(0.79 0.13 268));
+  --jogador-taupe: light-dark(oklch(0.58 0.15 286), oklch(0.79 0.13 286));
+  --jogador-salvia: light-dark(oklch(0.58 0.15 303), oklch(0.79 0.13 303));
+  --jogador-ardosia: light-dark(oklch(0.58 0.15 320), oklch(0.79 0.13 320));
+  --jogador-ameixa: light-dark(oklch(0.58 0.15 338), oklch(0.79 0.13 338));
+  --jogador-grafite: light-dark(oklch(0.58 0.15 8), oklch(0.79 0.13 8));
 }
 
 :root[data-tema='claro'] {
@@ -85,35 +119,55 @@
 }
 
 @theme inline {
-  --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  /*
+   * Archivo Black só em título, código e número grande. Archivo para rótulo e
+   * corpo. DM Mono para tudo que é dado: contagem, tempo, código da sala,
+   * etiqueta em caixa alta.
+   */
+  --font-sans: 'Archivo', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Archivo Black', 'Archivo', ui-sans-serif, sans-serif;
+  --font-mono: 'DM Mono', ui-monospace, monospace;
 
-  /* Hierarquia por tamanho e peso  nunca por caixa, borda ou sombra. */
-  --text-display: 40px;
-  --text-display--line-height: 1.05;
-  --text-display--letter-spacing: -0.03em;
-  --text-display--font-weight: 600;
-  --text-titulo: 28px;
-  --text-titulo--line-height: 1.1;
-  --text-titulo--letter-spacing: -0.02em;
-  --text-titulo--font-weight: 600;
-  --text-secao: 22px;
-  --text-secao--line-height: 1.2;
-  --text-secao--letter-spacing: -0.02em;
-  --text-secao--font-weight: 600;
-  --text-carta: 22px;
-  --text-carta--line-height: 1.2;
-  --text-carta--letter-spacing: -0.01em;
-  --text-carta--font-weight: 500;
+  /* Hierarquia por peso e família — nunca por caixa, borda ou sombra. */
+  --text-codigo: 48px;
+  --text-codigo--line-height: 1;
+  --text-codigo--letter-spacing: 0.08em;
+  --text-codigo--font-weight: 400;
+  --text-display: 34px;
+  --text-display--line-height: 1;
+  --text-display--letter-spacing: -0.02em;
+  --text-display--font-weight: 400;
+  --text-titulo: 24px;
+  --text-titulo--line-height: 1.05;
+  --text-titulo--letter-spacing: -0.01em;
+  --text-titulo--font-weight: 400;
+  --text-secao: 20px;
+  --text-secao--line-height: 1.1;
+  --text-secao--font-weight: 400;
+  --text-carta: 18px;
+  --text-carta--line-height: 1.15;
+  --text-carta--font-weight: 400;
   --text-corpo: 16px;
   --text-corpo--line-height: 1.55;
   --text-apoio: 14px;
   --text-apoio--line-height: 1.5;
   --text-miudo: 13px;
   --text-miudo--line-height: 1.45;
-  --text-rotulo: 12px;
+  --text-rotulo: 11px;
   --text-rotulo--line-height: 1.4;
-  --text-rotulo--letter-spacing: 0.12em;
+  --text-rotulo--letter-spacing: 0.14em;
+  /* Dado: contagem, relógio, N/M. Sempre DM Mono. */
+  --text-dado: 14px;
+  --text-dado--line-height: 1.4;
+  --text-dado--font-weight: 500;
+  /*
+   * Piso absoluto, só na mesa cheia (20 cartas em 360px). Nada abaixo disto
+   * existe no produto.
+   */
+  --text-compacto: 12px;
+  --text-compacto--line-height: 1.2;
+  --text-compacto-apoio: 11px;
+  --text-compacto-apoio--line-height: 1;
 
   --color-fundo: var(--fundo);
   --color-superficie: var(--superficie);
@@ -138,14 +192,25 @@
   --color-aviso: var(--aviso);
   --color-aviso-suave: var(--aviso-suave);
   --color-aviso-linha: var(--aviso-linha);
+  --color-aviso-contraste: var(--aviso-contraste);
+  --color-pronto: var(--pronto);
+  --color-pronto-suave: var(--pronto-suave);
+  --color-pronto-linha: var(--pronto-linha);
+  --color-pronto-contraste: var(--pronto-contraste);
 
-  --radius-controle: 8px;
-  --radius-painel: 12px;
-  --radius-bloco: 14px;
-  --radius-carta: 16px;
+  /* 3 chip · 4 botão · 6 papel · 999 disco. */
+  --radius-chip: 3px;
+  --radius-controle: 3px;
+  --radius-botao: 4px;
+  --radius-painel: 4px;
+  --radius-papel: 6px;
+  --radius-bloco: 6px;
+  --radius-carta: 6px;
   --radius-pilula: 999px;
 
-  /* Sombra existe s� para o que flutua: modal e menu. */
+  --shadow-chip: var(--sombra-chip);
+  --shadow-botao: var(--sombra-botao);
+  --shadow-papel: var(--sombra-papel);
   --shadow-flutuante: var(--sombra-flutuante);
 }
 
@@ -155,6 +220,86 @@
     color: var(--texto);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+  }
+}
+
+@layer components {
+  /*
+   * O selo é como o produto grita sem precisar pintar a tela inteira: etiqueta
+   * em caixa alta, levemente torta, do jeito de um carimbo.
+   */
+  .selo {
+    @apply inline-flex flex-none items-center rounded-chip px-2.5 py-1.5 font-mono text-rotulo uppercase;
+    transform: rotate(-2deg);
+  }
+
+  /* Linha de valor: pontilhada, do jeito de um talão. */
+  .linha-valor {
+    @apply border-t border-dashed border-linha;
+  }
+
+  /*
+   * O verso de qualquer coisa secreta (`padrão 01` do Kit de Partida): hachura
+   * em esmalte com moldura pontilhada. Não é dado faltando — é lugar guardado.
+   */
+  .verso-secreto {
+    @apply rounded-papel border-2 border-dashed border-acento-linha;
+    background-image: repeating-linear-gradient(
+      -45deg,
+      var(--acento-suave) 0 6px,
+      transparent 6px 12px
+    );
+  }
+
+  /*
+   * A gaveta de pacotes. Desktop trava numa altura em `vh` (não pixels: a
+   * altura do card varia com a descrição) e rola por dentro, não pelo modal.
+   */
+  .pacote-grid {
+    @apply grid w-full grid-cols-2 gap-3 overscroll-contain sm:grid-cols-3 lg:max-h-[48vh] lg:grid-cols-4 lg:overflow-y-auto lg:pr-1;
+  }
+
+  /*
+   * Card de papel sobre a mesa. Selecionar não muda a cor de fundo — encosta o
+   * papel na mesa (a sombra some, o objeto desce), que é o mesmo gesto do
+   * botão primário ao ser apertado.
+   */
+  .pacote-card {
+    @apply relative flex cursor-pointer flex-col items-start justify-between gap-1 rounded-papel border border-linha bg-superficie p-3 text-left transition-[transform,box-shadow,border-color] duration-150 ease-out;
+  }
+
+  .pacote-card:hover {
+    @apply border-controle-linha shadow-chip;
+    transform: translate(-1px, -1px);
+  }
+
+  .pacote-card[aria-pressed='true'] {
+    @apply border-2 border-acento bg-acento-suave;
+    box-shadow: var(--sombra-chip);
+    transform: translate(-2px, -2px);
+  }
+
+  .pacote-fantasma {
+    @apply relative flex flex-col items-center justify-center gap-3 rounded-papel border-2 border-dashed border-linha p-6 text-center select-none;
+  }
+
+  /*
+   * A opção de carta na fase de escrita — papel de verdade, escolhido com o
+   * dedo. Mesma gramática do `pacote-card`, corpo maior.
+   */
+  .opcao-carta {
+    @apply relative flex w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-papel border border-linha bg-superficie p-5 text-center transition-[transform,box-shadow,border-color] duration-150 ease-out;
+  }
+
+  .opcao-carta:hover {
+    @apply border-controle-linha shadow-chip;
+    transform: translate(-1px, -1px);
+  }
+
+  .opcao-carta[aria-pressed='true'] {
+    @apply border-2 border-acento bg-acento-suave;
+    box-shadow: var(--sombra-botao);
+    transform: translate(-2px, -2px);
   }
 }
 
@@ -182,84 +327,48 @@
   animation: girando 900ms linear infinite;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .animacao-pulso,
-  .animacao-girando {
-    animation: none;
+/* O gêmeo visual do carimbo: o objeto afunda contra a mesa e volta. */
+@keyframes carimbo {
+  0% {
+    transform: translate(0, 0);
+    box-shadow: var(--sombra-botao);
+  }
+  35% {
+    transform: translate(3px, 3px);
+    box-shadow: 0 0 0 var(--sombra-cor);
+  }
+  100% {
+    transform: translate(0, 0);
+    box-shadow: var(--sombra-botao);
   }
 }
 
-@layer components {
-  /*
-   * Desktop trava numa altura padrão (mesma lógica do `Chat.tsx`, em `vh` —
-   * não pixels fixos, porque a altura do card varia com o tamanho da
-   * descrição) com rolagem interna própria, não a do modal inteiro. Cresce
-   * sem quebrar o layout conforme mais pacotes forem adicionados.
-   */
-  .pacote-grid {
-    @apply grid w-full grid-cols-2 gap-3 overscroll-contain sm:grid-cols-3 lg:grid-cols-4 lg:max-h-[48vh] lg:overflow-y-auto lg:pr-1;
-  }
-
-  .pacote-card {
-    @apply relative flex cursor-pointer flex-col items-start justify-between overflow-hidden rounded-bloco border border-linha bg-superficie p-2 text-left transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)];
-  }
-
-  .pacote-card::before {
-    @apply pointer-events-none absolute inset-0 content-[''] bg-gradient-to-br from-acento/5 to-transparent opacity-0 transition-opacity duration-300;
-  }
-
-  .pacote-card:hover {
-    @apply -translate-y-0.5 border-controle-linha shadow-flutuante;
-  }
-
-  .pacote-card:hover::before {
-    @apply opacity-100;
-  }
-
-  .pacote-card[aria-pressed="true"] {
-    @apply border-acento bg-acento-suave shadow-md ring-1 ring-acento;
-  }
-
-  .pacote-fantasma {
-    @apply relative flex select-none flex-col items-center justify-center gap-3 rounded-bloco border-2 border-dashed border-linha-suave bg-superficie/50 p-6 text-center;
-  }
-
-  .opcao-carta {
-    @apply relative flex w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-carta border-2 border-linha bg-superficie p-6 text-center transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)];
-  }
-
-  .opcao-carta:hover {
-    @apply -translate-y-1 border-acento-linha bg-superficie-2 shadow-flutuante;
-  }
-
-  .opcao-carta[aria-pressed="true"] {
-    @apply scale-[1.02] border-acento bg-acento-suave shadow-flutuante ring-2 ring-acento ring-offset-2 ring-offset-fundo;
-  }
+.animacao-carimbo {
+  animation: carimbo 320ms cubic-bezier(0.2, 0.9, 0.3, 1);
 }
 
-
-@keyframes flash-atencao {
-  0% { transform: scale(1); filter: brightness(1); }
-  20% { transform: scale(1.05); filter: brightness(1.2); }
-  100% { transform: scale(1); filter: brightness(1); }
+/*
+ * Chamar atenção para um objeto que não é botão (a carta de quem declarou):
+ * ele se levanta da mesa por um instante em vez de piscar.
+ */
+@keyframes atencao {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  30% {
+    transform: translate(-2px, -2px);
+  }
 }
 
 .animacao-flash {
-  animation: flash-atencao 600ms cubic-bezier(0.16, 1, 0.3, 1);
+  animation: atencao 600ms cubic-bezier(0.2, 0.9, 0.3, 1);
 }
 
-@keyframes pulse-attention {
-  0% {
-    box-shadow: 0 0 0 0 var(--acento-suave);
+@media (prefers-reduced-motion: reduce) {
+  .animacao-pulso,
+  .animacao-girando,
+  .animacao-carimbo {
+    animation: none;
   }
-  70% {
-    box-shadow: 0 0 0 10px transparent;
-  }
-  100% {
-    box-shadow: 0 0 0 0 transparent;
-  }
-}
-
-.animacao-pulse-attention {
-  animation: pulse-attention 2s infinite;
 }
