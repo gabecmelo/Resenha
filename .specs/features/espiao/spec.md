@@ -13,7 +13,7 @@ O Resenha é um hub de party games; "Quem Sou Eu?" é o primeiro jogo, e o hub d
 
 | Feature | Reason |
 | --- | --- |
-| Espião "chuta" o local pra vencer na hora | Confirmado explicitamente fora do escopo desta rodada ("por enquanto não") — mecânica adiada. |
+| ~~Espião "chuta" o local pra vencer na hora~~ | **Entrou em P7 (`ESP-44`, `ESP-45`)**, numa forma mais fechada que a original: o chute não é um botão disponível a qualquer hora, é a última cartada de quem foi pego pela votação. |
 | Papel/profissão além do local (ex.: "você é o médico do hospital") | Confirmado: v1 só tem o local, sem papéis. |
 | Estatísticas, placar entre partidas, ranking | Mesma decisão de `AD-003` — o sistema é tabuleiro, não árbitro; vale pra todos os jogos do hub. |
 | Múltiplos pacotes temáticos de locais completos (Natureza, Assustador, Cidade, Antiguidade...) | MVP entra com pelo menos um pacote jogável; os demais temas são conteúdo incremental, mesmo padrão das rodadas de conteúdo que já expandiram os pacotes de "Quem Sou Eu" (`pacotes-avancados`). |
@@ -58,8 +58,8 @@ O Resenha é um hub de party games; "Quem Sou Eu?" é o primeiro jogo, e o hub d
 10. WHEN o timer da rodada esgota sem ninguém ter aberto votação THEN o sistema SHALL abrir a votação automaticamente
 11. WHEN a votação está aberta THEN o sistema SHALL permitir que cada jogador ativo vote em um único jogador (qualquer um, inclusive outro espião) ou "pular", uma vez por votação
 12. WHEN todos os jogadores ativos votaram, OU o host encerra a votação manualmente THEN o sistema SHALL fechar a votação e revelar o resultado (contagem de votos) pra todos
-13. WHEN a votação fecha com um único jogador tendo maioria absoluta de votos E esse jogador é de fato espião THEN o sistema SHALL encerrar a partida, revelando o local e todos os espiões
-14. WHEN a votação fecha sem essa condição (empate, maioria errada, ou maioria em "pular") THEN o sistema SHALL manter a partida em andamento, reabrindo o timer da rodada
+13. ~~WHEN a votação fecha com um único jogador tendo maioria absoluta de votos E esse jogador é de fato espião THEN o sistema SHALL encerrar a partida, revelando o local e todos os espiões~~ — **substituído por P7 (`ESP-41`…`ESP-45`)**: a maioria passou a ser simples, e acertar o espião abre o chute em vez de encerrar direto
+14. ~~WHEN a votação fecha sem essa condição (empate, maioria errada, ou maioria em "pular") THEN o sistema SHALL manter a partida em andamento, reabrindo o timer da rodada~~ — **substituído por P7 (`ESP-40`…`ESP-43`)**: só empate e "pular" devolvem a rodada, e ela volta com o tempo congelado em vez de reaberto
 15. WHEN o host encerra a partida manualmente a qualquer momento da fase de jogo THEN o sistema SHALL revelar o local e todos os espiões, encerrando a partida
 16. WHEN a partida está encerrada THEN o sistema SHALL mostrar a tela de revelação (local + quem eram os espiões) pra todos os jogadores, inclusive quem entrou depois de encerrada
 
@@ -153,6 +153,31 @@ O Resenha é um hub de party games; "Quem Sou Eu?" é o primeiro jogo, e o hub d
 
 ---
 
+### P7: A votação decide a partida ⭐
+
+**User Story**: Como mesa, quero que abrir a votação tenha peso de verdade — que a acusação decida quem ganha, que o espião pego ainda tenha uma cartada, e que o relógio da rodada seja um teto e não um botão de reset.
+
+**Why P7**: Rodada de calibragem depois de jogar de verdade. O desenho original ("só termina quando UM jogador tem maioria absoluta E é espião, senão a rodada continua") tornava a votação quase inconsequente: o relógio reiniciava a cada votação perdida e a partida não acabava nunca. As regras abaixo **substituem** `ESP-13` e `ESP-14`.
+
+**Acceptance Criteria**:
+
+1. WHEN uma votação abre THEN o sistema SHALL congelar o tempo que faltava da rodada e, quando a rodada voltar a correr, devolvê-lo exatamente — o tempo de rodada é o **teto da partida**, não um relógio que reinicia a cada votação
+2. WHEN uma votação fecha THEN o sistema SHALL acusar quem recebeu **estritamente mais votos que qualquer outra opção**, sem exigir maioria absoluta — um único voto basta se ninguém mais recebeu nenhum
+3. WHEN a votação fecha com dois ou mais alvos empatados no topo, OU com "pular" recebendo estritamente mais votos que qualquer jogador THEN o sistema SHALL não acusar ninguém e devolver a rodada com o tempo congelado
+4. WHEN a votação acusa alguém que **não** é espião THEN o sistema SHALL encerrar a partida com vitória dos espiões
+5. WHEN a votação acusa alguém que **é** espião THEN o sistema SHALL abrir a fase de chute: só o espião acusado age, escolhendo um local dentre os do pool da partida
+6. WHEN o espião acusado acerta o local THEN o sistema SHALL encerrar a partida com vitória dos espiões
+7. WHEN o espião acusado erra o local, OU deixa o prazo do chute vencer sem escolher THEN o sistema SHALL encerrar a partida com vitória da mesa
+8. WHEN o host configura o limite de votações THEN o sistema SHALL permitir 1, 2, 3 ou ilimitado (padrão 2), contando apenas as votações **abertas pela mesa**
+9. WHEN o limite de votações se esgota THEN o sistema SHALL recusar novas aberturas e a tela SHALL dizer o motivo, sem esconder o botão
+10. WHEN o relógio da rodada vence THEN o sistema SHALL abrir a **votação final** — ela não consome o limite de `ESP-47` e é a última votação da partida
+11. WHEN a votação final fecha sem acusar ninguém THEN o sistema SHALL encerrar a partida com vitória dos espiões: o tempo acabou e a mesa não achou ninguém
+12. WHEN a partida encerra por qualquer um destes caminhos THEN a revelação SHALL dizer **quem venceu e por quê**, além do local e dos espiões, incluindo o chute quando houve
+
+**Independent Test**: Mesa de 3 com 1 espião. (a) Abrir votação, 1 voto num aldeão e 2 pulos — ninguém acusado, a rodada volta com o relógio de onde parou, não do começo. (b) Abrir votação, 1 voto no aldeão e nada mais — ele é expulso e os espiões vencem. (c) Acusar o espião, ele chuta o local certo — espiões vencem; repetir com chute errado — a mesa vence.
+
+---
+
 ## Edge Cases
 
 - WHEN um jogador sai da sala durante a fase de "aguardando prontos" ou "jogo" e os ativos restantes ficam abaixo de 3 THEN o sistema SHALL cancelar a partida e voltar a sala ao lobby (mesmo padrão de "Quem Sou Eu")
@@ -210,12 +235,24 @@ O Resenha é um hub de party games; "Quem Sou Eu?" é o primeiro jogo, e o hub d
 | ESP-37 | P6: Pausar a rodada | Tasks | Verified |
 | ESP-38 | P6: Pausar a rodada | Tasks | Verified |
 | ESP-39 | P6: Pausar a rodada | Tasks | Verified |
+| ESP-40 | P7: A votação decide a partida | Tasks | Implementing |
+| ESP-41 | P7: A votação decide a partida | Tasks | Implementing |
+| ESP-42 | P7: A votação decide a partida | Tasks | Implementing |
+| ESP-43 | P7: A votação decide a partida | Tasks | Implementing |
+| ESP-44 | P7: A votação decide a partida | Tasks | Implementing |
+| ESP-45 | P7: A votação decide a partida | Tasks | Implementing |
+| ESP-46 | P7: A votação decide a partida | Tasks | Implementing |
+| ESP-47 | P7: A votação decide a partida | Tasks | Implementing |
+| ESP-48 | P7: A votação decide a partida | Tasks | Implementing |
+| ESP-49 | P7: A votação decide a partida | Tasks | Implementing |
+| ESP-50 | P7: A votação decide a partida | Tasks | Implementing |
+| ESP-51 | P7: A votação decide a partida | Tasks | Implementing |
 
-**ID format:** `ESP-[NUMBER]`, mapeado em ordem às ACs de P1 (01–16), P2 (17–21), P3 (22), P4 (23–26), P5 (27–34) e P6 (35–39) acima.
+**ID format:** `ESP-[NUMBER]`, mapeado em ordem às ACs de P1 (01–16), P2 (17–21), P3 (22), P4 (23–26), P5 (27–34), P6 (35–39) e P7 (40–51) acima. `ESP-13` e `ESP-14` estão riscados: P7 os substituiu.
 
 **Status values:** Pending → In Design → In Tasks → Implementing → Verified
 
-**Coverage:** 39 total, 39 implementados e verificados.
+**Coverage:** 51 total — 37 verificados, 2 substituídos (`ESP-13`, `ESP-14`), 12 em implementação (P7).
 
 ---
 
