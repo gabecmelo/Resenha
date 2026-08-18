@@ -10,7 +10,7 @@ import type {
 import type { Config } from '../../../shared/protocolo'
 import type { PacoteCompleto } from '../../../shared/pacotes-dados'
 import { montarPoolDeCartas } from '../../../shared/pacotes'
-import { JANELA_DE_RESULTADO_MS, espioesParaMesa } from '../../../shared/protocolo'
+import { JANELA_DE_RESULTADO_MS, TEMPO_DE_CHUTE_MS, espioesParaMesa } from '../../../shared/protocolo'
 import { embaralhar, sortearEspioes } from './sorteio'
 
 /**
@@ -25,6 +25,12 @@ export interface VotacaoAberta {
   abertaEm: number
   /** `ESP-27` — quem puxou a votação; `null` quando foi o relógio da rodada. */
   abertaPor: JogadorId | null
+  /**
+   * `ESP-49`, `ESP-50` — é a votação final: o relógio da rodada venceu e esta é
+   * a última chance da mesa. Ela não consome o limite de `ESP-47` e, feche como
+   * fechar, a partida termina aqui.
+   */
+  final: boolean
   /** votante → alvo (`'pular'` é a opção de não acusar ninguém). */
   votos: Record<JogadorId, JogadorId | 'pular'>
 }
@@ -41,8 +47,10 @@ export interface ResultadoVotacao {
   acusado: JogadorId | null
   aMesaAcertou: boolean
   votosNoAcusado: number
-  maioriaMinima: number
   totalAtivos: number
+  /** `ESP-41`…`ESP-50` — o que esta votação provocou. */
+  desfecho: 'rodadaVolta' | 'mesaPerdeu' | 'chuteDoEspiao' | 'tempoEsgotado'
+  final: boolean
 }
 
 export interface EstadoEspiao {
@@ -64,6 +72,26 @@ export interface EstadoEspiao {
   pausa: { por: JogadorId; restanteMs: number | null } | null
   /** `ESP-32` — de pé durante a janela de resultado e depois na revelação. */
   resultadoVotacao: ResultadoVotacao | null
+  /**
+   * `ESP-44` — o pool de locais da partida. Guardado porque o espião pego
+   * precisa de opções pra chutar; sai da projeção **só** pra ele, e só depois
+   * de já ter sido descoberto.
+   */
+  pool: string[]
+  /** `ESP-47` — quantas votações a mesa já abriu (a final não conta). */
+  votacoesDaMesa: number
+  /**
+   * `ESP-40` — o que sobrava do relógio da rodada quando a votação abriu. O
+   * tempo de rodada é o teto da partida: ele volta de onde parou, nunca do
+   * começo. `null` quando a rodada não tem relógio.
+   */
+  restanteDaRodadaMs: number | null
+  /** `ESP-44` — o espião acusado que ainda deve o chute. */
+  chutePendente: JogadorId | null
+  /** `ESP-45` — o chute que aconteceu. `local` nulo = deixou o prazo vencer. */
+  chuteFeito: { por: JogadorId; local: string | null; acertou: boolean } | null
+  /** `ESP-49` — quem levou a partida; `null` enquanto ela corre. */
+  vencedor: 'mesa' | 'espioes' | null
   /** `NOTA-02`-like — privado por jogador. */
   notas: Record<JogadorId, string>
   /** Mesmo padrão de `pacotesSelecionados` de "Quem Sou Eu" — visível durante o jogo. */
@@ -83,6 +111,7 @@ type TipoDeComandoDeJogo =
   | 'pausar'
   | 'retomar'
   | 'encerrarVotacao'
+  | 'chutarLocal'
   | 'encerrar'
   | 'novaPartida'
   | 'notas'
@@ -100,6 +129,12 @@ export function estadoVazio(): EstadoEspiao {
     votacaoAberta: null,
     pausa: null,
     resultadoVotacao: null,
+    pool: [],
+    votacoesDaMesa: 0,
+    restanteDaRodadaMs: null,
+    chutePendente: null,
+    chuteFeito: null,
+    vencedor: null,
     notas: {},
   }
 }
@@ -130,6 +165,7 @@ export function iniciarRodada(
   const estado = estadoVazio()
   estado.espioes = sortearEspioes(idsAtivos, numEspioes, ambiente.aleatorio)
   estado.comecaPerguntando = embaralhar(idsAtivos, ambiente.aleatorio)[0]
+  estado.pool = pool
   estado.local = embaralhar(pool, ambiente.aleatorio)[0]
   estado.pacotesSelecionados = pacotes.map((p) => ({ id: p.id, nome: p.nome, emoji: p.emoji }))
 
@@ -156,6 +192,8 @@ export function reduzir(
       return votar(estado, ctx, comando.alvoId, ambiente)
     case 'encerrarVotacao':
       return encerrarVotacao(estado, ctx, ambiente)
+    case 'chutarLocal':
+      return chutarLocal(estado, ctx, comando.local, ambiente)
     case 'encerrar':
       return encerrar(estado, ctx)
     case 'novaPartida':
@@ -226,9 +264,14 @@ function abrirVotacao(
   // Edge case — durante a janela de resultado a mesa está lendo o que acabou de
   // acontecer; a próxima acusação espera a rodada voltar.
   if (estado.resultadoVotacao !== null) return { ok: false, erro: 'COMANDO_INVALIDO' }
+  // `ESP-46`, `ESP-47` — o botão da mesa tem munição contada.
+  if (votacoesRestantes(estado, ctx.config) === 0) return { ok: false, erro: 'COMANDO_INVALIDO' }
 
   const novo = clonar(estado)
-  novo.votacaoAberta = { abertaEm: ambiente.agora, abertaPor: ctx.autorId, votos: {} }
+  novo.votacaoAberta = { abertaEm: ambiente.agora, abertaPor: ctx.autorId, votos: {}, final: false }
+  novo.votacoesDaMesa += 1
+  // `ESP-40` — a rodada não reinicia depois; ela retoma exatamente daqui.
+  novo.restanteDaRodadaMs = restanteDaRodada(ctx, ambiente)
 
   // `AD-010` — o mesmo prazo `turno` serve às três janelas da partida (rodada,
   // votação, resultado); qual delas está valendo se lê pelo estado.
@@ -255,15 +298,21 @@ function venceuPrazoTurno(
   // ele não pode destravar o que a mesa parou de propósito.
   if (estado.pausa !== null) return { ok: true, estado, eventos: [], prazos: {} }
 
-  // `ESP-32` — acabou a leitura do resultado; a rodada recomeça do zero.
+  // `ESP-45` — o espião pego deixou o prazo do chute vencer: vale como erro.
+  if (estado.chutePendente !== null) {
+    return resolverChute(estado, ctx, null)
+  }
+
+  // `ESP-32`, `ESP-40` — acabou a leitura do resultado; a rodada volta com o
+  // relógio de onde parou, não do começo.
   if (estado.resultadoVotacao !== null) {
     const novo = clonar(estado)
     novo.resultadoVotacao = null
     return {
       ok: true,
       estado: novo,
-      eventos: [{ texto: 'A rodada voltou a correr.' }],
-      prazos: { turno: prazoDaRodada(ctx.config, ambiente.agora) },
+      eventos: [{ texto: 'A rodada voltou a correr de onde parou.' }],
+      prazos: { turno: retomarRodada(novo, ambiente) },
     }
   }
 
@@ -274,13 +323,17 @@ function venceuPrazoTurno(
     return { ok: true, estado, eventos: [], prazos: { turno: null } }
   }
 
+  // `ESP-49` — o relógio da rodada zerou: esta é a votação final.
   const novo = clonar(estado)
-  novo.votacaoAberta = { abertaEm: ambiente.agora, abertaPor: null, votos: {} }
+  novo.votacaoAberta = { abertaEm: ambiente.agora, abertaPor: null, votos: {}, final: true }
+  novo.restanteDaRodadaMs = 0
 
   return {
     ok: true,
     estado: novo,
-    eventos: [{ texto: 'O tempo da rodada acabou. A votação foi aberta automaticamente.' }],
+    eventos: [
+      { texto: 'O tempo da rodada acabou. Esta é a votação final — a última da partida.' },
+    ],
     prazos: { turno: prazoDaVotacao(ctx.config, ambiente.agora) },
   }
 }
@@ -328,9 +381,12 @@ function encerrarVotacao(
 }
 
 /**
- * `ESP-13`, `ESP-14`, `ESP-29`…`ESP-33` — maioria absoluta sobre o total de
- * jogadores ativos (não só de quem votou, tech decision de `design.md`).
- * Empate, maioria em "pular" ou 0 votos válidos contam como "não acertou".
+ * `ESP-41`…`ESP-50` — a votação fecha e **decide a partida**.
+ *
+ * A regra é maioria simples: quem recebeu estritamente mais votos que qualquer
+ * outra opção é expulso, sem piso nenhum — um voto basta se ninguém mais
+ * recebeu nada. Só devolvem a rodada o empate no topo e o "pular" vencendo
+ * sozinho; e mesmo aí ela volta com o relógio congelado, não reaberto.
  *
  * O voto do próprio espião conta como qualquer outro: quem está infiltrado
  * também vota, às vezes até em si mesmo pra despistar.
@@ -344,79 +400,198 @@ function fecharVotacao(
   if (votacao === null) return { ok: false, erro: 'COMANDO_INVALIDO' }
 
   const totalAtivos = jogadoresAtivos(ctx).length
-  const apuracao = apurar(votacao.votos, totalAtivos)
+  const apuracao = apurar(votacao.votos)
   const acusado = apuracao.acusado
-  const acertou = acusado !== null && estado.espioes.includes(acusado)
+  const eraEspiao = acusado !== null && estado.espioes.includes(acusado)
 
   const novo = clonar(estado)
   novo.votacaoAberta = null
+
+  // `ESP-42`, `ESP-43`, `ESP-44`, `ESP-50` — quatro saídas, decididas aqui e
+  // não na tela (`AD-008`).
+  const desfecho: ResultadoVotacao['desfecho'] =
+    acusado === null
+      ? votacao.final
+        ? 'tempoEsgotado'
+        : 'rodadaVolta'
+      : eraEspiao
+        ? 'chuteDoEspiao'
+        : 'mesaPerdeu'
+
   novo.resultadoVotacao = {
     votos: votacao.votos,
     abertaPor: votacao.abertaPor,
     acusado,
-    aMesaAcertou: acertou,
+    aMesaAcertou: eraEspiao,
     votosNoAcusado: apuracao.votosNoAcusado,
-    maioriaMinima: apuracao.maioriaMinima,
     totalAtivos,
+    desfecho,
+    final: votacao.final,
   }
 
-  // `ESP-33` — acertou: a partida acaba e o resultado segue vivo na revelação.
-  if (acertou) {
+  // `ESP-43` — acusou um inocente: acabou, e os espiões levaram.
+  if (desfecho === 'mesaPerdeu') {
+    novo.vencedor = 'espioes'
     return {
       ok: true,
       estado: novo,
       eventos: [
-        { texto: `A mesa acusou ${apelidoNaMesa(ctx, acusado)} — e acertou. A partida terminou.` },
+        {
+          texto: `A mesa expulsou ${apelidoNaMesa(ctx, acusado!)} — que não era espião. Os espiões venceram.`,
+        },
       ],
       prazos: { turno: null },
       faseSeguinte: 'encerrada',
     }
   }
 
-  // `ESP-32` — errou: o resultado fica um tempo na tela antes de a rodada voltar.
+  // `ESP-50` — o tempo acabou e ninguém foi expulso: a mesa perdeu por omissão.
+  if (desfecho === 'tempoEsgotado') {
+    novo.vencedor = 'espioes'
+    return {
+      ok: true,
+      estado: novo,
+      eventos: [
+        { texto: 'A votação final não expulsou ninguém. O tempo acabou e os espiões venceram.' },
+      ],
+      prazos: { turno: null },
+      faseSeguinte: 'encerrada',
+    }
+  }
+
+  // `ESP-44` — pegou o espião: ele ainda tem uma cartada.
+  if (desfecho === 'chuteDoEspiao') {
+    novo.chutePendente = acusado
+    return {
+      ok: true,
+      estado: novo,
+      eventos: [
+        {
+          texto: `A mesa expulsou ${apelidoNaMesa(ctx, acusado!)} — e era espião. Ele tem uma chance de dizer o local.`,
+        },
+      ],
+      prazos: { turno: ambiente.agora + TEMPO_DE_CHUTE_MS },
+    }
+  }
+
+  // `ESP-42` — empate ou "pular": a rodada volta, com o relógio congelado.
   return {
     ok: true,
     estado: novo,
     eventos: [
       {
         texto:
-          acusado === null
-            ? 'A votação não decidiu nada. A rodada continua.'
-            : `A mesa acusou ${apelidoNaMesa(ctx, acusado)} — e errou. A rodada continua.`,
+          apuracao.empatou
+            ? 'A votação empatou. Ninguém foi expulso e a rodada continua.'
+            : 'A mesa preferiu não expulsar ninguém. A rodada continua.',
       },
     ],
     prazos: { turno: ambiente.agora + JANELA_DE_RESULTADO_MS },
   }
 }
 
-interface Apuracao {
-  /** `null` quando não há vencedor único com maioria absoluta. */
-  acusado: JogadorId | null
-  votosNoAcusado: number
-  maioriaMinima: number
+/** `ESP-44`, `ESP-45` — o espião pego diz o local; é a última jogada da partida. */
+function chutarLocal(
+  estado: EstadoEspiao,
+  ctx: ContextoDeSala,
+  local: string,
+  _ambiente: Ambiente,
+): ResultadoReducer<EstadoEspiao> {
+  if (ctx.fase !== 'jogo') return { ok: false, erro: 'FASE_INVALIDA' }
+  if (estado.chutePendente === null) return { ok: false, erro: 'COMANDO_INVALIDO' }
+  if (ctx.autorId !== estado.chutePendente) return { ok: false, erro: 'SEM_AUTORIDADE' }
+  // O chute sai do pool da partida — não é campo livre.
+  if (!estado.pool.includes(local)) return { ok: false, erro: 'CARTA_INVALIDA' }
+
+  return resolverChute(estado, ctx, local)
 }
 
-function apurar(votos: Record<JogadorId, JogadorId | 'pular'>, totalAtivos: number): Apuracao {
-  const maioriaMinima = Math.floor(totalAtivos / 2) + 1
-  const semAcusado: Apuracao = { acusado: null, votosNoAcusado: 0, maioriaMinima }
+/**
+ * `ESP-45` — fecha a partida pelo chute. `local` nulo é o prazo vencido, que
+ * conta como erro: quem foi pego e não disse nada não ganha por silêncio.
+ */
+function resolverChute(
+  estado: EstadoEspiao,
+  ctx: ContextoDeSala,
+  local: string | null,
+): ResultadoReducer<EstadoEspiao> {
+  const quem = estado.chutePendente
+  if (quem === null) return { ok: false, erro: 'COMANDO_INVALIDO' }
 
-  const contagens = new Map<JogadorId, number>()
+  const acertou = local !== null && local === estado.local
+  const novo = clonar(estado)
+  novo.chutePendente = null
+  novo.chuteFeito = { por: quem, local, acertou }
+  novo.vencedor = acertou ? 'espioes' : 'mesa'
+
+  return {
+    ok: true,
+    estado: novo,
+    eventos: [
+      {
+        texto: acertou
+          ? `${apelidoNaMesa(ctx, quem)} foi pego, disse "${local}" — e acertou. Os espiões venceram.`
+          : local === null
+            ? `${apelidoNaMesa(ctx, quem)} não disse nada a tempo. A mesa venceu.`
+            : `${apelidoNaMesa(ctx, quem)} chutou "${local}" — e errou. A mesa venceu.`,
+      },
+    ],
+    prazos: { turno: null },
+    faseSeguinte: 'encerrada',
+  }
+}
+
+interface Apuracao {
+  /** `null` quando ninguém teve mais votos que todo mundo. */
+  acusado: JogadorId | null
+  votosNoAcusado: number
+  /** Diferencia "empatou no topo" de "a mesa preferiu pular". */
+  empatou: boolean
+}
+
+/**
+ * `ESP-41`, `ESP-42` — maioria **simples**, com "pular" disputando de igual
+ * pra igual: se ele vence sozinho, ninguém é expulso. Empate no topo, entre
+ * jogadores ou com o "pular", também não expulsa.
+ */
+function apurar(votos: Record<JogadorId, JogadorId | 'pular'>): Apuracao {
+  const contagens = new Map<JogadorId | 'pular', number>()
   for (const voto of Object.values(votos)) {
-    if (voto === 'pular') continue
     contagens.set(voto, (contagens.get(voto) ?? 0) + 1)
   }
-  if (contagens.size === 0) return semAcusado
+  if (contagens.size === 0) return { acusado: null, votosNoAcusado: 0, empatou: false }
 
   let maior = 0
   for (const contagem of contagens.values()) {
     if (contagem > maior) maior = contagem
   }
 
-  const comMaior = [...contagens.entries()].filter(([, contagem]) => contagem === maior)
-  if (comMaior.length !== 1) return semAcusado // empate
-  if (maior < maioriaMinima) return semAcusado
+  const noTopo = [...contagens.entries()].filter(([, contagem]) => contagem === maior)
+  if (noTopo.length !== 1) return { acusado: null, votosNoAcusado: 0, empatou: true }
 
-  return { acusado: comMaior[0][0], votosNoAcusado: maior, maioriaMinima }
+  const [vencedor] = noTopo[0]!
+  if (vencedor === 'pular') return { acusado: null, votosNoAcusado: 0, empatou: false }
+
+  return { acusado: vencedor, votosNoAcusado: maior, empatou: false }
+}
+
+/** `ESP-46` — quantas votações a mesa ainda pode abrir; `null` = ilimitado. */
+export function votacoesRestantes(estado: EstadoEspiao, config: Config): number | null {
+  const teto = config.espiao.maxVotacoes
+  if (teto === null) return null
+  return Math.max(0, teto - estado.votacoesDaMesa)
+}
+
+/** `ESP-40` — o que sobrava do relógio da rodada neste instante. */
+function restanteDaRodada(ctx: ContextoDeSala, ambiente: Ambiente): number | null {
+  if (ctx.prazoTurno === null) return null
+  return Math.max(0, ctx.prazoTurno - ambiente.agora)
+}
+
+/** `ESP-40` — devolve a rodada com o tempo congelado, e não com um relógio novo. */
+function retomarRodada(estado: EstadoEspiao, ambiente: Ambiente): number | null {
+  if (estado.restanteDaRodadaMs === null) return null
+  return ambiente.agora + estado.restanteDaRodadaMs
 }
 
 function todosAtivosConectadosVotaram(votacao: VotacaoAberta, ctx: ContextoDeSala): boolean {

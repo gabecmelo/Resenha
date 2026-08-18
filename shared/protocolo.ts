@@ -129,6 +129,12 @@ export interface ConfigEspiao {
    * prazo trava a partida esperando quem foi ao banheiro. Padrão 60.
    */
   tempoVotacaoSeg: number
+  /**
+   * `ESP-47` — quantas votações a mesa pode abrir na partida. `null` =
+   * ilimitado. A votação final (a que o relógio da rodada abre sozinho) não
+   * consome esse limite: ela não é uma escolha da mesa.
+   */
+  maxVotacoes: number | null
 }
 
 /** `ESP-01` — a partir desta mesa o automático passa a sortear 2 espiões. */
@@ -146,6 +152,7 @@ export const CONFIG_ESPIAO_PADRAO: ConfigEspiao = {
   visibilidadeVoto: 'oculta',
   tempoRodadaSeg: 300,
   tempoVotacaoSeg: 60,
+  maxVotacoes: 2,
 }
 
 /**
@@ -242,6 +249,15 @@ export const TEMPO_TURNO_MAX_SEG = 60 * 60
  * inteira antes de decidir; acima de 5min a votação deixa de ser um momento e
  * vira uma segunda rodada.
  */
+/**
+ * `ESP-45` — quanto tempo o espião pego tem pra chutar o local. Curto de
+ * propósito: é a última cartada, não uma nova rodada de dedução.
+ */
+export const TEMPO_DE_CHUTE_MS = 30_000
+
+/** `ESP-47` — teto de votações que a mesa pode abrir; acima disso vira ilimitado. */
+export const MAX_VOTACOES_TETO = 3
+
 export const TEMPO_VOTACAO_MIN_SEG = 15
 export const TEMPO_VOTACAO_MAX_SEG = 5 * 60
 
@@ -376,6 +392,8 @@ export type Comando =
   | { t: 'retomar' }
   | { t: 'votar'; alvoId: JogadorId | null }
   | { t: 'encerrarVotacao' }
+  /** `ESP-44` — a última cartada do espião pego pela votação. */
+  | { t: 'chutarLocal'; local: string }
   /** `CCT-06`, `CCT-20` — joga uma carta da mão, ou a carta em branco escrita na hora. */
   | { t: 'jogarCarta'; texto: string; daBranca: boolean }
   /** `CCT-11` — o juiz aponta a vencedora pelo índice na pilha embaralhada. */
@@ -431,6 +449,24 @@ export interface ProjecaoEspiao {
    * vez de um "pausado" sem número. `null` quando a rodada não tem relógio.
    */
   pausadaPor?: { id: JogadorId; apelido: string; restanteMs: number | null }
+  /**
+   * `ESP-46`, `ESP-47` — quantas votações a mesa ainda pode abrir. `null` =
+   * ilimitado. Zero não esconde o botão: a tela mostra o motivo.
+   */
+  votacoesRestantes: number | null
+  /** `ESP-44`, `ESP-45` — o espião pego escolhendo o local. */
+  chuteDoEspiao?: {
+    espiao: { id: JogadorId; apelido: string }
+    souEuQueChuto: boolean
+    /** Só vai pra quem chuta: o pool de locais da partida. */
+    opcoes?: string[]
+    /** Instante em que o prazo do chute vence. */
+    prazo: number | null
+  }
+  /** `ESP-45`, `ESP-49` — o chute que aconteceu. `local` nulo = deixou vencer. */
+  chuteFeito?: { espiao: { id: JogadorId; apelido: string }; local: string | null; acertou: boolean }
+  /** `ESP-49` — quem levou a partida. Presente só na fase `encerrada`. */
+  vencedor?: 'mesa' | 'espioes'
 }
 
 /**
@@ -449,9 +485,15 @@ export interface ResultadoDaVotacao {
   aMesaAcertou: boolean
   /** Votos que o acusado recebeu; `0` quando não houve acusado. */
   votosNoAcusado: number
-  /** Maioria absoluta dos ativos — o número que a acusação precisava alcançar. */
-  maioriaMinima: number
   totalAtivos: number
+  /**
+   * `ESP-41`…`ESP-48` — o que essa votação provocou. É o campo que a tela lê
+   * pra saber se a rodada volta, se a partida acabou ou se o espião ainda tem
+   * uma cartada; nenhuma tela recalcula isso (`AD-008`).
+   */
+  desfecho: 'rodadaVolta' | 'mesaPerdeu' | 'chuteDoEspiao' | 'tempoEsgotado'
+  /** `ESP-49` — esta votação foi a final (aberta pelo relógio da rodada). */
+  final: boolean
   /**
    * `ESP-32` — instante em que a janela de resultado fecha e a rodada volta.
    * `null` quando a partida acabou aqui e não há rodada pra voltar.

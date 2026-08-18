@@ -7,6 +7,7 @@ import type {
   ResultadoDaVotacao,
 } from '../../../shared/protocolo'
 import type { EstadoEspiao } from './regras'
+import { votacoesRestantes } from './regras'
 
 type FichaDeJogador = Projecao['jogadores'][number]
 
@@ -96,6 +97,7 @@ function projetarEspiao(
     total: ativos.length,
     prazoRodada: sala.prazos.turno,
     souEspiao,
+    votacoesRestantes: votacoesRestantes(estado, sala.config),
   }
 
   // `ESP-07`, `ESP-08`, `ESP-16`
@@ -117,7 +119,11 @@ function projetarEspiao(
 
   // `ESP-32` — o relógio da rodada só corre quando é a rodada que está de pé;
   // nas outras duas janelas o mesmo prazo pertence à votação ou ao resultado.
-  if (estado.votacaoAberta !== null || estado.resultadoVotacao !== null) {
+  if (
+    estado.votacaoAberta !== null ||
+    estado.resultadoVotacao !== null ||
+    estado.chutePendente !== null
+  ) {
     espiao.prazoRodada = null
   }
 
@@ -155,8 +161,9 @@ function projetarEspiao(
       votos: resultado.votos,
       aMesaAcertou: resultado.aMesaAcertou,
       votosNoAcusado: resultado.votosNoAcusado,
-      maioriaMinima: resultado.maioriaMinima,
       totalAtivos: resultado.totalAtivos,
+      desfecho: resultado.desfecho,
+      final: resultado.final,
       // `ESP-33` — encerrada a partida, o resultado não tem mais prazo: ele fica.
       prazoFim: encerrada ? null : sala.prazos.turno,
     }
@@ -171,6 +178,31 @@ function projetarEspiao(
     }
     espiao.resultadoVotacao = projetado
   }
+
+  // `ESP-44` — o espião pego escolhendo o local. O pool vai **só** pra ele: pro
+  // resto da mesa a lista de candidatos seria um mapa do que ainda pode sair.
+  if (estado.chutePendente !== null) {
+    const souEu = estado.chutePendente === paraJogador
+    espiao.chuteDoEspiao = {
+      espiao: { id: estado.chutePendente, apelido: apelidoDe(sala, estado.chutePendente) },
+      souEuQueChuto: souEu,
+      prazo: sala.prazos.turno,
+      ...(souEu ? { opcoes: [...estado.pool] } : {}),
+    }
+  }
+
+  // `ESP-45`, `ESP-49` — o desfecho, na revelação.
+  if (estado.chuteFeito !== null) {
+    espiao.chuteFeito = {
+      espiao: {
+        id: estado.chuteFeito.por,
+        apelido: apelidoDe(sala, estado.chuteFeito.por),
+      },
+      local: estado.chuteFeito.local,
+      acertou: estado.chuteFeito.acertou,
+    }
+  }
+  if (encerrada && estado.vencedor !== null) espiao.vencedor = estado.vencedor
 
   return espiao
 }

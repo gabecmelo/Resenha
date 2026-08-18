@@ -17,6 +17,7 @@ import {
   CONFIG_PADRAO,
   TEMPO_TURNO_MAX_SEG,
   TEMPO_TURNO_MIN_SEG,
+  MAX_VOTACOES_TETO,
   META_MAX_PONTOS,
   META_MIN_PONTOS,
   TEMPO_ESCOLHA_MAX_SEG,
@@ -214,6 +215,10 @@ function configurar(
           ? sala.config.espiao.tempoRodadaSeg
           : parcial.espiao.tempoRodadaSeg,
       tempoVotacaoSeg: parcial.espiao?.tempoVotacaoSeg ?? sala.config.espiao.tempoVotacaoSeg,
+      maxVotacoes:
+        parcial.espiao?.maxVotacoes === undefined
+          ? sala.config.espiao.maxVotacoes
+          : parcial.espiao.maxVotacoes,
     },
     cartas: {
       tempoEscolhaSeg:
@@ -296,6 +301,12 @@ function configEspiaoValida(parcial: Partial<ConfigEspiao>): boolean {
   if (segundos !== undefined && segundos !== null) {
     if (!Number.isInteger(segundos)) return false
     if (segundos < TEMPO_TURNO_MIN_SEG || segundos > TEMPO_TURNO_MAX_SEG) return false
+  }
+  // `ESP-47` — 1..MAX_VOTACOES_TETO, ou `null` para ilimitado.
+  const max = parcial.maxVotacoes
+  if (max !== undefined && max !== null) {
+    if (!Number.isInteger(max)) return false
+    if (max < 1 || max > MAX_VOTACOES_TETO) return false
   }
   // `ESP-28` — a votação sempre tem prazo; aqui `null` não é opção.
   const votacao = parcial.tempoVotacaoSeg

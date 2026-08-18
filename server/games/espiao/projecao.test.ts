@@ -36,6 +36,12 @@ function jogoDe(over: Partial<EstadoEspiao> = {}): EstadoEspiao {
     votacaoAberta: null,
     pausa: null,
     resultadoVotacao: null,
+    pool: ['Submarino', 'Praia', 'Escola'],
+    votacoesDaMesa: 0,
+    restanteDaRodadaMs: null,
+    chutePendente: null,
+    chuteFeito: null,
+    vencedor: null,
     notas: {},
     ...over,
   }
@@ -180,7 +186,7 @@ describe('revelação ao encerrar (ESP-16)', () => {
 
 describe('visibilidade da votação (ESP-18, ESP-19)', () => {
   function estadoComVotacao(votos: Record<JogadorId, JogadorId | 'pular'>): EstadoEspiao {
-    return jogoDe({ votacaoAberta: { abertaEm: 5_000, abertaPor: null, votos } })
+    return jogoDe({ votacaoAberta: { abertaEm: 5_000, abertaPor: null, final: false, votos } })
   }
 
   it('`tempoReal` mostra os votos, atualizados conforme cada jogador vota', () => {
@@ -244,7 +250,7 @@ describe('visibilidade da votação (ESP-18, ESP-19)', () => {
   })
 
   it('mostra quem abriu a votação e o prazo dela (ESP-27, ESP-28)', () => {
-    const estado = jogoDe({ votacaoAberta: { abertaEm: 5_000, abertaPor: 'c', votos: {} } })
+    const estado = jogoDe({ votacaoAberta: { abertaEm: 5_000, abertaPor: 'c', final: false, votos: {} } })
     const sala = salaDe('jogo')
 
     const projecao = projetar(estado, sala, 'a')
@@ -257,7 +263,7 @@ describe('visibilidade da votação (ESP-18, ESP-19)', () => {
   })
 
   it('votação aberta pelo relógio não atribui `abertaPor` a ninguém (ESP-27)', () => {
-    const estado = jogoDe({ votacaoAberta: { abertaEm: 5_000, abertaPor: null, votos: {} } })
+    const estado = jogoDe({ votacaoAberta: { abertaEm: 5_000, abertaPor: null, final: false, votos: {} } })
     const sala = salaDe('jogo')
 
     const projecao = projetar(estado, sala, 'a')
@@ -266,7 +272,7 @@ describe('visibilidade da votação (ESP-18, ESP-19)', () => {
   })
 
   it('enquanto a votação corre, o relógio da rodada não corre (ESP-28)', () => {
-    const estado = jogoDe({ votacaoAberta: { abertaEm: 5_000, abertaPor: 'a', votos: {} } })
+    const estado = jogoDe({ votacaoAberta: { abertaEm: 5_000, abertaPor: 'a', final: false, votos: {} } })
     const sala = salaDe('jogo')
 
     const projecao = projetar(estado, sala, 'a')
@@ -286,8 +292,9 @@ describe('resultado da votação (ESP-29, ESP-30, ESP-33)', () => {
     acusado: 'b',
     aMesaAcertou: true,
     votosNoAcusado: 2,
-    maioriaMinima: 2,
     totalAtivos: 3,
+    desfecho: 'chuteDoEspiao' as const,
+    final: false,
   }
 
   it('revela quem votou em quem mesmo com `visibilidadeVoto: oculta` (ESP-30)', () => {
@@ -312,8 +319,8 @@ describe('resultado da votação (ESP-29, ESP-30, ESP-33)', () => {
       abertaPor: { id: 'a', apelido: 'A' },
       aMesaAcertou: true,
       votosNoAcusado: 2,
-      maioriaMinima: 2,
       totalAtivos: 3,
+      desfecho: 'chuteDoEspiao',
     })
   })
 

@@ -588,7 +588,7 @@ describe('validação de `config.espiao` no `configurar` (T9, `ESP-01`)', () => 
       'j1',
       {
         t: 'configurar',
-        config: { espiao: { numEspioes: 2, espioesSeVeem: false, visibilidadeVoto: 'tempoReal', tempoVotacaoSeg: 60, tempoRodadaSeg: 180 } },
+        config: { espiao: { numEspioes: 2, espioesSeVeem: false, visibilidadeVoto: 'tempoReal', tempoVotacaoSeg: 60, tempoRodadaSeg: 180, maxVotacoes: 1 } },
       },
       AMBIENTE,
     )
@@ -597,6 +597,7 @@ describe('validação de `config.espiao` no `configurar` (T9, `ESP-01`)', () => 
     expect(sala.config.espiao).toEqual({
       numEspioes: 2,
       espioesSeVeem: false,
+      maxVotacoes: 1,
       visibilidadeVoto: 'tempoReal',
       tempoVotacaoSeg: 60,
       tempoRodadaSeg: 180,
