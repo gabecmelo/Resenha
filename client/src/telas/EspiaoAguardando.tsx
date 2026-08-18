@@ -154,7 +154,9 @@ export function EspiaoAguardando({ projecao, enviar, aoSair }: PropsDaTela) {
           <p className="text-apoio text-texto-3">
             {faltam.length === espiao.total
               ? 'Ninguém marcou ainda.'
-              : `Faltam ${listar(faltam.map((jogador) => jogador.apelido))}.`}
+              : `${faltam.length === 1 ? 'Falta' : 'Faltam'} ${listar(
+                  faltam.map((jogador) => jogador.apelido),
+                )}.`}
           </p>
         )}
       </BarraDeAcao>

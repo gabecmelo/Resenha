@@ -453,7 +453,9 @@ function AcoesDaFase({
             motivo={
               todosProntos
                 ? undefined
-                : `Falta ${listar(faltam)} marcar pronto. Forçar início não existe.`
+                : `${faltam.length === 1 ? 'Falta' : 'Faltam'} ${listar(faltam)} ${
+                    faltam.length === 1 ? 'marcar' : 'marcarem'
+                  } pronto. Forçar início não existe.`
             }
           >
             Começar a partida
