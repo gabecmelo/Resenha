@@ -3,10 +3,11 @@ import { CARTAS_TURMA } from './cartas-turma-dados'
 import { montarBaralho } from './cartas-turma'
 
 describe('CARTAS_TURMA — conteúdo dos pacotes', () => {
-  it('CCT-31: oferece ao menos um pacote leve e um pesado', () => {
+  it('CCT-31: oferece um pacote de cada tom', () => {
     const tons = CARTAS_TURMA.map((p) => p.tom)
     expect(tons).toContain('leve')
     expect(tons).toContain('pesado')
+    expect(tons).toContain('toxico')
   })
 
   it('todo pacote pertence ao jogo e tem id único', () => {

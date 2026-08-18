@@ -118,7 +118,7 @@ O Resenha é um hub de party games. "Quem Sou Eu?" e "Espião" já estão jogáv
 
 **Acceptance Criteria**:
 
-1. WHEN o host abre a seleção de pacotes no lobby THEN o sistema SHALL mostrar ao menos dois pacotes — um de tom leve e um de tom pesado — com a descrição deixando o tom explícito
+1. WHEN o host abre a seleção de pacotes no lobby THEN o sistema SHALL mostrar ao menos três pacotes — um de tom leve, um pesado e um tóxico — com a descrição deixando o tom explícito
 2. WHEN um pacote é selecionado THEN o sistema SHALL somar suas perguntas e respostas ao pool da partida, permitindo combinar pacotes
 3. WHEN um novo pacote é adicionado a `shared/cartas-turma-dados.ts` THEN o sistema SHALL passar a oferecê-lo no lobby sem nenhuma outra mudança de código
 4. WHEN o host começa a partida sem nenhum pacote selecionado THEN o sistema SHALL recusar
