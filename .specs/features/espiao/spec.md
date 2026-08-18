@@ -197,25 +197,25 @@ O Resenha é um hub de party games; "Quem Sou Eu?" é o primeiro jogo, e o hub d
 | ESP-24 | P4: Acertos de UX do review | Review | Verified |
 | ESP-25 | P4: Acertos de UX do review | Review | Verified |
 | ESP-26 | P4: Acertos de UX do review | Review | Verified |
-| ESP-27 | P5: A votação vira um momento da mesa | Tasks | Pending |
-| ESP-28 | P5: A votação vira um momento da mesa | Tasks | Pending |
-| ESP-29 | P5: A votação vira um momento da mesa | Tasks | Pending |
-| ESP-30 | P5: A votação vira um momento da mesa | Tasks | Pending |
-| ESP-31 | P5: A votação vira um momento da mesa | Tasks | Pending |
-| ESP-32 | P5: A votação vira um momento da mesa | Tasks | Pending |
-| ESP-33 | P5: A votação vira um momento da mesa | Tasks | Pending |
-| ESP-34 | P5: A votação vira um momento da mesa | Tasks | Pending |
-| ESP-35 | P6: Pausar a rodada | Tasks | Pending |
-| ESP-36 | P6: Pausar a rodada | Tasks | Pending |
-| ESP-37 | P6: Pausar a rodada | Tasks | Pending |
-| ESP-38 | P6: Pausar a rodada | Tasks | Pending |
-| ESP-39 | P6: Pausar a rodada | Tasks | Pending |
+| ESP-27 | P5: A votação vira um momento da mesa | Tasks | Verified |
+| ESP-28 | P5: A votação vira um momento da mesa | Tasks | Verified |
+| ESP-29 | P5: A votação vira um momento da mesa | Tasks | Verified |
+| ESP-30 | P5: A votação vira um momento da mesa | Tasks | Verified |
+| ESP-31 | P5: A votação vira um momento da mesa | Tasks | Verified |
+| ESP-32 | P5: A votação vira um momento da mesa | Tasks | Verified |
+| ESP-33 | P5: A votação vira um momento da mesa | Tasks | Verified |
+| ESP-34 | P5: A votação vira um momento da mesa | Tasks | Verified |
+| ESP-35 | P6: Pausar a rodada | Tasks | Verified |
+| ESP-36 | P6: Pausar a rodada | Tasks | Verified |
+| ESP-37 | P6: Pausar a rodada | Tasks | Verified |
+| ESP-38 | P6: Pausar a rodada | Tasks | Verified |
+| ESP-39 | P6: Pausar a rodada | Tasks | Verified |
 
-**ID format:** `ESP-[NUMBER]`, mapeado em ordem às ACs de P1 (01–16), P2 (17–21), P3 (22) e P4 (23–26) acima.
+**ID format:** `ESP-[NUMBER]`, mapeado em ordem às ACs de P1 (01–16), P2 (17–21), P3 (22), P4 (23–26), P5 (27–34) e P6 (35–39) acima.
 
 **Status values:** Pending → In Design → In Tasks → Implementing → Verified
 
-**Coverage:** 26 total, 26 implementados e verificados.
+**Coverage:** 39 total, 39 implementados e verificados.
 
 ---
 

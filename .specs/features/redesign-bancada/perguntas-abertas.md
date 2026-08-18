@@ -1,67 +1,44 @@
 # Redesign Bancada — o que ficou esperando você
 
-Tudo do handoff que dava pra implementar com o contrato atual está no código e
-verificado no navegador (fluxo completo de Quem Sou Eu? e de Espião, 360px e
-1280px, claro e escuro). O que está abaixo **não** foi implementado porque
-depende de uma decisão sua ou de mudar o protocolo — não é bug nem esquecimento.
+Você respondeu os seis pontos abaixo e **todos já estão no código**, verificados
+no navegador com três sessões (fluxo completo de Espião, 375px e 1280px). Este
+arquivo fica como registro do que foi decidido e por quê.
 
-## 1. Veredito da revelação do Espião (precisa mudar o protocolo)
+## Respondidos e implementados
 
-O design pede, na revelação:
+1. **Veredito da revelação** — a projeção do Espião ganhou `resultadoVotacao`
+   (`ESP-29`…`ESP-33`): quem foi acusado, quantos votos teve, quantos precisava,
+   se a mesa acertou, e o mapa completo de quem votou em quem. O mapa aparece
+   **mesmo com `visibilidadeVoto: 'oculta'`** — o sigilo vale enquanto a votação
+   corre, não depois. Encerrar na mão continua sem veredito (`ESP-34`): não houve
+   aposta coletiva a julgar.
+2. **Quem abriu a votação** — `votacaoAberta.abertaPor` (`ESP-27`). Sem gênero:
+   "Bia abriu a votação". Quando é o relógio que abre, ninguém é citado.
+3. **Relógio pausado com o valor congelado** — resolvido junto com a pausa
+   (`ESP-35`): o servidor guarda o tempo que faltava e a faixa mostra `⏸ 4:37`,
+   não mais `⏸ pausado`.
+4. **"Voltar ao lobby"** — um botão só, que envia `novaPartida`. De lá a mesa
+   decide se troca as regras, troca de jogo ou só começa de novo.
+5. **Enigmas Macabros** — entrou no catálogo como `emBreve`, atrás de terminar o
+   Espião e o Cartas Contra a Turma.
+6. **Papel do Espião** — o alternador foi pro fim da linha do rótulo (direita),
+   onde o polegar já está no celular.
 
-- selo **A MESA ACERTOU** / **A MESA ERROU**, com a contagem ("5 de 6 votos",
-  "acusou o Caio com 5 de 8 votos — e ele não era");
-- bloco **COMO A MESA VOTOU**, quem votou em quem;
-- "a mesa protegeu por 7:12".
+## O que veio junto, por decorrência
 
-Nada disso existe em `ProjecaoEspiao` depois que a partida encerra: `votacaoAberta`
-some e não sobra registro do resultado nem do tempo de rodada. Hoje a tela mostra
-só o local e os espiões, que é o que dá pra dizer com verdade.
+- A votação virou um momento fechado, no espírito do Among Us: abre com dono e
+  relógio próprio (`config.espiao.tempoVotacaoSeg`, nova regra no lobby, padrão
+  1min), fecha sozinha no tempo ou quando todo mundo já votou, mostra o
+  resultado por uma janela curta e devolve a rodada com o relógio cheio.
+- Os três relógios da partida (rodada, votação, resultado) são multiplexados no
+  mesmo prazo `turno`, no espírito do `AD-010` — `TIPOS_DE_PRAZO` não mudou.
+- `ContextoDeSala` ganhou `prazoTurno`: o jogo precisa saber quanto faltava pra
+  poder congelar e devolver esse tempo, sem alcançar `sala.prazos` (`AD-009`).
 
-**Decisão sua:** vale estender a projeção com um `resultado` (acusado, votos,
-acertou/errou, duração)? É a mudança que mais devolve valor do design nessa tela.
+## Ainda em aberto
 
-## 2. Quem abriu a votação
+Nada bloqueando. O que sobrou é escolha de conteúdo, não de contrato:
 
-O design escreve "a **Bia** abriu" na faixa. A projeção não diz quem abriu.
-Hoje a faixa diz "N de M já votaram · relógio pausado". Mesma pergunta: incluir
-`abertaPor` em `votacaoAberta`?
-
-## 3. Relógio pausado com o valor congelado
-
-Design: `⏸ 5:48`. O servidor manda `prazoRodada: null` quando pausa, então o
-valor congelado não chega ao cliente. Hoje a faixa mostra `⏸ pausado`.
-Alternativa: mandar `restanteCongeladoMs` junto.
-
-## 4. "Voltar ao lobby" na revelação
-
-O design coloca dois botões na revelação (Nova partida + Voltar ao lobby). Não
-existe comando de "voltar ao lobby" no protocolo — `novaPartida` já devolve a
-mesa ao lobby, então hoje só ele aparece. Quer os dois separados?
-
-## 5. Enigmas Macabros
-
-Você perguntou se eu conheço. Encaixa bem no kit: carta-herói pública (o enigma),
-assimetria de informação (uma pessoa sabe a solução inteira) e um padrão novo —
-o narrador respondendo sim/não —, que é primo do juiz rotativo do Cartas Contra a
-Turma. **Adiciono ao catálogo como `emBreve`** (do jeito que o Cartas está) ou
-deixo fora até virar prioridade?
-
-## 6. Papel do Espião: começa aberto
-
-Você dispensou o "segure pra ver". Implementei como alternador simples
-(`esconder papel ▴` / `mostrar papel ▾`) e ele **começa aberto** a cada rodada.
-O design sugeria que, depois da primeira olhada, o padrão fosse guardado.
-Prefere que comece recolhido?
-
-## 7. Coisas que decidi sozinho (só pra você conferir depois)
-
-- **Notas e resenha em painel que abre no lugar**, nunca em modal — a regra que
-  você deu pras notas vale igual pro chat, pelo mesmo motivo (ninguém pode ser
-  obrigado a fechar uma caixa pra agir). No desktop os dois começam abertos na
-  coluna lateral; no celular, recolhidos.
-- **Barra fixa no rodapé** em todas as telas de partida, como combinado.
-- `IndicadorDeVez` e `FichaDeJogador` foram removidos: a faixa de fase e a ficha
-  da mesa cobrem os dois casos.
-- A mesa do Quem Sou Eu? passou a ser **2 colunas no celular** também fora do
-  modo compacto — 1 coluna deixava 6 cartas com rolagem demais.
+- A janela de resultado é fixa em 12s e **não** é configurável. Se na mesa real
+  isso parecer curto pra ler o mapa de votos em voz alta, é um número só
+  (`JANELA_DE_RESULTADO_MS`, em `shared/protocolo.ts`).
