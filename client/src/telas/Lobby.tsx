@@ -22,9 +22,6 @@ import {
   Shell,
 } from '../componentes'
 import { linkDeConvite, motivoParaIniciar } from '../estado/entrada'
-import { montarPoolDeCartas } from '../../../shared/pacotes'
-import { PACOTES } from '../../../shared/pacotes-dados'
-import { LOCAIS } from '../../../shared/locais-dados'
 import { PRESETS_DE_TEMPO, rotuloDoTempo, tempoDigitado } from '../estado/turno'
 import type { PropsDaTela } from './tela'
 
@@ -96,7 +93,7 @@ export function Lobby({ projecao, enviar, aoSair }: PropsDaTela) {
                 <JogoDaSala jogoId={sala.jogoId} souHost={eu.ehHost} enviar={enviar} />
                 {!eu.ehHost && (
                   <p className="pt-3 text-apoio text-texto-3">
-                    Quem escolhe é {host?.apelido ?? 'quem comanda a sala'}, que criou a sala.
+                    Quem escolhe é {host?.apelido ?? 'o host'}, que criou a sala.
                   </p>
                 )}
                 {sala.jogoId === 'espiao' ? (
@@ -217,7 +214,7 @@ function ConviteEMesa({
     <section className="overflow-hidden rounded-papel border-2 border-controle-linha bg-superficie shadow-botao">
       <div className="flex flex-col gap-2.5 border-b border-dashed border-linha p-4">
         <h2 className="font-mono text-rotulo text-texto-3 uppercase">
-          dite essas letras pra galera
+          o código da sala é:
         </h2>
         <span className="font-display text-codigo text-texto">{codigo}</span>
         <Botao
@@ -293,7 +290,7 @@ function FichaNaMesa({
 
   const etiqueta = [
     jogador.id === euId ? 'você' : null,
-    jogador.id === hostId ? '★ comanda' : null,
+    jogador.id === hostId ? '★ host' : null,
     jogador.conectado ? null : '○ caiu',
     jogador.situacao === 'aguardando' ? 'entra na próxima' : null,
   ]
@@ -410,7 +407,7 @@ function AcaoDeIniciar({
         <div className="flex items-center gap-2.5">
           <span className="selo bg-aviso text-aviso-contraste">esperando</span>
           <span className="text-apoio text-texto-2">
-            {apelidoDoHost ?? 'Quem comanda a sala'} começa quando quiser.
+            {apelidoDoHost ?? 'O host'} começa quando quiser.
           </span>
         </div>
       </BarraDeAcao>
@@ -560,16 +557,9 @@ function Regras({
   const [folha, setFolha] = useState<string | null>(null)
   const [modalPacotesAberto, setModalPacotesAberto] = useState(false)
   const [pacoteIdsRascunho, setPacoteIdsRascunho] = useState<string[]>(config.pacoteIds)
-  const [verPacoteAberto, setVerPacoteAberto] = useState(false)
 
   const pacotesSelecionados =
     pacotesDisponiveis?.filter((p) => config.pacoteIds.includes(p.id)) ?? []
-  // `PKT2-11` — pool combinado computado localmente (sem round-trip), a mesma
-  // função pura usada pelo servidor pra sortear (AD-012).
-  const poolAtual = montarPoolDeCartas(
-    PACOTES.filter((p) => config.pacoteIds.includes(p.id)),
-    config.dificuldades,
-  )
 
   const abrir = (nome: string) => (souHost ? () => setFolha(nome) : undefined)
 
@@ -636,13 +626,6 @@ function Regras({
           </span>
           <span className="font-semibold text-texto-3">Crie seu pacote — em breve</span>
         </div>
-      )}
-
-      {config.modoPacote === 'pacote' && config.pacoteIds.length > 0 && (
-        <VerPool
-          rotulo={`ver cartas (${poolAtual.length})`}
-          aoAbrir={() => setVerPacoteAberto(true)}
-        />
       )}
 
       {folha === 'modo' && (
@@ -746,14 +729,6 @@ function Regras({
         />
       )}
 
-      {verPacoteAberto && (
-        <ListaDeTextos
-          titulo="Cartas possíveis"
-          descricao={`${poolAtual.length} cartas no pool combinado — nunca mostra quem tem qual.`}
-          textos={poolAtual}
-          aoFechar={() => setVerPacoteAberto(false)}
-        />
-      )}
     </div>
   )
 }
@@ -823,7 +798,6 @@ function RegrasEspiao({
   const [folha, setFolha] = useState<string | null>(null)
   const [modalLocaisAberto, setModalLocaisAberto] = useState(false)
   const [pacoteIdsRascunho, setPacoteIdsRascunho] = useState<string[]>(config.pacoteIds)
-  const [verLocaisAberto, setVerLocaisAberto] = useState(false)
 
   // Espião sempre opera em modo pacote (não existe "escrita livre" de local,
   // `AD-014`); sem isso o servidor nunca anexa `pacotesDisponiveis` à projeção
@@ -836,10 +810,6 @@ function RegrasEspiao({
 
   const pacotesSelecionados =
     pacotesDisponiveis?.filter((p) => config.pacoteIds.includes(p.id)) ?? []
-  const poolAtual = montarPoolDeCartas(
-    LOCAIS.filter((p) => config.pacoteIds.includes(p.id)),
-    config.dificuldades,
-  )
 
   const abrir = (nome: string) => (souHost ? () => setFolha(nome) : undefined)
   const mudarEspiao = (parcial: Partial<Config['espiao']>) =>
@@ -890,13 +860,6 @@ function RegrasEspiao({
         valor={rotuloDe(PRESETS_DE_TEMPO_VOTACAO, config.espiao.tempoVotacaoSeg)}
         aoAbrir={abrir('tempoVotacao')}
       />
-
-      {config.pacoteIds.length > 0 && (
-        <VerPool
-          rotulo={`ver locais (${poolAtual.length})`}
-          aoAbrir={() => setVerLocaisAberto(true)}
-        />
-      )}
 
       {folha === 'numEspioes' && (
         <FolhaDeEscolha
@@ -970,14 +933,6 @@ function RegrasEspiao({
         />
       )}
 
-      {verLocaisAberto && (
-        <ListaDeTextos
-          titulo="Locais possíveis"
-          descricao={`${poolAtual.length} locais no pool combinado — nunca mostra qual saiu.`}
-          textos={poolAtual}
-          aoFechar={() => setVerLocaisAberto(false)}
-        />
-      )}
     </div>
   )
 }
@@ -990,21 +945,6 @@ function resumoDePacotes(selecionados: PacoteResumo[]): string {
   if (selecionados.length === 0) return 'nenhum'
   if (selecionados.length === 1) return selecionados[0]?.nome ?? 'nenhum'
   return `${selecionados.length} pacotes`
-}
-
-function VerPool({ rotulo, aoAbrir }: { rotulo: string; aoAbrir(): void }) {
-  return (
-    <div className="flex items-center justify-between gap-3 pt-3.5">
-      <span className="text-apoio text-texto-3">Pool combinado</span>
-      <button
-        type="button"
-        onClick={aoAbrir}
-        className="min-h-11 cursor-pointer text-corpo font-semibold text-texto underline decoration-dotted underline-offset-4"
-      >
-        {rotulo}
-      </button>
-    </div>
-  )
 }
 
 /** A gaveta de pacotes: cards de papel, seleção múltipla, confirma no fim. */
@@ -1070,40 +1010,6 @@ function GavetaDePacotes({
   )
 }
 
-/** A lista de tudo que pode sair — nunca diz o que saiu. */
-function ListaDeTextos({
-  titulo,
-  descricao,
-  textos,
-  aoFechar,
-}: {
-  titulo: string
-  descricao: string
-  textos: string[]
-  aoFechar(): void
-}) {
-  return (
-    <Modal
-      folha
-      titulo={titulo}
-      descricao={descricao}
-      largura="larga"
-      rotuloCancelar="Fechar"
-      aoCancelar={aoFechar}
-    >
-      <ul className="grid max-h-[55vh] grid-cols-2 gap-1.5 overflow-y-auto sm:grid-cols-3">
-        {textos.map((texto) => (
-          <li
-            key={texto}
-            className="rounded-chip border border-linha px-2.5 py-1.5 text-miudo text-texto-2"
-          >
-            {texto}
-          </li>
-        ))}
-      </ul>
-    </Modal>
-  )
-}
 
 /**
  * `AJU-19`, `AJU-20` — os presets mais qualquer duração da faixa do contrato.
