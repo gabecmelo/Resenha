@@ -10,12 +10,13 @@ import {
   Modal,
   PainelRecolhivel,
   RelogioDaFaixa,
+  ResultadoDaVotacao,
   Shell,
   TiraDePacotes,
 } from '../componentes'
 import { estaAcabando, formatarTempo } from '../estado/relogio'
 import { useRestante } from '../estado/contagem'
-import { tocarSuaVez, tocarTempoAcabando, tocarVezOutro } from '../sons'
+import { tocarAcertou, tocarSuaVez, tocarTempoAcabando, tocarVezOutro } from '../sons'
 import { nomeDoJogo } from '../../../shared/jogos-catalogo'
 import type { PropsDaTela } from './tela'
 
@@ -81,11 +82,28 @@ export function EspiaoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
   }, [estaAberta])
 
   const votacao = espiao?.votacaoAberta
-  // `ESP-10` — enquanto a votação está aberta o prazo pausa: o servidor manda
-  // `prazoRodada: null` e a faixa troca o relógio pela pílula de pausa (o valor
-  // congelado não existe no payload, então não há o que contar).
+  const resultado = espiao?.resultadoVotacao
+  const pausadaPor = espiao?.pausadaPor
+
+  // O veredito chega de uma vez pra mesa inteira: som de fecho, como a
+  // revelação. Quem estava de olho no chat percebe pelo ouvido.
+  const tinhaResultadoRef = useRef(false)
+  const temResultado = resultado !== undefined
+  useEffect(() => {
+    if (temResultado && !tinhaResultadoRef.current) tocarAcertou()
+    tinhaResultadoRef.current = temResultado
+  }, [temResultado])
+
+  // Três janelas, um relógio de cada vez (`ESP-28`, `ESP-32`): a rodada corre,
+  // depois a votação corre, depois o resultado fica um tempo na tela. Pausado,
+  // nenhum deles corre — o servidor manda todos os prazos `null`.
   const restante = useRestante(espiao?.prazoRodada ?? null, sala.config.espiao.tempoRodadaSeg)
-  const acabando = votacao === undefined && estaAcabando(restante)
+  const restanteVotacao = useRestante(
+    votacao?.prazoVotacao ?? null,
+    sala.config.espiao.tempoVotacaoSeg,
+  )
+  const emRodada = votacao === undefined && resultado === undefined && pausadaPor === undefined
+  const acabando = emRodada && estaAcabando(restante)
 
   // Só no cruzamento pro "acabando" — o efeito reroda a cada tique do relógio.
   const avisouRef = useRef(false)
@@ -105,13 +123,32 @@ export function EspiaoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
       titulo={nomeDoJogo(sala.jogoId)}
       faixa={
         <FaixaDeFase
-          selo={votacao !== undefined ? 'votação aberta' : acabando ? 'último minuto' : 'rodada'}
-          tom={votacao !== undefined ? 'mostarda' : acabando ? 'mostarda' : 'esmalte'}
+          selo={
+            pausadaPor !== undefined
+              ? 'pausado'
+              : resultado !== undefined
+                ? 'resultado'
+                : votacao !== undefined
+                  ? 'votação aberta'
+                  : acabando
+                    ? 'último minuto'
+                    : 'rodada'
+          }
+          tom={
+            pausadaPor !== undefined
+              ? 'tinta'
+              : resultado !== undefined || votacao !== undefined || acabando
+                ? 'mostarda'
+                : 'esmalte'
+          }
           relogio={
-            votacao !== undefined ? (
-              <span className="flex-none rounded-chip border border-linha px-2.5 py-2 font-mono text-rotulo text-texto-3 uppercase">
-                <span aria-hidden="true">⏸ </span>pausado
-              </span>
+            pausadaPor !== undefined ? (
+              <PilulaDePausa />
+            ) : resultado !== undefined ? undefined : votacao !== undefined ? (
+              <RelogioDaFaixa
+                texto={restanteVotacao === null ? null : formatarTempo(restanteVotacao)}
+                acabando={estaAcabando(restanteVotacao)}
+              />
             ) : (
               <RelogioDaFaixa
                 texto={restante === null ? null : formatarTempo(restante)}
@@ -120,11 +157,17 @@ export function EspiaoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
             )
           }
         >
-          {votacao !== undefined
-            ? `${votacao.quantosVotaram} de ${votacao.total} já votaram · relógio pausado`
-            : acabando
-              ? 'A votação abre sozinha no zero.'
-              : 'Pergunte, responda, e desconfie de todo mundo.'}
+          {pausadaPor !== undefined
+            ? `${pausadaPor.apelido} pausou a rodada. Ninguém joga até voltar.`
+            : resultado !== undefined
+              ? resultado.aMesaAcertou
+                ? 'A mesa acertou.'
+                : 'A mesa errou — a rodada volta em instantes.'
+              : votacao !== undefined
+                ? `${votacao.quantosVotaram} de ${votacao.total} já votaram · sem mais perguntas`
+                : acabando
+                  ? 'A votação abre sozinha no zero.'
+                  : 'Pergunte, responda, e desconfie de todo mundo.'}
         </FaixaDeFase>
       }
       aoSair={aoSair}
@@ -141,7 +184,9 @@ export function EspiaoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
             aoAlternar={() => setPapelAberto((estava) => !estava)}
           />
 
-          {votacao === undefined ? (
+          {resultado !== undefined ? (
+            <ResultadoDaVotacao resultado={resultado} jogadores={jogadores} euId={eu.id} />
+          ) : votacao === undefined ? (
             <DicaDePergunta
               dica={dica}
               aoSortear={() =>
@@ -154,6 +199,7 @@ export function EspiaoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
               ativos={ativos}
               euId={eu.id}
               maioriaMinima={maioriaMinima}
+              pausada={pausadaPor !== undefined}
               comBusca={ativos.length > MESA_GRANDE}
               enviar={enviar}
             />
@@ -177,7 +223,34 @@ export function EspiaoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
       </div>
 
       <BarraDeAcao>
-        {votacao === undefined ? (
+        {pausadaPor !== undefined ? (
+          // `ESP-37` — parado é parado pra todo mundo; nem o host joga daqui.
+          <>
+            <p className="text-apoio leading-snug text-texto-2">
+              <strong className="font-semibold text-texto">A mesa está pausada.</strong>{' '}
+              {pausadaPor.apelido} parou o relógio — ele volta exatamente de onde parou.
+            </p>
+            {eu.ehHost && (
+              <Botao larguraTotal onClick={() => enviar({ t: 'retomar' })}>
+                Retomar a rodada
+              </Botao>
+            )}
+          </>
+        ) : resultado !== undefined ? (
+          <p className="text-apoio leading-snug text-texto-2">
+            {resultado.aMesaAcertou ? (
+              <>
+                <strong className="font-semibold text-texto">Fim de partida.</strong> A revelação
+                abre em instantes.
+              </>
+            ) : (
+              <>
+                <strong className="font-semibold text-texto">A rodada volta em instantes.</strong>{' '}
+                Aproveite pra reler quem votou em quem.
+              </>
+            )}
+          </p>
+        ) : votacao === undefined ? (
           <>
             <div className="flex items-stretch gap-2">
               <div className="min-w-0 flex-1">
@@ -186,16 +259,7 @@ export function EspiaoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
                 </Botao>
               </div>
               {/* `VIS-04` — na tela de quem não é host esse ⋯ não aparece. */}
-              {eu.ehHost && (
-                <button
-                  type="button"
-                  aria-label="Ações de quem comanda a mesa"
-                  onClick={() => setMenuDeHost(true)}
-                  className="flex min-h-12 w-12 flex-none cursor-pointer items-center justify-center rounded-botao border border-controle-linha text-[18px] leading-none text-texto"
-                >
-                  <span aria-hidden="true">⋯</span>
-                </button>
-              )}
+              {eu.ehHost && <BotaoDeMenu aoAbrir={() => setMenuDeHost(true)} />}
             </div>
             <p className="text-apoio leading-snug text-texto-3">
               {acabando
@@ -228,16 +292,7 @@ export function EspiaoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
                   </Botao>
                 </div>
               )}
-              {eu.ehHost && (
-                <button
-                  type="button"
-                  aria-label="Ações de quem comanda a mesa"
-                  onClick={() => setMenuDeHost(true)}
-                  className="flex min-h-12 w-12 flex-none cursor-pointer items-center justify-center rounded-botao border border-controle-linha text-[18px] leading-none text-texto"
-                >
-                  <span aria-hidden="true">⋯</span>
-                </button>
-              )}
+              {eu.ehHost && <BotaoDeMenu aoAbrir={() => setMenuDeHost(true)} />}
             </div>
           </>
         )}
@@ -280,6 +335,18 @@ export function EspiaoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
           rotuloCancelar="Fechar"
           aoCancelar={() => setMenuDeHost(false)}
         >
+          {/* `ESP-35` — pausar é a saída pra interrupção real: a resenha para,
+              o relógio para junto, e ninguém precisa encerrar a partida. */}
+          <Botao
+            larguraTotal
+            variante="secundario"
+            onClick={() => {
+              setMenuDeHost(false)
+              enviar({ t: 'pausar' })
+            }}
+          >
+            Pausar a rodada
+          </Botao>
           <Botao
             larguraTotal
             variante="destrutivo"
@@ -309,6 +376,29 @@ export function EspiaoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
         />
       )}
     </Shell>
+  )
+}
+
+/** `VIS-04` — o mesmo ⋯ nas duas barras; só quem é host o recebe. */
+function BotaoDeMenu({ aoAbrir }: { aoAbrir(): void }) {
+  return (
+    <button
+      type="button"
+      aria-label="Ações de quem comanda a mesa"
+      onClick={aoAbrir}
+      className="flex min-h-12 w-12 flex-none cursor-pointer items-center justify-center rounded-botao border border-controle-linha text-[18px] leading-none text-texto"
+    >
+      <span aria-hidden="true">⋯</span>
+    </button>
+  )
+}
+
+/** `ESP-35` — no lugar do relógio, porque é exatamente o relógio que parou. */
+function PilulaDePausa() {
+  return (
+    <span className="flex-none rounded-chip border border-linha px-2.5 py-2 font-mono text-rotulo text-texto-3 uppercase">
+      <span aria-hidden="true">⏸ </span>pausado
+    </span>
   )
 }
 
@@ -435,6 +525,7 @@ function Votacao({
   ativos,
   euId,
   maioriaMinima,
+  pausada,
   comBusca,
   enviar,
 }: {
@@ -442,6 +533,7 @@ function Votacao({
   ativos: Projecao['jogadores']
   euId: JogadorId
   maioriaMinima: number
+  pausada: boolean
   comBusca: boolean
   enviar: PropsDaTela['enviar']
 }) {
@@ -464,6 +556,14 @@ function Votacao({
           {votacao.votos === undefined ? 'voto oculto' : 'tempo real'}
         </span>
       </div>
+
+      {/* `ESP-27` — sem `abertaPor` foi o relógio que abriu, e aí não há quem citar. */}
+      <p className="text-apoio leading-snug text-texto-2">
+        {votacao.abertaPor === undefined
+          ? 'O tempo da rodada acabou e a votação abriu sozinha.'
+          : `${votacao.abertaPor.apelido} abriu a votação.`}{' '}
+        <span className="text-texto-3">Agora é só votar — as perguntas ficam pra depois.</span>
+      </p>
 
       {votacao.votos === undefined ? (
         <p className="flex gap-2 rounded-botao border border-dashed border-linha p-3 text-apoio leading-snug text-texto-2">
@@ -510,6 +610,7 @@ function Votacao({
               <button
                 type="button"
                 onClick={() => votar(jogador.id)}
+                disabled={pausada}
                 aria-pressed={meuVotoNele}
                 className={`flex min-h-12 w-full cursor-pointer items-center gap-2.5 rounded-botao px-3 py-2 text-left ${
                   meuVotoNele
@@ -545,6 +646,7 @@ function Votacao({
       <button
         type="button"
         onClick={() => votar(null)}
+        disabled={pausada}
         aria-pressed={votacao.meuVoto === 'pular'}
         className={`flex min-h-12 w-full cursor-pointer items-center justify-between gap-3 rounded-botao px-3 text-apoio font-semibold ${
           votacao.meuVoto === 'pular'

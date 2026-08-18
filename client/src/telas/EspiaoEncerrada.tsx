@@ -7,6 +7,7 @@ import {
   FaixaDeFase,
   MarcadorDeJogador,
   PainelRecolhivel,
+  ResultadoDaVotacao,
   Shell,
   TiraDePacotes,
 } from '../componentes'
@@ -36,6 +37,9 @@ export function EspiaoEncerrada({ projecao, enviar, aoSair }: PropsDaTela) {
 
   if (espiao === undefined) return null
 
+  // `ESP-33`, `ESP-34` — só existe veredito quando a partida acabou por uma
+  // acusação. Encerrar na mão não é aposta coletiva: não há o que julgar.
+  const veredito = espiao.resultadoVotacao
   const espioesIds = new Set((espiao.espioes ?? []).map((espiaoDaLista) => espiaoDaLista.id))
   const espioesNaMesa = jogadores.filter((jogador) => espioesIds.has(jogador.id))
   const euEraEspiao = espioesIds.has(eu.id)
@@ -45,7 +49,12 @@ export function EspiaoEncerrada({ projecao, enviar, aoSair }: PropsDaTela) {
       codigo={sala.codigo}
       titulo={nomeDoJogo(sala.jogoId)}
       faixa={
-        <FaixaDeFase selo="rodada encerrada" tom="tinta">
+        <FaixaDeFase
+          selo={
+            veredito === undefined ? 'rodada encerrada' : veredito.aMesaAcertou ? 'a mesa acertou' : 'a mesa errou'
+          }
+          tom={veredito?.aMesaAcertou === true ? 'pronto' : 'tinta'}
+        >
           {euEraEspiao ? 'Você era o espião — agora a mesa sabe.' : 'O local e os espiões caíram.'}
         </FaixaDeFase>
       }
@@ -99,6 +108,10 @@ export function EspiaoEncerrada({ projecao, enviar, aoSair }: PropsDaTela) {
               ))}
             </ul>
           </section>
+
+          {veredito !== undefined && (
+            <ResultadoDaVotacao resultado={veredito} jogadores={jogadores} euId={eu.id} />
+          )}
 
           {aguardando.length > 0 && <EntramNaProxima jogadores={aguardando} />}
 

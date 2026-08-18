@@ -790,6 +790,18 @@ const OPCOES_VISIBILIDADE_VOTO = [
   },
 ]
 
+/**
+ * `ESP-28` — quanto a mesa tem pra decidir depois que a votação abre. Sem
+ * "sem limite": uma votação sem prazo trava a partida esperando quem foi ao
+ * banheiro.
+ */
+const PRESETS_DE_TEMPO_VOTACAO: ReadonlyArray<{ valor: number; rotulo: string }> = [
+  { valor: 30, rotulo: '30s' },
+  { valor: 60, rotulo: '1min' },
+  { valor: 90, rotulo: '1min30' },
+  { valor: 120, rotulo: '2min' },
+]
+
 const PRESETS_DE_TEMPO_RODADA: ReadonlyArray<{ valor: number | null; rotulo: string }> = [
   { valor: null, rotulo: 'Sem limite' },
   { valor: 180, rotulo: '3min' },
@@ -872,6 +884,12 @@ function RegrasEspiao({
         valor={rotuloDoTempo(config.espiao.tempoRodadaSeg)}
         aoAbrir={abrir('tempoRodada')}
       />
+      <LinhaDeRegra
+        rotulo="Tempo de votação"
+        dica="Depois que a votação abre, ninguém mais pergunta: é só decidir."
+        valor={rotuloDe(PRESETS_DE_TEMPO_VOTACAO, config.espiao.tempoVotacaoSeg)}
+        aoAbrir={abrir('tempoVotacao')}
+      />
 
       {config.pacoteIds.length > 0 && (
         <VerPool
@@ -918,6 +936,17 @@ function RegrasEspiao({
           atual={config.espiao.tempoRodadaSeg}
           presets={PRESETS_DE_TEMPO_RODADA}
           aoEscolher={(tempoRodadaSeg) => mudarEspiao({ tempoRodadaSeg })}
+          aoFechar={() => setFolha(null)}
+        />
+      )}
+
+      {folha === 'tempoVotacao' && (
+        <FolhaDeEscolha
+          titulo="Tempo de votação"
+          descricao="A votação fecha sozinha quando esse tempo vence — ou antes, se todo mundo já votou."
+          opcoes={PRESETS_DE_TEMPO_VOTACAO}
+          atual={config.espiao.tempoVotacaoSeg}
+          aoEscolher={(tempoVotacaoSeg) => mudarEspiao({ tempoVotacaoSeg })}
           aoFechar={() => setFolha(null)}
         />
       )}
