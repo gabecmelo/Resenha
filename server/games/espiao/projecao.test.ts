@@ -326,13 +326,17 @@ describe('resultado da votação (ESP-29, ESP-30, ESP-33)', () => {
     expect(projecao.jogo?.espiao?.resultadoVotacao?.prazoFim).toBeNull()
   })
 
-  it('a mesa toda vê que a rodada está pausada, e por quem (ESP-35)', () => {
+  it('a mesa toda vê que a rodada está pausada, por quem, e no tempo em que parou (ESP-35)', () => {
     const estado = jogoDe({ pausa: { por: 'a', restanteMs: 90_000 } })
     const sala = salaDe('jogo')
 
     const projecao = projetar(estado, sala, 'c')
 
-    expect(projecao.jogo?.espiao?.pausadaPor).toEqual({ id: 'a', apelido: 'A' })
+    expect(projecao.jogo?.espiao?.pausadaPor).toEqual({
+      id: 'a',
+      apelido: 'A',
+      restanteMs: 90_000,
+    })
   })
 
   it('sem pausa, `pausadaPor` fica ausente (ESP-35)', () => {

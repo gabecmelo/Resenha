@@ -367,8 +367,12 @@ export interface ProjecaoEspiao {
    * presente na revelação.
    */
   resultadoVotacao?: ResultadoDaVotacao
-  /** `ESP-35` — a rodada está pausada por quem comanda a mesa. */
-  pausadaPor?: { id: JogadorId; apelido: string }
+  /**
+   * `ESP-35` — a rodada está pausada por quem comanda a mesa. `restanteMs` é o
+   * relógio congelado no instante da pausa: é ele que a tela mostra parado, em
+   * vez de um "pausado" sem número. `null` quando a rodada não tem relógio.
+   */
+  pausadaPor?: { id: JogadorId; apelido: string; restanteMs: number | null }
 }
 
 /**

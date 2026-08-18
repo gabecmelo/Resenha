@@ -143,7 +143,7 @@ export function EspiaoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
           }
           relogio={
             pausadaPor !== undefined ? (
-              <PilulaDePausa />
+              <PilulaDePausa restanteMs={pausadaPor.restanteMs} />
             ) : resultado !== undefined ? undefined : votacao !== undefined ? (
               <RelogioDaFaixa
                 texto={restanteVotacao === null ? null : formatarTempo(restanteVotacao)}
@@ -393,11 +393,16 @@ function BotaoDeMenu({ aoAbrir }: { aoAbrir(): void }) {
   )
 }
 
-/** `ESP-35` — no lugar do relógio, porque é exatamente o relógio que parou. */
-function PilulaDePausa() {
+/**
+ * `ESP-35` — ocupa o lugar do relógio, porque é o relógio que parou. Mostra o
+ * valor congelado: um número parado diz "isso volta de onde parou" muito melhor
+ * do que a palavra "pausado".
+ */
+function PilulaDePausa({ restanteMs }: { restanteMs: number | null }) {
   return (
     <span className="flex-none rounded-chip border border-linha px-2.5 py-2 font-mono text-rotulo text-texto-3 uppercase">
-      <span aria-hidden="true">⏸ </span>pausado
+      <span aria-hidden="true">⏸ </span>
+      {restanteMs === null ? 'pausado' : formatarTempo(restanteMs)}
     </span>
   )
 }

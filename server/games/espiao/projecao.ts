@@ -111,6 +111,7 @@ function projetarEspiao(
     espiao.pausadaPor = {
       id: estado.pausa.por,
       apelido: apelidoDe(sala, estado.pausa.por),
+      restanteMs: estado.pausa.restanteMs,
     }
   }
 
