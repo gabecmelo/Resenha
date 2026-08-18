@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { JogadorId, Projecao, ProjecaoEspiao } from '../../../shared/protocolo'
 import {
+  Apurando,
   BarraDeAcao,
   BlocoDeNotas,
   Botao,
@@ -16,6 +17,7 @@ import {
 } from '../componentes'
 import { estaAcabando, formatarTempo } from '../estado/relogio'
 import { useRestante } from '../estado/contagem'
+import { useBatidaDeSuspense } from '../estado/suspense'
 import { tocarAcertou, tocarSuaVez, tocarTempoAcabando, tocarVezOutro } from '../sons'
 import { nomeDoJogo } from '../../../shared/jogos-catalogo'
 import type { PropsDaTela } from './tela'
@@ -85,14 +87,18 @@ export function EspiaoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
   const resultado = espiao?.resultadoVotacao
   const pausadaPor = espiao?.pausadaPor
 
-  // O veredito chega de uma vez pra mesa inteira: som de fecho, como a
-  // revelação. Quem estava de olho no chat percebe pelo ouvido.
-  const tinhaResultadoRef = useRef(false)
+  // A mesa não vira a carta no mesmo instante em que a última pessoa vota: uma
+  // batida curta separa o "acabou de votar" do "olha o que deu".
   const temResultado = resultado !== undefined
+  const apurando = useBatidaDeSuspense(temResultado)
+  const revelado = temResultado && !apurando
+
+  // O som marca a revelação, não o fechamento — ele chega junto com o veredito.
+  const tinhaResultadoRef = useRef(false)
   useEffect(() => {
-    if (temResultado && !tinhaResultadoRef.current) tocarAcertou()
-    tinhaResultadoRef.current = temResultado
-  }, [temResultado])
+    if (revelado && !tinhaResultadoRef.current) tocarAcertou()
+    tinhaResultadoRef.current = revelado
+  }, [revelado])
 
   // Três janelas, um relógio de cada vez (`ESP-28`, `ESP-32`): a rodada corre,
   // depois a votação corre, depois o resultado fica um tempo na tela. Pausado,
@@ -127,7 +133,9 @@ export function EspiaoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
             pausadaPor !== undefined
               ? 'pausado'
               : resultado !== undefined
-                ? 'resultado'
+                ? apurando
+                  ? 'apurando'
+                  : 'resultado'
                 : votacao !== undefined
                   ? 'votação aberta'
                   : acabando
@@ -160,9 +168,11 @@ export function EspiaoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
           {pausadaPor !== undefined
             ? `${pausadaPor.apelido} pausou a rodada. Ninguém joga até voltar.`
             : resultado !== undefined
-              ? resultado.aMesaAcertou
-                ? 'A mesa acertou.'
-                : 'A mesa errou — a rodada volta em instantes.'
+              ? apurando
+                ? 'A votação fechou. Contando os votos…'
+                : resultado.aMesaAcertou
+                  ? 'A mesa acertou.'
+                  : 'A mesa errou — a rodada volta em instantes.'
               : votacao !== undefined
                 ? `${votacao.quantosVotaram} de ${votacao.total} já votaram · sem mais perguntas`
                 : acabando
@@ -185,7 +195,11 @@ export function EspiaoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
           />
 
           {resultado !== undefined ? (
-            <ResultadoDaVotacao resultado={resultado} jogadores={jogadores} euId={eu.id} />
+            apurando ? (
+              <Apurando rotulo="votação encerrada" texto="Contando os votos…" />
+            ) : (
+              <ResultadoDaVotacao resultado={resultado} jogadores={jogadores} euId={eu.id} />
+            )
           ) : votacao === undefined ? (
             <DicaDePergunta
               dica={dica}
@@ -238,7 +252,9 @@ export function EspiaoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
           </>
         ) : resultado !== undefined ? (
           <p className="text-apoio leading-snug text-texto-2">
-            {resultado.aMesaAcertou ? (
+            {apurando ? (
+              <>Ninguém mexe até todo mundo ver o mesmo resultado.</>
+            ) : resultado.aMesaAcertou ? (
               <>
                 <strong className="font-semibold text-texto">Fim de partida.</strong> A revelação
                 abre em instantes.

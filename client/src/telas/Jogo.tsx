@@ -1,6 +1,7 @@
 import { type RefObject, useEffect, useRef, useState } from 'react'
 import type { JogadorId, Projecao } from '../../../shared/protocolo'
 import {
+  Apurando,
   BarraDeAcao,
   BlocoDeNotas,
   Botao,
@@ -16,6 +17,7 @@ import {
 } from '../componentes'
 import { estaAcabando, formatarTempo } from '../estado/relogio'
 import { useRestante } from '../estado/contagem'
+import { useBatidaDeSuspense } from '../estado/suspense'
 import { tocarSuaVez, tocarVezOutro, tocarAcertou, tocarTempoAcabando, tocarTickContagem } from '../sons'
 import { nomeDoJogo } from '../../../shared/jogos-catalogo'
 import type { PropsDaTela } from './tela'
@@ -71,6 +73,11 @@ export function Jogo({ projecao, enviar, aoSair }: PropsDaTela) {
   // `DESC-04` — a revelação é um momento, não um bloco permanente: depois de
   // ler, a pessoa volta pra mesa e continua respondendo os outros.
   const [reveladaFechada, setReveladaFechada] = useState(false)
+
+  // A carta não vira no mesmo instante em que a outra pessoa aperta "acertou":
+  // a batida é o que transforma o clique dela num momento da mesa.
+  const minhaCartaCaiu = eu.minhaCarta !== undefined
+  const revelandoMinhaCarta = useBatidaDeSuspense(minhaCartaCaiu)
 
   const restante = useRestante(jogo?.prazoTurno ?? null, sala.config.tempoTurnoSeg)
   const acabando = ehMinhaVez && estaAcabando(restante)
@@ -154,7 +161,11 @@ export function Jogo({ projecao, enviar, aoSair }: PropsDaTela) {
           {eu.situacao !== 'ativo' && <Espectador />}
 
           {/* `DESC-04` — a partir da confirmação a carta existe no payload dele. */}
-          {eu.minhaCarta !== undefined && !reveladaFechada && (
+          {minhaCartaCaiu && revelandoMinhaCarta && (
+            <Apurando rotulo="a mesa confirmou" texto="Virando a sua carta…" />
+          )}
+
+          {eu.minhaCarta !== undefined && !revelandoMinhaCarta && !reveladaFechada && (
             <VoceEra
               texto={eu.minhaCarta}
               faltam={ativos.filter((jogador) => !jogador.descobriu).length}

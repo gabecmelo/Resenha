@@ -1,6 +1,7 @@
 export { AlternadorDeTema } from './AlternadorDeTema'
 export { BannerDeConexao, type TipoDeBanner } from './BannerDeConexao'
 export { BlocoDeNotas } from './BlocoDeNotas'
+export { Apurando } from './Apurando'
 export { Botao } from './Botao'
 export { CampoDeTexto } from './CampoDeTexto'
 export { Carta } from './Carta'

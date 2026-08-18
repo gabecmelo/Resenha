@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import {
+  Apurando,
   BarraDeAcao,
   BlocoDeNotas,
   Botao,
@@ -12,6 +13,7 @@ import {
   TiraDePacotes,
 } from '../componentes'
 import { tocarAcertou } from '../sons'
+import { useBatidaDeSuspense } from '../estado/suspense'
 import { nomeDoJogo } from '../../../shared/jogos-catalogo'
 import type { PropsDaTela } from './tela'
 
@@ -30,10 +32,16 @@ export function EspiaoEncerrada({ projecao, enviar, aoSair }: PropsDaTela) {
   const aguardando = jogadores.filter((jogador) => jogador.situacao === 'aguardando')
   const host = jogadores.find((jogador) => jogador.id === sala.hostId)
 
+  // Quando a partida acabou por uma acusação, esta tela *é* a virada da carta:
+  // ela nasce revelada e por isso a batida vale desde a entrada. Encerramento
+  // manual do host não tem veredito e também não tem suspense a criar.
+  const porVotacao = espiao?.resultadoVotacao !== undefined
+  const apurando = useBatidaDeSuspense(porVotacao, { naEntrada: true })
+
   // A revelação é o clímax da rodada — o mesmo som de acerto de "Quem Sou Eu?".
   useEffect(() => {
-    tocarAcertou()
-  }, [])
+    if (!apurando) tocarAcertou()
+  }, [apurando])
 
   if (espiao === undefined) return null
 
@@ -51,11 +59,21 @@ export function EspiaoEncerrada({ projecao, enviar, aoSair }: PropsDaTela) {
       faixa={
         <FaixaDeFase
           selo={
-            veredito === undefined ? 'rodada encerrada' : veredito.aMesaAcertou ? 'a mesa acertou' : 'a mesa errou'
+            apurando
+              ? 'apurando'
+              : veredito === undefined
+                ? 'rodada encerrada'
+                : veredito.aMesaAcertou
+                  ? 'a mesa acertou'
+                  : 'a mesa errou'
           }
-          tom={veredito?.aMesaAcertou === true ? 'pronto' : 'tinta'}
+          tom={apurando ? 'tinta' : veredito?.aMesaAcertou === true ? 'pronto' : 'tinta'}
         >
-          {euEraEspiao ? 'Você era o espião — agora a mesa sabe.' : 'O local e os espiões caíram.'}
+          {apurando
+            ? 'A votação fechou. Contando os votos…'
+            : euEraEspiao
+              ? 'Você era o espião — agora a mesa sabe.'
+              : 'O local e os espiões caíram.'}
         </FaixaDeFase>
       }
       aoSair={aoSair}
@@ -64,7 +82,9 @@ export function EspiaoEncerrada({ projecao, enviar, aoSair }: PropsDaTela) {
         <div className="flex flex-col gap-5">
           <TiraDePacotes pacotes={sala.pacotesSelecionados} />
 
-          <section className="flex flex-col gap-2.5 rounded-papel bg-acento p-5 sm:p-6">
+          {apurando && <Apurando rotulo="votação encerrada" texto="Contando os votos…" />}
+
+          <section hidden={apurando} className="flex flex-col gap-2.5 rounded-papel bg-acento p-5 sm:p-6">
             <span className="font-mono text-rotulo text-acento-contraste/75 uppercase">
               o local era
             </span>
@@ -73,7 +93,7 @@ export function EspiaoEncerrada({ projecao, enviar, aoSair }: PropsDaTela) {
             </span>
           </section>
 
-          <section className="flex flex-col gap-2.5">
+          <section hidden={apurando} className="flex flex-col gap-2.5">
             <div className="flex items-baseline justify-between gap-3">
               <h2 className="font-display text-secao text-texto">
                 {espioesNaMesa.length === 1 ? 'O espião era' : 'Os espiões eram'}
@@ -109,7 +129,7 @@ export function EspiaoEncerrada({ projecao, enviar, aoSair }: PropsDaTela) {
             </ul>
           </section>
 
-          {veredito !== undefined && (
+          {veredito !== undefined && !apurando && (
             <ResultadoDaVotacao resultado={veredito} jogadores={jogadores} euId={eu.id} />
           )}
 
