@@ -359,6 +359,7 @@ async function iniciar(
     hostId: sala.hostId,
     config: sala.config,
     jogadores: sala.jogadores,
+    prazoTurno: sala.prazos.turno,
     autorId: autor.id,
   }
   const rodada = jogo.iniciarRodada(ctx, ambiente, pacotes)
@@ -480,6 +481,7 @@ function paraOJogo(
     hostId: sala.hostId,
     config: sala.config,
     jogadores: sala.jogadores,
+    prazoTurno: sala.prazos.turno,
     autorId,
   }
   const resultado = jogo.reduzir(sala.jogo, ctx, entrada, ambiente)

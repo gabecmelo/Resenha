@@ -57,6 +57,11 @@ export interface EstadoEspiao {
   /** false = tela de espera por PRONTO; true = tela padrão do jogo. */
   rodadaIniciada: boolean
   votacaoAberta: VotacaoAberta | null
+  /**
+   * `ESP-35`, `ESP-36` — rodada pausada pelo host. `restanteMs` é `null` quando
+   * a rodada não tinha relógio: a pausa continua valendo como "a mesa parou".
+   */
+  pausa: { por: JogadorId; restanteMs: number | null } | null
   /** `ESP-32` — de pé durante a janela de resultado e depois na revelação. */
   resultadoVotacao: ResultadoVotacao | null
   /** `NOTA-02`-like — privado por jogador. */
@@ -75,6 +80,8 @@ type TipoDeComandoDeJogo =
   | 'marcarPronto'
   | 'abrirVotacao'
   | 'votar'
+  | 'pausar'
+  | 'retomar'
   | 'encerrarVotacao'
   | 'encerrar'
   | 'novaPartida'
@@ -91,6 +98,7 @@ export function estadoVazio(): EstadoEspiao {
     prontos: [],
     rodadaIniciada: false,
     votacaoAberta: null,
+    pausa: null,
     resultadoVotacao: null,
     notas: {},
   }
@@ -140,6 +148,10 @@ export function reduzir(
       return marcarPronto(estado, ctx, comando.pronto, ambiente)
     case 'abrirVotacao':
       return abrirVotacao(estado, ctx, ambiente)
+    case 'pausar':
+      return pausar(estado, ctx, ambiente)
+    case 'retomar':
+      return retomar(estado, ctx, ambiente)
     case 'votar':
       return votar(estado, ctx, comando.alvoId, ambiente)
     case 'encerrarVotacao':
@@ -208,6 +220,8 @@ function abrirVotacao(
 ): ResultadoReducer<EstadoEspiao> {
   if (ctx.fase !== 'jogo') return { ok: false, erro: 'FASE_INVALIDA' }
   if (!estado.rodadaIniciada) return { ok: false, erro: 'COMANDO_INVALIDO' }
+  // `ESP-37` — pausado é pausado pra todo mundo, inclusive pro host.
+  if (estado.pausa !== null) return { ok: false, erro: 'COMANDO_INVALIDO' }
   if (estado.votacaoAberta !== null) return { ok: false, erro: 'COMANDO_INVALIDO' }
   // Edge case — durante a janela de resultado a mesa está lendo o que acabou de
   // acontecer; a próxima acusação espera a rodada voltar.
@@ -237,6 +251,9 @@ function venceuPrazoTurno(
   ambiente: Ambiente,
 ): ResultadoReducer<EstadoEspiao> {
   if (ctx.fase !== 'jogo') return { ok: false, erro: 'FASE_INVALIDA' }
+  // Pausado não há prazo agendado; se um alarme atrasado chegar mesmo assim,
+  // ele não pode destravar o que a mesa parou de propósito.
+  if (estado.pausa !== null) return { ok: true, estado, eventos: [], prazos: {} }
 
   // `ESP-32` — acabou a leitura do resultado; a rodada recomeça do zero.
   if (estado.resultadoVotacao !== null) {
@@ -280,6 +297,7 @@ function votar(
   ambiente: Ambiente,
 ): ResultadoReducer<EstadoEspiao> {
   if (ctx.fase !== 'jogo') return { ok: false, erro: 'FASE_INVALIDA' }
+  if (estado.pausa !== null) return { ok: false, erro: 'COMANDO_INVALIDO' } // `ESP-37`
   if (estado.votacaoAberta === null) return { ok: false, erro: 'COMANDO_INVALIDO' }
 
   const ativosIds = jogadoresAtivos(ctx).map((j) => j.id)
@@ -303,6 +321,7 @@ function encerrarVotacao(
 ): ResultadoReducer<EstadoEspiao> {
   if (ctx.fase !== 'jogo') return { ok: false, erro: 'FASE_INVALIDA' }
   if (ctx.autorId !== ctx.hostId) return { ok: false, erro: 'SEM_AUTORIDADE' }
+  if (estado.pausa !== null) return { ok: false, erro: 'COMANDO_INVALIDO' } // `ESP-37`
   if (estado.votacaoAberta === null) return { ok: false, erro: 'COMANDO_INVALIDO' }
 
   return fecharVotacao(estado, ctx, ambiente)
@@ -403,6 +422,61 @@ function apurar(votos: Record<JogadorId, JogadorId | 'pular'>, totalAtivos: numb
 function todosAtivosConectadosVotaram(votacao: VotacaoAberta, ctx: ContextoDeSala): boolean {
   const conectados = jogadoresAtivos(ctx).filter((j) => j.conectado)
   return conectados.length > 0 && conectados.every((j) => votacao.votos[j.id] !== undefined)
+}
+
+// ---------------------------------------------------------------------------
+// Pausa (P6)
+// ---------------------------------------------------------------------------
+
+/**
+ * `ESP-35`, `ESP-38`, `ESP-39` — o host para o relógio quando a resenha para.
+ * O tempo que faltava é guardado no estado; sem relógio na rodada, a pausa
+ * continua valendo (é ela que barra as ações da mesa).
+ */
+function pausar(
+  estado: EstadoEspiao,
+  ctx: ContextoDeSala,
+  ambiente: Ambiente,
+): ResultadoReducer<EstadoEspiao> {
+  if (ctx.fase !== 'jogo') return { ok: false, erro: 'FASE_INVALIDA' }
+  if (ctx.autorId !== ctx.hostId) return { ok: false, erro: 'SEM_AUTORIDADE' }
+  if (!estado.rodadaIniciada) return { ok: false, erro: 'COMANDO_INVALIDO' }
+  if (estado.pausa !== null) return { ok: false, erro: 'COMANDO_INVALIDO' }
+
+  const restanteMs =
+    ctx.prazoTurno === null ? null : Math.max(0, ctx.prazoTurno - ambiente.agora)
+
+  const novo = clonar(estado)
+  novo.pausa = { por: ctx.autorId, restanteMs }
+
+  return {
+    ok: true,
+    estado: novo,
+    eventos: [{ texto: `${apelidoNaMesa(ctx, ctx.autorId)} pausou a rodada.` }],
+    prazos: { turno: null },
+  }
+}
+
+/** `ESP-36` — volta a contar exatamente de onde parou, não do tempo cheio. */
+function retomar(
+  estado: EstadoEspiao,
+  ctx: ContextoDeSala,
+  ambiente: Ambiente,
+): ResultadoReducer<EstadoEspiao> {
+  if (ctx.fase !== 'jogo') return { ok: false, erro: 'FASE_INVALIDA' }
+  if (ctx.autorId !== ctx.hostId) return { ok: false, erro: 'SEM_AUTORIDADE' }
+  const pausa = estado.pausa
+  if (pausa === null) return { ok: false, erro: 'COMANDO_INVALIDO' }
+
+  const novo = clonar(estado)
+  novo.pausa = null
+
+  return {
+    ok: true,
+    estado: novo,
+    eventos: [{ texto: `${apelidoNaMesa(ctx, ctx.autorId)} retomou a rodada.` }],
+    prazos: { turno: pausa.restanteMs === null ? null : ambiente.agora + pausa.restanteMs },
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -514,8 +588,13 @@ function saiuJogador(
     return { ok: true, estado: novo, eventos: [], prazos: {} }
   }
 
-  // Votação aberta: quem saiu pode ter sido o último faltando votar.
-  if (novo.votacaoAberta !== null && todosAtivosConectadosVotaram(novo.votacaoAberta, ctx)) {
+  // Votação aberta: quem saiu pode ter sido o último faltando votar. Com a
+  // rodada pausada, nem isso fecha — a mesa retoma primeiro (`ESP-37`).
+  if (
+    novo.pausa === null &&
+    novo.votacaoAberta !== null &&
+    todosAtivosConectadosVotaram(novo.votacaoAberta, ctx)
+  ) {
     return fecharVotacao(novo, ctx, ambiente)
   }
 

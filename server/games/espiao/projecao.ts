@@ -106,6 +106,14 @@ function projetarEspiao(
     espiao.espioes = estado.espioes.map((id) => ({ id, apelido: apelidoDe(sala, id) }))
   }
 
+  // `ESP-35` — a mesa inteira precisa saber que está parada, e por quem.
+  if (estado.pausa !== null) {
+    espiao.pausadaPor = {
+      id: estado.pausa.por,
+      apelido: apelidoDe(sala, estado.pausa.por),
+    }
+  }
+
   // `ESP-32` — o relógio da rodada só corre quando é a rodada que está de pé;
   // nas outras duas janelas o mesmo prazo pertence à votação ou ao resultado.
   if (estado.votacaoAberta !== null || estado.resultadoVotacao !== null) {

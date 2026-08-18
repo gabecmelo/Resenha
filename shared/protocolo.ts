@@ -469,6 +469,12 @@ export interface ContextoDeSala {
   hostId: JogadorId
   config: Config
   jogadores: Jogador[]
+  /**
+   * O prazo de turno vigente, como o `core` o conhece. O jogo não alcança
+   * `sala.prazos` (AD-009), mas precisa saber quanto ainda faltava para poder
+   * congelar e devolver esse tempo depois (`ESP-35`, `ESP-36`).
+   */
+  prazoTurno: number | null
   /** Quem enviou o comando. */
   autorId: JogadorId
 }

@@ -39,6 +39,7 @@ function ctx(over: Partial<ContextoDeSala> = {}): ContextoDeSala {
     hostId: 'a',
     config: { ...CONFIG_PADRAO },
     jogadores: [jogador('a'), jogador('b'), jogador('c')],
+    prazoTurno: null,
     autorId: 'a',
     ...over,
   }

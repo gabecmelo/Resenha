@@ -44,6 +44,7 @@ function ctx(over: Partial<ContextoDeSala> = {}): ContextoDeSala {
     hostId: 'a',
     config: { ...CONFIG_PADRAO },
     jogadores: [jogador('a'), jogador('b'), jogador('c')],
+    prazoTurno: null,
     autorId: 'a',
     ...over,
   }
@@ -863,5 +864,104 @@ describe('saída de jogador durante a rodada (edge cases do spec)', () => {
       { ok: true, estado, eventos: [], prazos: {} },
       { ok: true, estado, eventos: [], prazos: {} },
     ])
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Pausa (ESP-35..ESP-39)
+// ---------------------------------------------------------------------------
+
+describe('pausar e retomar a rodada (ESP-35, ESP-36, ESP-37, ESP-38, ESP-39)', () => {
+  const AGORA = AMBIENTE.agora
+  const PRAZO = AGORA + 200_000
+
+  function emRodada(over: Partial<ContextoDeSala> = {}) {
+    const base = ctx({ prazoTurno: PRAZO, ...over })
+    const estado = comTodosProntos(rodadaDe(base.jogadores, over), base)
+    return { estado, base }
+  }
+
+  it('congela o tempo que faltava e conta quem pausou (ESP-35)', () => {
+    const { estado, base } = emRodada()
+
+    const resultado = reduzirOk(estado, base, { t: 'pausar' })
+
+    expect(resultado.estado.pausa).toEqual({ por: 'a', restanteMs: 200_000 })
+    expect(resultado.prazos).toEqual({ turno: null })
+    expect(resultado.eventos).toEqual([
+      { texto: `${base.jogadores.find((j) => j.id === 'a')!.apelido} pausou a rodada.` },
+    ])
+  })
+
+  it('retoma do tempo que restava, e não do tempo cheio (ESP-36)', () => {
+    const { estado, base } = emRodada()
+    const pausada = reduzirOk(estado, base, { t: 'pausar' }).estado
+
+    // 30s reais se passaram com a mesa parada.
+    const depois: Ambiente = { ...AMBIENTE, agora: AGORA + 30_000 }
+    const resultado = reduzir(pausada, { ...base, prazoTurno: null }, { t: 'retomar' }, depois)
+
+    expect(resultado.ok && resultado.estado.pausa).toBeNull()
+    expect(resultado.ok && resultado.prazos).toEqual({ turno: AGORA + 30_000 + 200_000 })
+  })
+
+  it('recusa abrir votação com a rodada pausada, inclusive pro host (ESP-37)', () => {
+    const { estado, base } = emRodada()
+    const pausada = reduzirOk(estado, base, { t: 'pausar' }).estado
+
+    const resultado = reduzir(pausada, base, { t: 'abrirVotacao' }, AMBIENTE)
+
+    expect(resultado).toEqual({ ok: false, erro: 'COMANDO_INVALIDO' })
+  })
+
+  it('recusa votar com a rodada pausada, sem descartar os votos já dados (ESP-37)', () => {
+    const { estado, base } = emRodada()
+    const aberta = reduzirOk(estado, base, { t: 'abrirVotacao' }).estado
+    const votada = reduzirOk(aberta, { ...base, autorId: 'a' }, { t: 'votar', alvoId: 'b' }).estado
+    const pausada = reduzirOk(votada, base, { t: 'pausar' }).estado
+
+    const resultado = reduzir(pausada, { ...base, autorId: 'c' }, { t: 'votar', alvoId: 'b' }, AMBIENTE)
+
+    expect(resultado).toEqual({ ok: false, erro: 'COMANDO_INVALIDO' })
+    expect(pausada.votacaoAberta?.votos).toEqual({ a: 'b' })
+  })
+
+  it('quem não é host não pausa nem retoma (ESP-38)', () => {
+    const { estado, base } = emRodada()
+    const pausada = reduzirOk(estado, base, { t: 'pausar' }).estado
+
+    expect(reduzir(estado, { ...base, autorId: 'c' }, { t: 'pausar' }, AMBIENTE)).toEqual({
+      ok: false,
+      erro: 'SEM_AUTORIDADE',
+    })
+    expect(reduzir(pausada, { ...base, autorId: 'c' }, { t: 'retomar' }, AMBIENTE)).toEqual({
+      ok: false,
+      erro: 'SEM_AUTORIDADE',
+    })
+  })
+
+  it('rodada sem relógio também pausa, e retomar não inventa prazo (ESP-39)', () => {
+    const config = { ...CONFIG_PADRAO, espiao: { ...CONFIG_PADRAO.espiao, tempoRodadaSeg: null } }
+    const { estado, base } = emRodada({ config, prazoTurno: null })
+
+    const pausada = reduzirOk(estado, base, { t: 'pausar' })
+    const retomada = reduzirOk(pausada.estado, base, { t: 'retomar' })
+
+    expect(pausada.estado.pausa).toEqual({ por: 'a', restanteMs: null })
+    expect(retomada.prazos).toEqual({ turno: null })
+  })
+
+  it('recusa pausar duas vezes e retomar sem pausa', () => {
+    const { estado, base } = emRodada()
+    const pausada = reduzirOk(estado, base, { t: 'pausar' }).estado
+
+    expect(reduzir(pausada, base, { t: 'pausar' }, AMBIENTE)).toEqual({
+      ok: false,
+      erro: 'COMANDO_INVALIDO',
+    })
+    expect(reduzir(estado, base, { t: 'retomar' }, AMBIENTE)).toEqual({
+      ok: false,
+      erro: 'COMANDO_INVALIDO',
+    })
   })
 })

@@ -34,6 +34,7 @@ function jogoDe(over: Partial<EstadoEspiao> = {}): EstadoEspiao {
     prontos: ['a', 'b', 'c'],
     rodadaIniciada: true,
     votacaoAberta: null,
+    pausa: null,
     resultadoVotacao: null,
     notas: {},
     ...over,
@@ -323,6 +324,21 @@ describe('resultado da votação (ESP-29, ESP-30, ESP-33)', () => {
     const projecao = projetar(estado, sala, 'a')
 
     expect(projecao.jogo?.espiao?.resultadoVotacao?.prazoFim).toBeNull()
+  })
+
+  it('a mesa toda vê que a rodada está pausada, e por quem (ESP-35)', () => {
+    const estado = jogoDe({ pausa: { por: 'a', restanteMs: 90_000 } })
+    const sala = salaDe('jogo')
+
+    const projecao = projetar(estado, sala, 'c')
+
+    expect(projecao.jogo?.espiao?.pausadaPor).toEqual({ id: 'a', apelido: 'A' })
+  })
+
+  it('sem pausa, `pausadaPor` fica ausente (ESP-35)', () => {
+    const projecao = projetar(jogoDe(), salaDe('jogo'), 'a')
+
+    expect(projecao.jogo?.espiao?.pausadaPor).toBeUndefined()
   })
 
   it('sem votação fechada, `resultadoVotacao` fica ausente (ESP-34)', () => {
