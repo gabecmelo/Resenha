@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from 'react'
+import { Fragment, useEffect, useState, type ReactNode } from 'react'
 import {
   MESA_GRANDE_ESPIAO,
   type Config,
@@ -11,10 +11,12 @@ import {
 } from '../../../shared/protocolo'
 import { minJogadoresDoJogo, nomeDoJogo } from '../../../shared/jogos-catalogo'
 import {
+  BarraDeAcao,
   Botao,
   Chat,
-  FaixaDeFase,
-  FichaDeJogador,
+  FolhaDeEscolha,
+  LinhaDeRegra,
+  MarcadorDeJogador,
   Modal,
   SeletorDeJogos,
   Shell,
@@ -23,187 +25,432 @@ import { linkDeConvite, motivoParaIniciar } from '../estado/entrada'
 import { montarPoolDeCartas } from '../../../shared/pacotes'
 import { PACOTES } from '../../../shared/pacotes-dados'
 import { LOCAIS } from '../../../shared/locais-dados'
-import {
-  PRESETS_DE_TEMPO,
-  ehTempoPersonalizado,
-  rotuloDoTempo,
-  tempoDigitado,
-} from '../estado/turno'
+import { PRESETS_DE_TEMPO, rotuloDoTempo, tempoDigitado } from '../estado/turno'
 import type { PropsDaTela } from './tela'
 
 /**
  * A sala antes de começar (`SALA-07`…`SALA-09`, `HOST-01`…`HOST-03`,
  * `CFG-01`…`CFG-06`).
  *
- * O código manda na tela: é ele que a pessoa dita em voz alta. Ações de host
- * não existem na tela de quem não é host — nem apagadas, nem escondidas atrás
- * de aviso (`VIS-04`).
+ * O código manda na tela: é ele que a pessoa dita em voz alta, então é o maior
+ * elemento daqui. As regras vêm como linhas de talão — rótulo, pontilhado,
+ * valor — e a barra fixa no rodapé responde à única pergunta que importa neste
+ * momento: *já dá pra começar?*
+ *
+ * Ações de host não existem na tela de quem não é host — nem apagadas, nem
+ * escondidas atrás de aviso (`VIS-04`).
  */
-
 export function Lobby({ projecao, enviar, aoSair }: PropsDaTela) {
   const { sala, eu, jogadores } = projecao
   const ativos = jogadores.filter((jogador) => jogador.situacao === 'ativo')
   const host = jogadores.find((jogador) => jogador.id === sala.hostId)
+  const [aba, setAba] = useState<'regras' | 'resenha'>('regras')
+
   // `AJU-34`, `AD-014` — o mínimo vem do catálogo do jogo ativo, não de um
   // número escrito nesta tela nem da constante única do produto.
   const minimoDoJogo = minJogadoresDoJogo(sala.jogoId)
-  let motivoDeEspera = motivoParaIniciar(ativos.length, minimoDoJogo)
-  if (motivoDeEspera === undefined) {
-    if (sala.config.modoPacote === 'pacote' && sala.config.pacoteIds.length === 0) {
-      motivoDeEspera = 'Escolha ao menos um pacote para iniciar.'
-    } else if (sala.config.modoPacote === 'personalizado') {
-      motivoDeEspera = 'Pacotes personalizados não estão disponíveis ainda.'
-    }
-  }
+  const pendencias = pendenciasParaIniciar(ativos.length, minimoDoJogo, sala.config)
 
+  const acao = (
+    <AcaoDeIniciar
+      souHost={eu.ehHost}
+      apelidoDoHost={host?.apelido}
+      ativos={ativos.length}
+      pendencias={pendencias}
+      resumo={resumoDaPartida(sala, ativos.length)}
+      enviar={enviar}
+    />
+  )
 
   return (
-    <Shell
-      codigo={sala.codigo}
-      titulo={nomeDoJogo(sala.jogoId)}
-      faixa={
-        <FaixaDeFase>{`${ativos.length} ${ativos.length === 1 ? 'pessoa' : 'pessoas'} na sala`}</FaixaDeFase>
-      }
-      aoSair={aoSair}
-    >
-      <div className="grid grid-cols-1 gap-7 lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)_minmax(0,320px)] lg:items-start lg:gap-8">
-        <section className="order-1 lg:order-none lg:col-start-1 lg:row-start-1">
-          <Convite
+    <Shell titulo={nomeDoJogo(sala.jogoId)} codigo={sala.codigo} aoSair={aoSair}>
+      <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)] lg:items-start lg:gap-6">
+        <div className="flex flex-col gap-4">
+          <ConviteEMesa
             codigo={sala.codigo}
-            sozinho={jogadores.length === 1}
+            limite={sala.limiteJogadores}
+            jogadores={jogadores}
+            euId={eu.id}
+            hostId={sala.hostId}
+            souHost={eu.ehHost}
             minimoDoJogo={minimoDoJogo}
+            enviar={enviar}
           />
-        </section>
+          {/* No desktop a barra dissolve aqui, ao pé da coluna da esquerda. */}
+          <div className="hidden lg:block">{acao}</div>
+        </div>
 
-        <section className="order-2 flex flex-col gap-3 lg:order-none lg:col-start-2 lg:row-span-4 lg:row-start-1">
-          {/* `AJU-39` — a lotação é a desta sala, escolhida por quem a criou. */}
-          <Titulo texto="Na sala" contagem={`${jogadores.length}/${sala.limiteJogadores}`} />
-          <ul className="flex flex-col">
-            {jogadores.map((jogador) => (
-              <LinhaDeJogador
-                key={jogador.id}
-                jogador={jogador}
-                euId={eu.id}
-                hostId={sala.hostId}
-                souHost={eu.ehHost}
-                enviar={enviar}
-              />
-            ))}
-          </ul>
-          {jogadores.length === 1 && (
-            <p className="px-2 py-3 text-apoio text-texto-2">
-              Quem entrar aparece aqui na hora.
-            </p>
-          )}
-        </section>
+        <div className="flex flex-col overflow-hidden rounded-papel border border-linha bg-superficie">
+          <div className="flex border-b border-linha">
+            <Aba atual={aba} valor="regras" aoEscolher={setAba}>
+              Regras
+            </Aba>
+            <Aba atual={aba} valor="resenha" aoEscolher={setAba} contagem={projecao.chat.length}>
+              Resenha
+            </Aba>
+          </div>
 
-        <section className="order-3 lg:order-none lg:col-start-1 lg:row-start-2">
-          <JogoDaSala jogoId={sala.jogoId} souHost={eu.ehHost} enviar={enviar} />
-        </section>
-
-        <section className="order-4 lg:order-none lg:col-start-1 lg:row-start-3">
-          {sala.jogoId === 'quem-sou-eu' && (
-            <Regras config={sala.config} pacotesDisponiveis={sala.pacotesDisponiveis} souHost={eu.ehHost} apelidoDoHost={host?.apelido} enviar={enviar} />
-          )}
-          {sala.jogoId === 'espiao' && (
-            <RegrasEspiao config={sala.config} pacotesDisponiveis={sala.pacotesDisponiveis} souHost={eu.ehHost} apelidoDoHost={host?.apelido} enviar={enviar} />
-          )}
-        </section>
-
-        <section className="order-5 flex flex-col gap-3 lg:order-none lg:col-start-3 lg:row-span-4 lg:row-start-1">
-          <Titulo texto="Chat" />
-          <Chat mensagens={projecao.chat} aoEnviar={(texto) => enviar({ t: 'chat', texto })} />
-        </section>
-
-        <section className="order-6 lg:order-none lg:col-start-1 lg:row-start-4">
-          {eu.ehHost ? (
-            <div className="flex flex-col gap-2">
-              <Botao
-                larguraTotal
-                onClick={() => enviar({ t: 'iniciar' })}
-                motivo={motivoDeEspera}
-              >
-                {motivoDeEspera !== undefined
-                  ? 'Iniciar partida'
-                  : `Iniciar com ${ativos.length} pessoas`}
-              </Botao>
-              {motivoDeEspera === undefined && (
-                <p className="text-apoio text-texto-2">
-                  {sala.jogoId === 'espiao'
-                    ? 'Um local é sorteado pra mesa, menos pro espião.'
-                    : 'Cada um vai escrever a carta de outra pessoa.'}
-                </p>
-              )}
-            </div>
-          ) : (
-            <p className="text-[15px] text-texto-2">
-              Esperando {host?.apelido ?? 'quem comanda a sala'} começar.
-            </p>
-          )}
-        </section>
+          <div className="p-3.5">
+            {aba === 'regras' ? (
+              <div className="flex flex-col">
+                <JogoDaSala jogoId={sala.jogoId} souHost={eu.ehHost} enviar={enviar} />
+                {!eu.ehHost && (
+                  <p className="pt-3 text-apoio text-texto-3">
+                    Quem escolhe é {host?.apelido ?? 'quem comanda a sala'}, que criou a sala.
+                  </p>
+                )}
+                {sala.jogoId === 'espiao' ? (
+                  <RegrasEspiao
+                    config={sala.config}
+                    pacotesDisponiveis={sala.pacotesDisponiveis}
+                    souHost={eu.ehHost}
+                    enviar={enviar}
+                  />
+                ) : (
+                  <Regras
+                    config={sala.config}
+                    pacotesDisponiveis={sala.pacotesDisponiveis}
+                    souHost={eu.ehHost}
+                    enviar={enviar}
+                  />
+                )}
+              </div>
+            ) : (
+              <Chat mensagens={projecao.chat} aoEnviar={(texto) => enviar({ t: 'chat', texto })} />
+            )}
+          </div>
+        </div>
       </div>
+
+      <div className="lg:hidden">{acao}</div>
     </Shell>
   )
 }
 
-function Titulo({ texto, contagem }: { texto: string; contagem?: string }) {
+/**
+ * Tudo que trava o começo, não só o primeiro impedimento. A barra lista os dois
+ * quando são dois — descobrir que falta gente, resolver, e só então descobrir
+ * que falta pacote é o jeito mais fácil de irritar quem está organizando.
+ */
+function pendenciasParaIniciar(ativos: number, minimo: number, config: Config): string[] {
+  const lista: string[] = []
+  const gente = motivoParaIniciar(ativos, minimo)
+  if (gente !== undefined) lista.push(gente)
+  if (config.modoPacote === 'pacote' && config.pacoteIds.length === 0) {
+    lista.push('Escolha ao menos um pacote.')
+  }
+  if (config.modoPacote === 'personalizado') {
+    lista.push('Pacotes personalizados não estão disponíveis ainda.')
+  }
+  return lista
+}
+
+/** A linha de resumo da barra: o que a partida vai ser, em dados. */
+function resumoDaPartida(sala: Projecao['sala'], ativos: number): string {
+  const partes = [`${ativos} na mesa`]
+  const pacotes = sala.config.pacoteIds.length
+  if (pacotes > 0) partes.push(`${pacotes} ${pacotes === 1 ? 'pacote' : 'pacotes'}`)
+  if (sala.jogoId === 'espiao') {
+    const numero = sala.config.espiao.numEspioes
+    partes.push(numero === 'auto' ? 'espiões no automático' : `${numero} na cara de espião`)
+  }
+  return partes.join(' · ')
+}
+
+function Aba({
+  atual,
+  valor,
+  contagem,
+  aoEscolher,
+  children,
+}: {
+  atual: string
+  valor: 'regras' | 'resenha'
+  contagem?: number
+  aoEscolher(valor: 'regras' | 'resenha'): void
+  children: ReactNode
+}) {
+  const ativa = atual === valor
   return (
-    <div className="flex items-baseline justify-between gap-3">
-      <h2 className="font-mono text-[11px] tracking-[0.12em] text-texto-3 uppercase">{texto}</h2>
-      {contagem !== undefined && (
-        <span className="font-mono text-[11px] text-texto-3">{contagem}</span>
+    <button
+      type="button"
+      aria-pressed={ativa}
+      onClick={() => aoEscolher(valor)}
+      className={`flex min-h-12 flex-1 cursor-pointer items-center justify-center gap-1.5 text-corpo font-semibold ${
+        ativa ? 'bg-controle-linha text-fundo' : 'text-texto-3 hover:text-texto'
+      }`}
+    >
+      {children}
+      {contagem !== undefined && contagem > 0 && (
+        <span className="font-mono text-compacto">{contagem}</span>
       )}
-    </div>
+    </button>
   )
 }
 
-/** `SALA-08` — o código em destaque e o link a um toque. */
-function Convite({
+/**
+ * `SALA-08` — o código em destaque e a mesa logo abaixo, no mesmo papel: são a
+ * mesma pergunta ("quem já está aqui, e como chamo o resto?").
+ */
+function ConviteEMesa({
   codigo,
-  sozinho,
+  limite,
+  jogadores,
+  euId,
+  hostId,
+  souHost,
   minimoDoJogo,
+  enviar,
 }: {
   codigo: string
-  sozinho: boolean
+  limite: number
+  jogadores: Projecao['jogadores']
+  euId: JogadorId
+  hostId: JogadorId
+  souHost: boolean
   minimoDoJogo: number
+  enviar: PropsDaTela['enviar']
 }) {
   const [copiado, setCopiado] = useState(false)
 
   return (
-    <div className="flex flex-col gap-4">
-      {sozinho && (
-        <div className="flex flex-col gap-1.5">
-          <h2 className="text-titulo text-texto">Chame a galera</h2>
-          <p className="text-[15px] leading-relaxed text-texto-2">
-            Mande o link no grupo ou dite as cinco letras em voz alta. A partida começa com{' '}
-            {minimoDoJogo} pessoas.
-          </p>
+    <section className="overflow-hidden rounded-papel border-2 border-controle-linha bg-superficie shadow-botao">
+      <div className="flex flex-col gap-2.5 border-b border-dashed border-linha p-4">
+        <h2 className="font-mono text-rotulo text-texto-3 uppercase">
+          dite essas letras pra galera
+        </h2>
+        <span className="font-display text-codigo text-texto">{codigo}</span>
+        <Botao
+          larguraTotal
+          variante="secundario"
+          onClick={() => {
+            void navigator.clipboard
+              ?.writeText(linkDeConvite(window.location.origin, codigo))
+              .then(() => {
+                setCopiado(true)
+                setTimeout(() => setCopiado(false), 2000)
+              })
+              .catch(() => setCopiado(false))
+          }}
+        >
+          {copiado ? '✓ Link copiado' : '⧉ Copiar link do convite'}
+        </Botao>
+      </div>
+
+      <div className="flex flex-col gap-3 p-4">
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="font-mono text-rotulo text-texto-3 uppercase">na mesa</h2>
+          {/* `AJU-39` — a lotação é a desta sala, escolhida por quem a criou. */}
+          <span className="font-mono text-dado text-texto">
+            {jogadores.length}
+            <span className="text-texto-3">/{limite}</span>
+          </span>
+        </div>
+
+        <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {jogadores.map((jogador) => (
+            <FichaNaMesa
+              key={jogador.id}
+              jogador={jogador}
+              euId={euId}
+              hostId={hostId}
+              souHost={souHost}
+              enviar={enviar}
+            />
+          ))}
+        </ul>
+
+        <p className="text-apoio text-texto-3">
+          {jogadores.length === 1
+            ? `Quem entrar aparece aqui na hora. A partida começa com ${minimoDoJogo}.`
+            : souHost
+              ? 'Toque numa ficha pra passar o comando ou tirar da mesa.'
+              : 'Quem entrar aparece aqui na hora.'}
+        </p>
+      </div>
+    </section>
+  )
+}
+
+/** A ficha vira o próprio botão de ação do host — não há menu escondido. */
+function FichaNaMesa({
+  jogador,
+  euId,
+  hostId,
+  souHost,
+  enviar,
+}: {
+  jogador: Projecao['jogadores'][number]
+  euId: JogadorId
+  hostId: JogadorId
+  souHost: boolean
+  enviar: PropsDaTela['enviar']
+}) {
+  const [aberto, setAberto] = useState(false)
+  const [confirmandoExpulsao, setConfirmandoExpulsao] = useState(false)
+  // `VIS-04` — sobre si mesmo o host não tem ação nenhuma.
+  const temAcoes = souHost && jogador.id !== euId
+
+  const etiqueta = [
+    jogador.id === euId ? 'você' : null,
+    jogador.id === hostId ? '★ comanda' : null,
+    jogador.conectado ? null : '○ caiu',
+    jogador.situacao === 'aguardando' ? 'entra na próxima' : null,
+  ]
+    .filter((parte) => parte !== null)
+    .join(' · ')
+
+  const miolo = (
+    <>
+      <MarcadorDeJogador apelido={jogador.apelido} cor={jogador.cor} tamanho="grande" />
+      <span className="flex min-w-0 flex-col gap-0.5 text-left">
+        <span className="truncate text-apoio font-semibold text-texto">{jogador.apelido}</span>
+        {etiqueta !== '' && (
+          <span className="truncate font-mono text-compacto-apoio tracking-[0.06em] text-texto-3">
+            {etiqueta}
+          </span>
+        )}
+      </span>
+    </>
+  )
+
+  const forma = `flex min-h-12 w-full items-center gap-2 rounded-botao border border-linha bg-fundo px-2.5 py-2 ${
+    jogador.conectado ? '' : 'opacity-55'
+  }`
+
+  return (
+    <Fragment>
+      <li>
+        {temAcoes ? (
+          <button
+            type="button"
+            aria-label={`Ações sobre ${jogador.apelido}`}
+            onClick={() => setAberto(true)}
+            className={`cursor-pointer ${forma}`}
+          >
+            {miolo}
+          </button>
+        ) : (
+          <div className={forma}>{miolo}</div>
+        )}
+      </li>
+
+      {aberto && (
+        <Modal
+          folha
+          titulo={jogador.apelido}
+          descricao="O que você quer fazer com essa pessoa?"
+          rotuloCancelar="Fechar"
+          aoCancelar={() => setAberto(false)}
+        >
+          <div className="flex flex-col gap-2.5">
+            <Botao
+              larguraTotal
+              variante="secundario"
+              onClick={() => {
+                enviar({ t: 'transferirHost', jogadorId: jogador.id })
+                setAberto(false)
+              }}
+            >
+              Passar o comando
+            </Botao>
+            <Botao
+              larguraTotal
+              variante="destrutivo"
+              onClick={() => {
+                setConfirmandoExpulsao(true)
+                setAberto(false)
+              }}
+            >
+              Tirar da mesa
+            </Botao>
+          </div>
+        </Modal>
+      )}
+
+      {confirmandoExpulsao && (
+        <Modal
+          titulo={`Tirar ${jogador.apelido} da mesa?`}
+          descricao={`${jogador.apelido} sai da sala agora e não consegue voltar por este código.`}
+          rotuloConfirmar={`Tirar ${jogador.apelido}`}
+          destrutivo
+          aoConfirmar={() => {
+            enviar({ t: 'expulsar', jogadorId: jogador.id })
+            setConfirmandoExpulsao(false)
+          }}
+          aoCancelar={() => setConfirmandoExpulsao(false)}
+        />
+      )}
+    </Fragment>
+  )
+}
+
+/**
+ * A barra que responde "já dá pra começar?". Quando não dá, ela lista **todas**
+ * as pendências de uma vez.
+ */
+function AcaoDeIniciar({
+  souHost,
+  apelidoDoHost,
+  ativos,
+  pendencias,
+  resumo,
+  enviar,
+}: {
+  souHost: boolean
+  apelidoDoHost: string | undefined
+  ativos: number
+  pendencias: string[]
+  resumo: string
+  enviar: PropsDaTela['enviar']
+}) {
+  if (!souHost) {
+    return (
+      <BarraDeAcao>
+        <div className="flex items-center gap-2.5">
+          <span className="selo bg-aviso text-aviso-contraste">esperando</span>
+          <span className="text-apoio text-texto-2">
+            {apelidoDoHost ?? 'Quem comanda a sala'} começa quando quiser.
+          </span>
+        </div>
+      </BarraDeAcao>
+    )
+  }
+
+  const travado = pendencias.length > 0
+
+  return (
+    <BarraDeAcao>
+      {travado ? (
+        <div className="flex flex-col items-start gap-1.5">
+          <span className="selo bg-acento text-acento-contraste">
+            {pendencias.length === 1 ? 'falta 1 coisa' : `faltam ${pendencias.length} coisas`}
+          </span>
+          <ul className="flex flex-col gap-1">
+            {pendencias.map((pendencia) => (
+              <li key={pendencia} className="flex gap-2 text-apoio leading-snug text-texto-2">
+                <span aria-hidden="true">·</span>
+                <span>{pendencia}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2.5">
+          <span className="selo border border-pronto text-pronto">tudo pronto</span>
+          <span className="text-apoio text-texto-3">{resumo}</span>
         </div>
       )}
 
-      <div className="flex flex-col items-start gap-2 rounded-bloco border border-linha bg-superficie px-4 py-4">
-        <span className="font-mono text-[11px] tracking-[0.12em] text-texto-3 uppercase">
-          código da sala
-        </span>
-        <span className="font-mono text-display tracking-[0.16em] text-texto">{codigo}</span>
-      </div>
-
       <Botao
         larguraTotal
-        variante="secundario"
-        onClick={() => {
-          void navigator.clipboard
-            ?.writeText(linkDeConvite(window.location.origin, codigo))
-            .then(() => {
-              setCopiado(true)
-              setTimeout(() => setCopiado(false), 2000)
-            })
-            .catch(() => setCopiado(false))
-        }}
+        onClick={() => enviar({ t: 'iniciar' })}
+        motivo={travado ? pendencias.join(' ') : undefined}
+        motivoOculto
       >
-        {copiado ? 'Link copiado' : 'Copiar link do convite'}
+        {travado ? 'Começar' : `Começar com ${ativos} pessoas`}
       </Botao>
-    </div>
+    </BarraDeAcao>
   )
 }
 
@@ -224,32 +471,37 @@ function JogoDaSala({
   // Rascunho local: só vira comando de verdade em "Confirmar"; "Cancelar"
   // descarta sem tocar na sala — mesmo padrão de `pacoteIdsRascunho`.
   const [jogoIdRascunho, setJogoIdRascunho] = useState(jogoId)
-  const nome = nomeDoJogo(jogoId)
-
-  const abrirModal = () => {
-    setJogoIdRascunho(jogoId)
-    setModalAberto(true)
-  }
 
   return (
-    <div className="flex flex-col gap-2">
-      <Titulo texto="Jogo" />
+    <div className="flex items-center justify-between gap-3 border-b border-dashed border-linha py-3">
+      <span className="flex min-w-0 flex-col gap-0.5">
+        <span className="text-corpo font-semibold text-texto">Jogo</span>
+        {souHost && <span className="text-apoio text-texto-3">trocar reseta as regras</span>}
+      </span>
+
       {souHost ? (
-        <div className="flex items-center justify-between rounded-bloco border border-linha bg-superficie px-4 py-3">
-          <span className="font-semibold text-texto">{nome}</span>
-          <Botao variante="secundario" onClick={abrirModal}>
-            Mudar jogo
-          </Botao>
-        </div>
+        <button
+          type="button"
+          onClick={() => {
+            setJogoIdRascunho(jogoId)
+            setModalAberto(true)
+          }}
+          className="flex min-h-11 flex-none cursor-pointer items-center gap-2 rounded-chip border border-controle-linha bg-fundo px-3 text-apoio font-semibold text-texto shadow-chip transition-transform motion-safe:active:translate-x-[2px] motion-safe:active:translate-y-[2px] motion-safe:active:shadow-none"
+        >
+          {nomeDoJogo(jogoId)}
+          <span aria-hidden="true" className="text-texto-3">
+            ⇄
+          </span>
+        </button>
       ) : (
-        <p className="text-[15px] text-texto-2">{nome}</p>
+        <span className="flex-none font-mono text-dado text-texto-2">{nomeDoJogo(jogoId)}</span>
       )}
 
       {modalAberto && (
         <Modal
-          titulo="Escolha o jogo"
-          descricao="Trocar de jogo reseta as regras da partida para o padrão do jogo novo."
-          largura="larga"
+          folha
+          titulo="O que vamos jogar"
+          descricao="Trocar de jogo reseta as regras da partida pro padrão do jogo novo."
           rotuloConfirmar="Confirmar"
           aoConfirmar={() => {
             enviar({ t: 'trocarJogo', jogoId: jogoIdRascunho })
@@ -264,127 +516,29 @@ function JogoDaSala({
   )
 }
 
-function LinhaDeJogador({
-  jogador,
-  euId,
-  hostId,
-  souHost,
-  enviar,
-}: {
-  jogador: Projecao['jogadores'][number]
-  euId: JogadorId
-  hostId: JogadorId
-  souHost: boolean
-  enviar: PropsDaTela['enviar']
-}) {
-  const [aberto, setAberto] = useState(false)
-  const [confirmandoExpulsao, setConfirmandoExpulsao] = useState(false)
-  // `VIS-04` — sobre si mesmo o host não tem ação nenhuma.
-  const temAcoes = souHost && jogador.id !== euId
-
-  return (
-    <Fragment>
-      <FichaDeJogador
-        apelido={jogador.apelido}
-        cor={jogador.cor}
-        ehVoce={jogador.id === euId}
-        ehHost={jogador.id === hostId}
-        conectado={jogador.conectado}
-        acoes={
-          temAcoes ? (
-            <button
-              type="button"
-              aria-expanded={aberto}
-              aria-label={`Ações sobre ${jogador.apelido}`}
-              onClick={() => setAberto((estava) => !estava)}
-              className="min-h-11 shrink-0 cursor-pointer px-2 text-[18px] leading-none text-texto-3 hover:text-texto"
-            >
-              ···
-            </button>
-          ) : undefined
-        }
-      />
-
-      {temAcoes && aberto && (
-        <li className="flex flex-col gap-1 rounded-painel bg-superficie-2 px-2 py-2">
-          <button
-            type="button"
-            onClick={() => {
-              enviar({ t: 'transferirHost', jogadorId: jogador.id })
-              setAberto(false)
-            }}
-            className="min-h-11 cursor-pointer px-2 text-left text-[15px] font-medium text-texto"
-          >
-            Passar o comando para {jogador.apelido}
-          </button>
-          <button
-            type="button"
-            onClick={() => setConfirmandoExpulsao(true)}
-            className="min-h-11 cursor-pointer px-2 text-left text-[15px] font-medium text-risco"
-          >
-            Expulsar da sala
-          </button>
-        </li>
-      )}
-
-      {confirmandoExpulsao && (
-        <Modal
-          titulo={`Expulsar ${jogador.apelido}?`}
-          descricao={`${jogador.apelido} sai da sala agora e não consegue voltar por este código. Não tem como desfazer.`}
-          rotuloConfirmar={`Expulsar ${jogador.apelido}`}
-          destrutivo
-          aoConfirmar={() => {
-            enviar({ t: 'expulsar', jogadorId: jogador.id })
-            setConfirmandoExpulsao(false)
-            setAberto(false)
-          }}
-          aoCancelar={() => setConfirmandoExpulsao(false)}
-        />
-      )}
-    </Fragment>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Componentes Auxiliares
-// ---------------------------------------------------------------------------
-
-function DicaBotao({ aberta, aoAlternar }: { aberta: boolean; aoAlternar: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={aoAlternar}
-      title="Mostrar dica"
-      className={`flex items-center justify-center w-[14px] h-[14px] rounded-full border text-[9px] font-bold cursor-pointer transition-all ${
-        aberta
-          ? 'border-acento text-acento opacity-100'
-          : 'border-texto-3 text-texto-3 opacity-70 hover:opacity-100'
-      }`}
-    >
-      ?
-    </button>
-  )
-}
-
 // ---------------------------------------------------------------------------
 // Regras da partida (`CFG-01`…`CFG-06`)
 // ---------------------------------------------------------------------------
 
 const OPCOES_DE_ORDEM = [
-  { valor: 'sorteada', rotulo: 'Sorteada' },
-  { valor: 'entrada', rotulo: 'Ordem de entrada' },
-] as const
+  { valor: 'sorteada' as const, rotulo: 'Sorteada' },
+  { valor: 'entrada' as const, rotulo: 'Ordem de entrada' },
+]
 
 const OPCOES_DE_MODO = [
-  { valor: 'livre', rotulo: 'Livre' },
-  { valor: 'pacote', rotulo: 'Pacotes' },
-  { valor: 'personalizado', rotulo: 'Personalizado' },
-] as const
+  { valor: 'livre' as const, rotulo: 'Livre', nota: 'Cada um escreve o que quiser.' },
+  { valor: 'pacote' as const, rotulo: 'Pacotes', nota: 'Temas pré-definidos do jogo.' },
+  { valor: 'personalizado' as const, rotulo: 'Personalizado', nota: 'Em breve.' },
+]
 
 const OPCOES_DE_DISTRIBUICAO = [
-  { valor: 'aleatoria', rotulo: 'Aleatória' },
-  { valor: 'escolha', rotulo: 'Escolher pro colega' },
-] as const
+  { valor: 'aleatoria' as const, rotulo: 'Aleatória', nota: 'O jogo sorteia a carta.' },
+  {
+    valor: 'escolha' as const,
+    rotulo: 'Escolher pro colega',
+    nota: 'Você recebe 5 opções e escolhe uma.',
+  },
+]
 
 const OPCOES_DE_DIFICULDADE: ReadonlyArray<{ valor: Dificuldade; rotulo: string }> = [
   { valor: 'facil', rotulo: 'Fácil' },
@@ -396,360 +550,245 @@ function Regras({
   config,
   pacotesDisponiveis,
   souHost,
-  apelidoDoHost,
   enviar,
 }: {
   config: Config
   pacotesDisponiveis: PacoteResumo[] | undefined
   souHost: boolean
-  apelidoDoHost: string | undefined
   enviar: PropsDaTela['enviar']
 }) {
+  const [folha, setFolha] = useState<string | null>(null)
   const [modalPacotesAberto, setModalPacotesAberto] = useState(false)
-  const [modoTempo, setModoTempo] = useState<'preset' | 'personalizado'>(
-    ehTempoPersonalizado(config.tempoTurnoSeg) ? 'personalizado' : 'preset'
-  )
-  const [dicaPacoteAberta, setDicaPacoteAberta] = useState(false)
-  // Rascunho local do modal de seleção — só vira config de verdade em
-  // "Confirmar" (`enviar`); "Cancelar" descarta sem afetar a sala.
   const [pacoteIdsRascunho, setPacoteIdsRascunho] = useState<string[]>(config.pacoteIds)
-  const [pacoteParaVerCartas, setPacoteParaVerCartas] = useState<PacoteResumo | null>(null)
   const [verPacoteAberto, setVerPacoteAberto] = useState(false)
 
-  const abrirModalDePacotes = () => {
-    setPacoteIdsRascunho(config.pacoteIds)
-    setModalPacotesAberto(true)
-  }
-
-  const pacotesSelecionados = pacotesDisponiveis?.filter((p) => config.pacoteIds.includes(p.id)) ?? []
-  // `PKT2-11` — pool combinado computado localmente (sem round-trip), a
-  // mesma função pura usada pelo servidor para sortear (AD-012).
+  const pacotesSelecionados =
+    pacotesDisponiveis?.filter((p) => config.pacoteIds.includes(p.id)) ?? []
+  // `PKT2-11` — pool combinado computado localmente (sem round-trip), a mesma
+  // função pura usada pelo servidor pra sortear (AD-012).
   const poolAtual = montarPoolDeCartas(
     PACOTES.filter((p) => config.pacoteIds.includes(p.id)),
     config.dificuldades,
   )
 
-  const opcoesDeTempo = [
-    ...PRESETS_DE_TEMPO.map(p => ({ valor: p.valor === null ? 'sem-limite' : String(p.valor), rotulo: p.rotulo })),
-    { valor: 'personalizado', rotulo: 'Personalizado' }
-  ]
-  const tempoAtualVal = ehTempoPersonalizado(config.tempoTurnoSeg) || modoTempo === 'personalizado'
-    ? 'personalizado'
-    : (config.tempoTurnoSeg === null ? 'sem-limite' : String(config.tempoTurnoSeg));
+  const abrir = (nome: string) => (souHost ? () => setFolha(nome) : undefined)
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1">
-        <Titulo texto={souHost ? 'Regras da partida' : 'Regras desta partida'} />
-        {!souHost && (
-          <p className="text-miudo text-texto-3">
-            Quem escolhe é {apelidoDoHost ?? 'quem comanda a sala'}, que criou a sala.
-          </p>
-        )}
-      </div>
+    <div className="flex flex-col">
+      <LinhaDeRegra
+        rotulo="Modo de jogo"
+        dica="Livre: cada um escreve o que quiser. Pacotes: temas pré-definidos do jogo."
+        valor={rotuloDe(OPCOES_DE_MODO, config.modoPacote)}
+        aoAbrir={abrir('modo')}
+      />
 
-      {/* `PKT2-11`, `PKT2-12` — some quando não há pacote nenhum selecionado. */}
-      {config.modoPacote === 'pacote' && config.pacoteIds.length > 0 && (
-        <Botao variante="secundario" onClick={() => setVerPacoteAberto(true)}>
-          Ver pacote ({poolAtual.length} cartas)
-        </Botao>
+      {config.modoPacote === 'pacote' && (
+        <>
+          <LinhaDeRegra
+            rotulo="Pacote"
+            dica="O tema de cartas selecionado para todos os jogadores."
+            valor={resumoDePacotes(pacotesSelecionados)}
+            aoAbrir={
+              souHost
+                ? () => {
+                    setPacoteIdsRascunho(config.pacoteIds)
+                    setModalPacotesAberto(true)
+                  }
+                : undefined
+            }
+          />
+          <LinhaDeRegra
+            rotulo="Dificuldade"
+            dica="Pelo menos um nível precisa estar marcado."
+            valor={OPCOES_DE_DIFICULDADE.filter((o) => config.dificuldades.includes(o.valor))
+              .map((o) => o.rotulo)
+              .join(', ')}
+            aoAbrir={abrir('dificuldade')}
+          />
+          {config.pacoteIds.length > 0 && (
+            <LinhaDeRegra
+              rotulo="Distribuição"
+              dica="Aleatória: o jogo sorteia a carta. Escolher: você recebe 5 opções do pacote e escolhe uma delas pro seu colega."
+              valor={rotuloDe(OPCOES_DE_DISTRIBUICAO, config.modoDistribuicao)}
+              aoAbrir={abrir('distribuicao')}
+            />
+          )}
+        </>
       )}
 
-      {verPacoteAberto && (
+      <LinhaDeRegra
+        rotulo="Ordem dos turnos"
+        dica="Ordem de entrada: quem entrou primeiro na sala joga primeiro."
+        valor={rotuloDe(OPCOES_DE_ORDEM, config.ordemTurnos)}
+        aoAbrir={abrir('ordem')}
+      />
+      <LinhaDeRegra
+        rotulo="Tempo por turno"
+        dica="Tempo máximo que um jogador tem pra adivinhar a carta na sua vez."
+        valor={rotuloDoTempo(config.tempoTurnoSeg)}
+        aoAbrir={abrir('tempo')}
+      />
+
+      {config.modoPacote === 'personalizado' && (
+        <div className="pacote-fantasma mt-3.5">
+          <span aria-hidden="true" className="text-[24px] opacity-50">
+            🔒
+          </span>
+          <span className="font-semibold text-texto-3">Crie seu pacote — em breve</span>
+        </div>
+      )}
+
+      {config.modoPacote === 'pacote' && config.pacoteIds.length > 0 && (
+        <VerPool
+          rotulo={`ver cartas (${poolAtual.length})`}
+          aoAbrir={() => setVerPacoteAberto(true)}
+        />
+      )}
+
+      {folha === 'modo' && (
+        <FolhaDeEscolha
+          titulo="Modo de jogo"
+          opcoes={OPCOES_DE_MODO}
+          atual={config.modoPacote}
+          aoEscolher={(modoPacote) => {
+            if (modoPacote === 'livre') {
+              enviar({
+                t: 'configurar',
+                config: { modoPacote, pacoteIds: [], modoDistribuicao: 'aleatoria' },
+              })
+            } else {
+              enviar({ t: 'configurar', config: { modoPacote } })
+            }
+          }}
+          aoFechar={() => setFolha(null)}
+        />
+      )}
+
+      {folha === 'dificuldade' && (
         <Modal
-          titulo="Cartas possíveis"
-          descricao={`${poolAtual.length} cartas no pool combinado — nunca mostra quem tem qual carta.`}
-          largura="larga"
-          aoCancelar={() => setVerPacoteAberto(false)}
+          folha
+          titulo="Dificuldade"
+          descricao="Pode marcar mais de um. Pelo menos um nível precisa ficar de pé."
+          rotuloCancelar="Fechar"
+          aoCancelar={() => setFolha(null)}
         >
-          <ul className="grid max-h-[60vh] grid-cols-2 gap-1.5 overflow-y-auto sm:grid-cols-3">
-            {poolAtual.map((texto) => (
-              <li
-                key={texto}
-                className="rounded-controle bg-superficie-2 px-2.5 py-1.5 text-miudo text-texto-2"
-              >
-                {texto}
-              </li>
-            ))}
-          </ul>
+          <div className="flex flex-col gap-2.5">
+            {OPCOES_DE_DIFICULDADE.map((opcao) => {
+              const marcado = config.dificuldades.includes(opcao.valor)
+              const ehUltimaAtiva = marcado && config.dificuldades.length === 1
+              return (
+                <Botao
+                  key={opcao.valor}
+                  larguraTotal
+                  variante={marcado ? 'primario' : 'secundario'}
+                  motivo={ehUltimaAtiva ? 'Pelo menos um nível precisa estar marcado.' : undefined}
+                  selecaoTravada={ehUltimaAtiva}
+                  onClick={() => {
+                    const dificuldades = marcado
+                      ? config.dificuldades.filter((d) => d !== opcao.valor)
+                      : [...config.dificuldades, opcao.valor]
+                    enviar({ t: 'configurar', config: { dificuldades } })
+                  }}
+                >
+                  {marcado ? `✓ ${opcao.rotulo}` : opcao.rotulo}
+                </Botao>
+              )
+            })}
+          </div>
         </Modal>
       )}
 
-      {souHost ? (
-        <div className="flex flex-col gap-4">
-          <Escolha
-            rotulo="Modo de jogo"
-            dica="Livre: cada um escreve o que quiser. Pacotes: temas pré-definidos do jogo."
-            opcoes={OPCOES_DE_MODO}
-            atual={config.modoPacote}
-            aoEscolher={(modoPacote) => {
-              if (modoPacote === 'livre') {
-                enviar({ t: 'configurar', config: { modoPacote, pacoteIds: [], modoDistribuicao: 'aleatoria' } })
-              } else {
-                enviar({ t: 'configurar', config: { modoPacote } })
-              }
-            }}
-          />
+      {folha === 'distribuicao' && (
+        <FolhaDeEscolha
+          titulo="Distribuição"
+          opcoes={OPCOES_DE_DISTRIBUICAO}
+          atual={config.modoDistribuicao}
+          aoEscolher={(modoDistribuicao) =>
+            enviar({ t: 'configurar', config: { modoDistribuicao } })
+          }
+          aoFechar={() => setFolha(null)}
+        />
+      )}
 
-          {config.modoPacote === 'pacote' && (
-            <div className="flex flex-col gap-4">
-              <fieldset className="flex flex-col gap-2">
-                <legend className="mb-2 text-apoio text-texto-2 flex items-center gap-2">
-                  Pacote
-                  <DicaBotao aberta={dicaPacoteAberta} aoAlternar={() => setDicaPacoteAberta(!dicaPacoteAberta)} />
-                </legend>
-                {dicaPacoteAberta && (
-                  <p className="text-xs text-texto-3 mb-1 -mt-1 leading-snug">O tema de cartas selecionado para todos os jogadores.</p>
-                )}
-                {pacotesSelecionados.length > 0 ? (
-                  <div className="flex items-center justify-between rounded-bloco border border-linha bg-superficie px-4 py-3">
-                    <div className="flex flex-col">
-                      <span className="font-semibold text-texto leading-snug">
-                        {pacotesSelecionados.map((p) => `${p.emoji} ${p.nome}`).join(', ')}
-                      </span>
-                      <span className="font-mono text-[10px] tracking-[0.1em] text-texto-3 uppercase">
-                        {pacotesSelecionados.length === 1 ? '1 pacote' : `${pacotesSelecionados.length} pacotes`}
-                      </span>
-                    </div>
-                    <Botao variante="secundario" onClick={() => abrirModalDePacotes()}>Mudar...</Botao>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-between rounded-bloco border border-dashed border-linha-suave bg-superficie px-4 py-3">
-                    <span className="text-[15px] text-texto-2">Nenhum pacote selecionado</span>
-                    <Botao variante="secundario" onClick={() => abrirModalDePacotes()}>Selecionar...</Botao>
-                  </div>
-                )}
-              </fieldset>
+      {folha === 'ordem' && (
+        <FolhaDeEscolha
+          titulo="Ordem dos turnos"
+          opcoes={OPCOES_DE_ORDEM}
+          atual={config.ordemTurnos}
+          aoEscolher={(ordemTurnos) => enviar({ t: 'configurar', config: { ordemTurnos } })}
+          aoFechar={() => setFolha(null)}
+        />
+      )}
 
-              <fieldset className="flex flex-col gap-2">
-                <legend className="mb-2 text-apoio text-texto-2">Dificuldade</legend>
-                <div className="flex flex-wrap gap-2">
-                  {OPCOES_DE_DIFICULDADE.map((opcao) => {
-                    const marcado = config.dificuldades.includes(opcao.valor)
-                    const ehUltimaAtiva = marcado && config.dificuldades.length === 1
-                    return (
-                      <Botao
-                        key={opcao.valor}
-                        variante={marcado ? 'primario' : 'secundario'}
-                        motivo={ehUltimaAtiva ? 'Pelo menos um nível precisa estar marcado' : undefined}
-                        motivoOculto={ehUltimaAtiva}
-                        selecaoTravada={ehUltimaAtiva}
-                        onClick={() => {
-                          const dificuldades = marcado
-                            ? config.dificuldades.filter((d) => d !== opcao.valor)
-                            : [...config.dificuldades, opcao.valor]
-                          enviar({ t: 'configurar', config: { dificuldades } })
-                        }}
-                      >
-                        {opcao.rotulo}
-                      </Botao>
-                    )
-                  })}
-                </div>
-                {config.dificuldades.length === 1 && (
-                  <p className="text-apoio text-texto-2">Pelo menos um nível precisa estar marcado</p>
-                )}
-              </fieldset>
+      {folha === 'tempo' && (
+        <FolhaDeTempo
+          titulo="Tempo por turno"
+          atual={config.tempoTurnoSeg}
+          presets={PRESETS_DE_TEMPO}
+          aoEscolher={(tempoTurnoSeg) => enviar({ t: 'configurar', config: { tempoTurnoSeg } })}
+          aoFechar={() => setFolha(null)}
+        />
+      )}
 
-              {config.pacoteIds.length > 0 && (
-                <Escolha
-                  rotulo="Distribuição"
-                  dica="Aleatória: o jogo sorteia a carta. Escolher: você recebe 5 opções do pacote e escolhe uma delas para seu colega."
-                  opcoes={OPCOES_DE_DISTRIBUICAO}
-                  atual={config.modoDistribuicao}
-                  aoEscolher={(modoDistribuicao) => enviar({ t: 'configurar', config: { modoDistribuicao } })}
-                />
-              )}
+      {modalPacotesAberto && (
+        <GavetaDePacotes
+          titulo="Pacotes de cartas"
+          descricao="Pode escolher mais de um — as cartas se somam."
+          unidade="cartas"
+          disponiveis={pacotesDisponiveis}
+          rascunho={pacoteIdsRascunho}
+          aoAlternar={setPacoteIdsRascunho}
+          aoConfirmar={() => {
+            enviar({ t: 'configurar', config: { pacoteIds: pacoteIdsRascunho } })
+            setModalPacotesAberto(false)
+          }}
+          aoFechar={() => setModalPacotesAberto(false)}
+        />
+      )}
 
-              {modalPacotesAberto && (
-                <Modal
-                  titulo="Escolha um ou mais pacotes"
-                  descricao="Marque os temas das cartas para esta partida."
-                  largura="larga"
-                  rotuloConfirmar="Confirmar"
-                  aoConfirmar={() => {
-                    enviar({ t: 'configurar', config: { pacoteIds: pacoteIdsRascunho } })
-                    setModalPacotesAberto(false)
-                  }}
-                  aoCancelar={() => setModalPacotesAberto(false)}
-                >
-                  <div className="pacote-grid">
-                    {pacotesDisponiveis?.map((pacote) => {
-                      const marcado = pacoteIdsRascunho.includes(pacote.id)
-                      const alternar = () => {
-                        setPacoteIdsRascunho((atual) =>
-                          atual.includes(pacote.id)
-                            ? atual.filter((id) => id !== pacote.id)
-                            : [...atual, pacote.id]
-                        )
-                      }
-                      return (
-                        // `role="button"` (não `<button>`) para poder aninhar o
-                        // botão "Ver cartas" sem invalidar o HTML.
-                        <div
-                          key={pacote.id}
-                          role="button"
-                          tabIndex={0}
-                          aria-pressed={marcado}
-                          onClick={alternar}
-                          onKeyDown={(evento) => {
-                            if (evento.key !== 'Enter' && evento.key !== ' ') return
-                            evento.preventDefault()
-                            alternar()
-                          }}
-                          className="pacote-card text-left"
-                        >
-                          <div className="flex items-center gap-2">
-                            <span className="text-2xl">{pacote.emoji}</span>
-                            <h3 className="font-semibold text-texto">{pacote.nome}</h3>
-                          </div>
-                          <p className="text-miudo text-texto-2">{pacote.descricao}</p>
-                          <span className="mt-1 font-mono text-[10px] tracking-[0.1em] text-texto-3 uppercase">
-                            {pacote.quantidade} cartas
-                          </span>
-                          <button
-                            type="button"
-                            onClick={(evento) => {
-                              evento.stopPropagation()
-                              setPacoteParaVerCartas(pacote)
-                            }}
-                            className="mt-1 flex min-h-11 w-full cursor-pointer items-center gap-1 self-start text-apoio font-medium text-acento hover:underline"
-                          >
-                            <span aria-hidden="true">▸</span>
-                            Ver cartas
-                          </button>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </Modal>
-              )}
-
-              {pacoteParaVerCartas && (
-                <Modal
-                  titulo={pacoteParaVerCartas.nome}
-                  descricao={`${pacoteParaVerCartas.quantidade} cartas, separadas por dificuldade.`}
-                  largura="larga"
-                  aoCancelar={() => setPacoteParaVerCartas(null)}
-                >
-                  <div className="flex max-h-[60vh] flex-col gap-4 overflow-y-auto">
-                    {OPCOES_DE_DIFICULDADE.map((opcao) => {
-                      const cartas =
-                        PACOTES.find((p) => p.id === pacoteParaVerCartas.id)
-                          ?.cartas.filter((c) => c.dificuldade === opcao.valor)
-                          .map((c) => c.texto) ?? []
-                      return (
-                        <div key={opcao.valor} className="flex flex-col gap-1.5">
-                          <h3 className="text-apoio font-semibold text-texto-2">
-                            {opcao.rotulo} ({cartas.length})
-                          </h3>
-                          <ul className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
-                            {cartas.map((texto) => (
-                              <li
-                                key={texto}
-                                className="rounded-controle bg-superficie-2 px-2.5 py-1.5 text-miudo text-texto-2"
-                              >
-                                {texto}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </Modal>
-              )}
-            </div>
-          )}
-
-          {config.modoPacote === 'personalizado' && (
-            <div className="pacote-fantasma">
-              <span className="text-3xl text-texto-3 opacity-50">🔒</span>
-              <span className="font-semibold text-texto-3">Crie seu pacote — Em breve</span>
-            </div>
-          )}
-
-          <Escolha
-            rotulo="Ordem dos turnos"
-            dica="Ordem de entrada: quem entrou primeiro na sala joga primeiro."
-            opcoes={OPCOES_DE_ORDEM}
-            atual={config.ordemTurnos}
-            aoEscolher={(ordemTurnos) => enviar({ t: 'configurar', config: { ordemTurnos } })}
-          />
-          <div className="flex flex-col gap-3">
-            <Escolha
-              rotulo="Tempo por turno"
-              dica="Tempo máximo que um jogador tem para adivinhar a carta na sua vez."
-              opcoes={opcoesDeTempo}
-              atual={tempoAtualVal}
-              aoEscolher={(val) => {
-                if (val === 'personalizado') {
-                  setModoTempo('personalizado')
-                } else {
-                  setModoTempo('preset')
-                  enviar({ t: 'configurar', config: { tempoTurnoSeg: val === 'sem-limite' ? null : Number(val) } })
-                }
-              }}
-            />
-            {(modoTempo === 'personalizado' || ehTempoPersonalizado(config.tempoTurnoSeg)) && (
-              <TempoPersonalizado
-                atual={config.tempoTurnoSeg}
-                aoEscolher={(tempoTurnoSeg) => enviar({ t: 'configurar', config: { tempoTurnoSeg } })}
-              />
-            )}
-          </div>
-        </div>
-      ) : (
-        <dl className="flex flex-col">
-          <Leitura rotulo="Modo de jogo" valor={rotuloDe(OPCOES_DE_MODO, config.modoPacote)} />
-          {config.modoPacote === 'pacote' && pacotesDisponiveis && (
-            <>
-              <Leitura
-                rotulo="Pacote"
-                valor={
-                  config.pacoteIds.length > 0
-                    ? pacotesDisponiveis
-                        .filter((p) => config.pacoteIds.includes(p.id))
-                        .map((p) => p.nome)
-                        .join(', ')
-                    : 'Nenhum pacote selecionado'
-                }
-              />
-              <Leitura
-                rotulo="Dificuldade"
-                valor={OPCOES_DE_DIFICULDADE.filter((o) => config.dificuldades.includes(o.valor))
-                  .map((o) => o.rotulo)
-                  .join(', ')}
-              />
-              {config.pacoteIds.length > 0 && (<Leitura rotulo="Distribuição" valor={rotuloDe(OPCOES_DE_DISTRIBUICAO, config.modoDistribuicao)} />)}
-            </>
-          )}
-          <Leitura rotulo="Ordem dos turnos" valor={rotuloDe(OPCOES_DE_ORDEM, config.ordemTurnos)} />
-          <Leitura rotulo="Tempo por turno" valor={rotuloDoTempo(config.tempoTurnoSeg)} />
-        </dl>
+      {verPacoteAberto && (
+        <ListaDeTextos
+          titulo="Cartas possíveis"
+          descricao={`${poolAtual.length} cartas no pool combinado — nunca mostra quem tem qual.`}
+          textos={poolAtual}
+          aoFechar={() => setVerPacoteAberto(false)}
+        />
       )}
     </div>
   )
 }
 
 // ---------------------------------------------------------------------------
-// Regras da partida de Espião (`AD-014`, `ESP-01`…`ESP-03`, `ESP-17`…`ESP-19`, `ESP-22`)
+// Regras da partida de Espião (`AD-014`, `ESP-01`…`ESP-03`, `ESP-17`…`ESP-19`)
 // ---------------------------------------------------------------------------
 
-const OPCOES_NUM_ESPIOES: ReadonlyArray<{ valor: number | 'auto'; rotulo: string }> = [
-  { valor: 'auto' as const, rotulo: 'Auto' },
-  ...[1, 2, 3, 4, 5].map((n) => ({ valor: n, rotulo: String(n) })),
-]
+const OPCOES_NUM_ESPIOES: ReadonlyArray<{ valor: number | 'auto'; rotulo: string; nota?: string }> =
+  [
+    {
+      valor: 'auto' as const,
+      rotulo: 'Auto',
+      nota: `1 espião até ${MESA_GRANDE_ESPIAO - 1} jogadores, 2 a partir de ${MESA_GRANDE_ESPIAO}.`,
+    },
+    ...[1, 2, 3, 4, 5].map((n) => ({ valor: n, rotulo: String(n) })),
+  ]
 
 const OPCOES_SIM_NAO = [
   { valor: true, rotulo: 'Sim' },
   { valor: false, rotulo: 'Não' },
-] as const
+]
 
 const OPCOES_VISIBILIDADE_VOTO = [
-  { valor: 'oculta', rotulo: 'Oculta até fechar' },
-  { valor: 'tempoReal', rotulo: 'Tempo real' },
-] as const
+  {
+    valor: 'oculta' as const,
+    rotulo: 'Oculta até fechar',
+    nota: 'Ninguém vê a contagem enquanto a votação corre.',
+  },
+  {
+    valor: 'tempoReal' as const,
+    rotulo: 'Tempo real',
+    nota: 'A contagem por pessoa aparece a cada voto.',
+  },
+]
 
 const PRESETS_DE_TEMPO_RODADA: ReadonlyArray<{ valor: number | null; rotulo: string }> = [
   { valor: null, rotulo: 'Sem limite' },
@@ -758,438 +797,366 @@ const PRESETS_DE_TEMPO_RODADA: ReadonlyArray<{ valor: number | null; rotulo: str
   { valor: 600, rotulo: '10min' },
 ]
 
-/** Mesmo raciocínio de `ehTempoPersonalizado` (`estado/turno.ts`), pro tempo de rodada. */
-function ehTempoRodadaPersonalizado(tempoRodadaSeg: number | null): boolean {
-  return tempoRodadaSeg !== null && !PRESETS_DE_TEMPO_RODADA.some((o) => o.valor === tempoRodadaSeg)
-}
-
 function RegrasEspiao({
   config,
   pacotesDisponiveis,
   souHost,
-  apelidoDoHost,
   enviar,
 }: {
   config: Config
   pacotesDisponiveis: PacoteResumo[] | undefined
   souHost: boolean
-  apelidoDoHost: string | undefined
   enviar: PropsDaTela['enviar']
 }) {
+  const [folha, setFolha] = useState<string | null>(null)
   const [modalLocaisAberto, setModalLocaisAberto] = useState(false)
-  const [modoTempoRodada, setModoTempoRodada] = useState<'preset' | 'personalizado'>(
-    ehTempoRodadaPersonalizado(config.espiao.tempoRodadaSeg) ? 'personalizado' : 'preset'
-  )
-  // Rascunho local: só vira comando de verdade em "Confirmar" — mesmo padrão
-  // de `pacoteIdsRascunho` usado pros pacotes de cartas.
   const [pacoteIdsRascunho, setPacoteIdsRascunho] = useState<string[]>(config.pacoteIds)
-  const [pacoteParaVerLocais, setPacoteParaVerLocais] = useState<PacoteResumo | null>(null)
   const [verLocaisAberto, setVerLocaisAberto] = useState(false)
 
-  const abrirModalDeLocais = () => {
-    setPacoteIdsRascunho(config.pacoteIds)
-    setModalLocaisAberto(true)
-  }
-
   // Espião sempre opera em modo pacote (não existe "escrita livre" de local,
-  // `AD-014`); sem isso o servidor nunca anexa `pacotesDisponiveis` à
-  // projeção do lobby (`sala-do.ts::confirmar`), e a seleção não tem o que
-  // listar.
+  // `AD-014`); sem isso o servidor nunca anexa `pacotesDisponiveis` à projeção
+  // do lobby (`sala-do.ts::confirmar`), e a seleção não tem o que listar.
   useEffect(() => {
     if (souHost && config.modoPacote !== 'pacote') {
       enviar({ t: 'configurar', config: { modoPacote: 'pacote' } })
     }
   }, [souHost, config.modoPacote, enviar])
 
-  const pacotesSelecionados = pacotesDisponiveis?.filter((p) => config.pacoteIds.includes(p.id)) ?? []
+  const pacotesSelecionados =
+    pacotesDisponiveis?.filter((p) => config.pacoteIds.includes(p.id)) ?? []
   const poolAtual = montarPoolDeCartas(
     LOCAIS.filter((p) => config.pacoteIds.includes(p.id)),
     config.dificuldades,
   )
 
-  const opcoesDeTempoRodada = [
-    ...PRESETS_DE_TEMPO_RODADA.map((p) => ({
-      valor: p.valor === null ? 'sem-limite' : String(p.valor),
-      rotulo: p.rotulo,
-    })),
-    { valor: 'personalizado', rotulo: 'Personalizado' },
-  ]
-  const tempoRodadaAtualVal =
-    ehTempoRodadaPersonalizado(config.espiao.tempoRodadaSeg) || modoTempoRodada === 'personalizado'
-      ? 'personalizado'
-      : config.espiao.tempoRodadaSeg === null
-        ? 'sem-limite'
-        : String(config.espiao.tempoRodadaSeg)
+  const abrir = (nome: string) => (souHost ? () => setFolha(nome) : undefined)
+  const mudarEspiao = (parcial: Partial<Config['espiao']>) =>
+    enviar({ t: 'configurar', config: { espiao: { ...config.espiao, ...parcial } } })
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1">
-        <Titulo texto={souHost ? 'Regras da partida' : 'Regras desta partida'} />
-        {!souHost && (
-          <p className="text-miudo text-texto-3">
-            Quem escolhe é {apelidoDoHost ?? 'quem comanda a sala'}, que criou a sala.
-          </p>
-        )}
-      </div>
+    <div className="flex flex-col">
+      <LinhaDeRegra
+        rotulo="Pacote de locais"
+        dica="De onde saem os locais sorteados pra mesa."
+        valor={resumoDePacotes(pacotesSelecionados)}
+        aoAbrir={
+          souHost
+            ? () => {
+                setPacoteIdsRascunho(config.pacoteIds)
+                setModalLocaisAberto(true)
+              }
+            : undefined
+        }
+      />
+      <LinhaDeRegra
+        rotulo="Nº de espiões"
+        dica={`Auto usa 1 espião até ${MESA_GRANDE_ESPIAO - 1} jogadores e 2 a partir de ${MESA_GRANDE_ESPIAO}. Precisa sobrar ao menos 2 jogadores não-espiões pra rodada começar.`}
+        valor={rotuloDe(OPCOES_NUM_ESPIOES, config.espiao.numEspioes)}
+        aoAbrir={abrir('numEspioes')}
+      />
+      <LinhaDeRegra
+        rotulo="Espiões se veem"
+        dica="Com 2+ espiões, decide se eles sabem uns dos outros."
+        valor={config.espiao.espioesSeVeem ? 'Sim' : 'Não'}
+        aoAbrir={abrir('seVeem')}
+      />
+      <LinhaDeRegra
+        rotulo="Visibilidade do voto"
+        dica="Tempo real mostra a contagem enquanto a votação está aberta; oculta só revela ao fechar."
+        valor={rotuloDe(OPCOES_VISIBILIDADE_VOTO, config.espiao.visibilidadeVoto)}
+        aoAbrir={abrir('voto')}
+      />
+      <LinhaDeRegra
+        rotulo="Tempo de rodada"
+        dica="Tempo até a votação abrir automaticamente."
+        valor={rotuloDoTempo(config.espiao.tempoRodadaSeg)}
+        aoAbrir={abrir('tempoRodada')}
+      />
 
       {config.pacoteIds.length > 0 && (
-        <Botao variante="secundario" onClick={() => setVerLocaisAberto(true)}>
-          Ver locais ({poolAtual.length})
-        </Botao>
+        <VerPool
+          rotulo={`ver locais (${poolAtual.length})`}
+          aoAbrir={() => setVerLocaisAberto(true)}
+        />
+      )}
+
+      {folha === 'numEspioes' && (
+        <FolhaDeEscolha
+          titulo="Nº de espiões"
+          descricao="Precisa sobrar ao menos 2 jogadores não-espiões pra rodada começar."
+          opcoes={OPCOES_NUM_ESPIOES}
+          atual={config.espiao.numEspioes}
+          aoEscolher={(numEspioes) => mudarEspiao({ numEspioes })}
+          aoFechar={() => setFolha(null)}
+        />
+      )}
+
+      {folha === 'seVeem' && (
+        <FolhaDeEscolha
+          titulo="Espiões se veem"
+          descricao="Com 2+ espiões, decide se eles sabem uns dos outros."
+          opcoes={OPCOES_SIM_NAO}
+          atual={config.espiao.espioesSeVeem}
+          aoEscolher={(espioesSeVeem) => mudarEspiao({ espioesSeVeem })}
+          aoFechar={() => setFolha(null)}
+        />
+      )}
+
+      {folha === 'voto' && (
+        <FolhaDeEscolha
+          titulo="Visibilidade do voto"
+          opcoes={OPCOES_VISIBILIDADE_VOTO}
+          atual={config.espiao.visibilidadeVoto}
+          aoEscolher={(visibilidadeVoto) => mudarEspiao({ visibilidadeVoto })}
+          aoFechar={() => setFolha(null)}
+        />
+      )}
+
+      {folha === 'tempoRodada' && (
+        <FolhaDeTempo
+          titulo="Tempo de rodada"
+          atual={config.espiao.tempoRodadaSeg}
+          presets={PRESETS_DE_TEMPO_RODADA}
+          aoEscolher={(tempoRodadaSeg) => mudarEspiao({ tempoRodadaSeg })}
+          aoFechar={() => setFolha(null)}
+        />
+      )}
+
+      {modalLocaisAberto && (
+        <GavetaDePacotes
+          titulo="Pacotes de locais"
+          descricao="Pode escolher mais de um — os locais se somam."
+          unidade="locais"
+          disponiveis={pacotesDisponiveis}
+          rascunho={pacoteIdsRascunho}
+          aoAlternar={setPacoteIdsRascunho}
+          aoConfirmar={() => {
+            enviar({
+              t: 'configurar',
+              config: { modoPacote: 'pacote', pacoteIds: pacoteIdsRascunho },
+            })
+            setModalLocaisAberto(false)
+          }}
+          aoFechar={() => setModalLocaisAberto(false)}
+        />
       )}
 
       {verLocaisAberto && (
-        <Modal
+        <ListaDeTextos
           titulo="Locais possíveis"
           descricao={`${poolAtual.length} locais no pool combinado — nunca mostra qual saiu.`}
-          largura="larga"
-          aoCancelar={() => setVerLocaisAberto(false)}
-        >
-          <ul className="grid max-h-[60vh] grid-cols-2 gap-1.5 overflow-y-auto sm:grid-cols-3">
-            {poolAtual.map((texto) => (
-              <li
-                key={texto}
-                className="rounded-controle bg-superficie-2 px-2.5 py-1.5 text-miudo text-texto-2"
-              >
-                {texto}
-              </li>
-            ))}
-          </ul>
-        </Modal>
-      )}
-
-      {souHost ? (
-        <div className="flex flex-col gap-4">
-          <fieldset className="flex flex-col gap-2">
-            <legend className="mb-2 text-apoio text-texto-2">Pacote de locais</legend>
-            {pacotesSelecionados.length > 0 ? (
-              <div className="flex items-center justify-between rounded-bloco border border-linha bg-superficie px-4 py-3">
-                <div className="flex flex-col">
-                  <span className="font-semibold text-texto leading-snug">
-                    {pacotesSelecionados.map((p) => `${p.emoji} ${p.nome}`).join(', ')}
-                  </span>
-                  <span className="font-mono text-[10px] tracking-[0.1em] text-texto-3 uppercase">
-                    {pacotesSelecionados.length === 1 ? '1 pacote' : `${pacotesSelecionados.length} pacotes`}
-                  </span>
-                </div>
-                <Botao variante="secundario" onClick={abrirModalDeLocais}>Mudar...</Botao>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between rounded-bloco border border-dashed border-linha-suave bg-superficie px-4 py-3">
-                <span className="text-[15px] text-texto-2">Nenhum pacote selecionado</span>
-                <Botao variante="secundario" onClick={abrirModalDeLocais}>Selecionar...</Botao>
-              </div>
-            )}
-          </fieldset>
-
-          {modalLocaisAberto && (
-            <Modal
-              titulo="Escolha um ou mais pacotes de locais"
-              descricao="Marque os temas de locais para esta partida."
-              largura="larga"
-              rotuloConfirmar="Confirmar"
-              aoConfirmar={() => {
-                enviar({ t: 'configurar', config: { modoPacote: 'pacote', pacoteIds: pacoteIdsRascunho } })
-                setModalLocaisAberto(false)
-              }}
-              aoCancelar={() => setModalLocaisAberto(false)}
-            >
-              <div className="pacote-grid">
-                {pacotesDisponiveis?.map((pacote) => {
-                  const marcado = pacoteIdsRascunho.includes(pacote.id)
-                  const alternar = () => {
-                    setPacoteIdsRascunho((atual) =>
-                      atual.includes(pacote.id)
-                        ? atual.filter((id) => id !== pacote.id)
-                        : [...atual, pacote.id]
-                    )
-                  }
-                  return (
-                    <div
-                      key={pacote.id}
-                      role="button"
-                      tabIndex={0}
-                      aria-pressed={marcado}
-                      onClick={alternar}
-                      onKeyDown={(evento) => {
-                        if (evento.key !== 'Enter' && evento.key !== ' ') return
-                        evento.preventDefault()
-                        alternar()
-                      }}
-                      className="pacote-card text-left"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="text-2xl">{pacote.emoji}</span>
-                        <h3 className="font-semibold text-texto">{pacote.nome}</h3>
-                      </div>
-                      <p className="text-miudo text-texto-2">{pacote.descricao}</p>
-                      <span className="mt-1 font-mono text-[10px] tracking-[0.1em] text-texto-3 uppercase">
-                        {pacote.quantidade} locais
-                      </span>
-                      <button
-                        type="button"
-                        onClick={(evento) => {
-                          evento.stopPropagation()
-                          setPacoteParaVerLocais(pacote)
-                        }}
-                        className="mt-1 flex min-h-11 w-full cursor-pointer items-center gap-1 self-start text-apoio font-medium text-acento hover:underline"
-                      >
-                        <span aria-hidden="true">▸</span>
-                        Ver locais
-                      </button>
-                    </div>
-                  )
-                })}
-              </div>
-            </Modal>
-          )}
-
-          {pacoteParaVerLocais && (
-            <Modal
-              titulo={pacoteParaVerLocais.nome}
-              descricao={`${pacoteParaVerLocais.quantidade} locais.`}
-              largura="larga"
-              aoCancelar={() => setPacoteParaVerLocais(null)}
-            >
-              <ul className="grid max-h-[60vh] grid-cols-2 gap-1.5 overflow-y-auto sm:grid-cols-3">
-                {(LOCAIS.find((p) => p.id === pacoteParaVerLocais.id)?.cartas.map((c) => c.texto) ?? []).map(
-                  (texto) => (
-                    <li
-                      key={texto}
-                      className="rounded-controle bg-superficie-2 px-2.5 py-1.5 text-miudo text-texto-2"
-                    >
-                      {texto}
-                    </li>
-                  ),
-                )}
-              </ul>
-            </Modal>
-          )}
-
-          <Escolha
-            rotulo="Nº de espiões"
-            dica={`Auto usa 1 espião até ${MESA_GRANDE_ESPIAO - 1} jogadores e 2 a partir de ${MESA_GRANDE_ESPIAO}. Precisa sobrar ao menos 2 jogadores não-espiões pra rodada começar.`}
-            opcoes={OPCOES_NUM_ESPIOES}
-            atual={config.espiao.numEspioes}
-            aoEscolher={(numEspioes) =>
-              enviar({ t: 'configurar', config: { espiao: { ...config.espiao, numEspioes } } })
-            }
-          />
-
-          <Escolha
-            rotulo="Espiões se veem"
-            dica="Com 2+ espiões, decide se eles sabem uns dos outros."
-            opcoes={OPCOES_SIM_NAO}
-            atual={config.espiao.espioesSeVeem}
-            aoEscolher={(espioesSeVeem) =>
-              enviar({ t: 'configurar', config: { espiao: { ...config.espiao, espioesSeVeem } } })
-            }
-          />
-
-          <Escolha
-            rotulo="Visibilidade do voto"
-            dica="Tempo real mostra a contagem enquanto a votação está aberta; oculta só revela ao fechar."
-            opcoes={OPCOES_VISIBILIDADE_VOTO}
-            atual={config.espiao.visibilidadeVoto}
-            aoEscolher={(visibilidadeVoto) =>
-              enviar({ t: 'configurar', config: { espiao: { ...config.espiao, visibilidadeVoto } } })
-            }
-          />
-
-          <div className="flex flex-col gap-3">
-            <Escolha
-              rotulo="Tempo de rodada"
-              dica="Tempo até a votação abrir automaticamente."
-              opcoes={opcoesDeTempoRodada}
-              atual={tempoRodadaAtualVal}
-              aoEscolher={(val) => {
-                if (val === 'personalizado') {
-                  setModoTempoRodada('personalizado')
-                } else {
-                  setModoTempoRodada('preset')
-                  enviar({
-                    t: 'configurar',
-                    config: {
-                      espiao: {
-                        ...config.espiao,
-                        tempoRodadaSeg: val === 'sem-limite' ? null : Number(val),
-                      },
-                    },
-                  })
-                }
-              }}
-            />
-            {(modoTempoRodada === 'personalizado' || ehTempoRodadaPersonalizado(config.espiao.tempoRodadaSeg)) && (
-              <TempoPersonalizado
-                atual={config.espiao.tempoRodadaSeg}
-                aoEscolher={(tempoRodadaSeg) =>
-                  enviar({ t: 'configurar', config: { espiao: { ...config.espiao, tempoRodadaSeg } } })
-                }
-              />
-            )}
-          </div>
-        </div>
-      ) : (
-        <dl className="flex flex-col">
-          <Leitura
-            rotulo="Pacote de locais"
-            valor={
-              pacotesSelecionados.length > 0
-                ? pacotesSelecionados.map((p) => p.nome).join(', ')
-                : 'Nenhum pacote selecionado'
-            }
-          />
-          <Leitura rotulo="Nº de espiões" valor={rotuloDe(OPCOES_NUM_ESPIOES, config.espiao.numEspioes)} />
-          <Leitura rotulo="Espiões se veem" valor={config.espiao.espioesSeVeem ? 'Sim' : 'Não'} />
-          <Leitura
-            rotulo="Visibilidade do voto"
-            valor={rotuloDe(OPCOES_VISIBILIDADE_VOTO, config.espiao.visibilidadeVoto)}
-          />
-          <Leitura rotulo="Tempo de rodada" valor={rotuloDoTempo(config.espiao.tempoRodadaSeg)} />
-        </dl>
+          textos={poolAtual}
+          aoFechar={() => setVerLocaisAberto(false)}
+        />
       )}
     </div>
   )
 }
 
+// ---------------------------------------------------------------------------
+// Peças compartilhadas pelas duas listas de regras
+// ---------------------------------------------------------------------------
+
+function resumoDePacotes(selecionados: PacoteResumo[]): string {
+  if (selecionados.length === 0) return 'nenhum'
+  if (selecionados.length === 1) return selecionados[0]?.nome ?? 'nenhum'
+  return `${selecionados.length} pacotes`
+}
+
+function VerPool({ rotulo, aoAbrir }: { rotulo: string; aoAbrir(): void }) {
+  return (
+    <div className="flex items-center justify-between gap-3 pt-3.5">
+      <span className="text-apoio text-texto-3">Pool combinado</span>
+      <button
+        type="button"
+        onClick={aoAbrir}
+        className="min-h-11 cursor-pointer text-corpo font-semibold text-texto underline decoration-dotted underline-offset-4"
+      >
+        {rotulo}
+      </button>
+    </div>
+  )
+}
+
+/** A gaveta de pacotes: cards de papel, seleção múltipla, confirma no fim. */
+function GavetaDePacotes({
+  titulo,
+  descricao,
+  unidade,
+  disponiveis,
+  rascunho,
+  aoAlternar,
+  aoConfirmar,
+  aoFechar,
+}: {
+  titulo: string
+  descricao: string
+  unidade: string
+  disponiveis: PacoteResumo[] | undefined
+  rascunho: string[]
+  aoAlternar(proximo: string[]): void
+  aoConfirmar(): void
+  aoFechar(): void
+}) {
+  return (
+    <Modal
+      folha
+      titulo={titulo}
+      descricao={descricao}
+      largura="larga"
+      rotuloConfirmar="Confirmar"
+      aoConfirmar={aoConfirmar}
+      aoCancelar={aoFechar}
+    >
+      <div className="pacote-grid">
+        {disponiveis?.map((pacote) => {
+          const marcado = rascunho.includes(pacote.id)
+          return (
+            <button
+              key={pacote.id}
+              type="button"
+              aria-pressed={marcado}
+              onClick={() =>
+                aoAlternar(
+                  marcado ? rascunho.filter((id) => id !== pacote.id) : [...rascunho, pacote.id],
+                )
+              }
+              className="pacote-card"
+            >
+              <span className="flex items-center gap-2">
+                <span aria-hidden="true" className="text-[20px]">
+                  {pacote.emoji}
+                </span>
+                <span className="font-semibold text-texto">{pacote.nome}</span>
+              </span>
+              <span className="text-apoio text-texto-3">{pacote.descricao}</span>
+              <span className="font-mono text-compacto-apoio tracking-[0.1em] text-texto-3 uppercase">
+                {pacote.quantidade} {unidade}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+    </Modal>
+  )
+}
+
+/** A lista de tudo que pode sair — nunca diz o que saiu. */
+function ListaDeTextos({
+  titulo,
+  descricao,
+  textos,
+  aoFechar,
+}: {
+  titulo: string
+  descricao: string
+  textos: string[]
+  aoFechar(): void
+}) {
+  return (
+    <Modal
+      folha
+      titulo={titulo}
+      descricao={descricao}
+      largura="larga"
+      rotuloCancelar="Fechar"
+      aoCancelar={aoFechar}
+    >
+      <ul className="grid max-h-[55vh] grid-cols-2 gap-1.5 overflow-y-auto sm:grid-cols-3">
+        {textos.map((texto) => (
+          <li
+            key={texto}
+            className="rounded-chip border border-linha px-2.5 py-1.5 text-miudo text-texto-2"
+          >
+            {texto}
+          </li>
+        ))}
+      </ul>
+    </Modal>
+  )
+}
+
 /**
- * `AJU-19`, `AJU-20` — qualquer duração entre 10s e 60min, além dos presets.
+ * `AJU-19`, `AJU-20` — os presets mais qualquer duração da faixa do contrato.
  *
- * A faixa vem do contrato, não de um número escrito aqui. O campo trava no
- * tamanho e o botão diz por que não dá para aplicar — o servidor continua
+ * A faixa vem do contrato, não de um número escrito aqui; o campo trava no
+ * tamanho e o botão diz por que não dá pra aplicar. O servidor continua
  * recusando o que não deveria passar (`CFG-04`).
  */
-function TempoPersonalizado({
+function FolhaDeTempo({
+  titulo,
   atual,
+  presets,
   aoEscolher,
+  aoFechar,
 }: {
+  titulo: string
   atual: number | null
-  aoEscolher(tempoTurnoSeg: number): void
+  presets: ReadonlyArray<{ valor: number | null; rotulo: string }>
+  aoEscolher(segundos: number | null): void
+  aoFechar(): void
 }) {
-  const emVigor = ehTempoPersonalizado(atual)
-  const [texto, setTexto] = useState(emVigor ? String(atual) : '')
-  const [atualAnterior, setAtualAnterior] = useState(atual)
-
-  // O tempo em vigor pode mudar por outra aba do host: o campo acompanha.
-  if (atual !== atualAnterior) {
-    setAtualAnterior(atual)
-    setTexto(ehTempoPersonalizado(atual) ? String(atual) : '')
-  }
-
+  const personalizado = atual !== null && !presets.some((p) => p.valor === atual)
+  const [texto, setTexto] = useState(personalizado ? String(atual) : '')
   const segundos = tempoDigitado(texto)
-  const aplicar = () => {
-    if (segundos !== null) aoEscolher(segundos)
-  }
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <label htmlFor="tempo-personalizado" className="text-apoio text-texto-2">
-        Outro tempo, em segundos
-      </label>
-      <div className="flex items-start gap-2">
-        <input
-          id="tempo-personalizado"
-          type="text"
-          inputMode="numeric"
-          value={texto}
-          maxLength={String(TEMPO_TURNO_MAX_SEG).length}
-          placeholder="240"
-          aria-invalid={texto !== '' && segundos === null}
-          onChange={(evento) => setTexto(evento.target.value)}
-          onKeyDown={(evento) => {
-            if (evento.key === 'Enter') aplicar()
-          }}
-          className={`h-11 w-24 rounded-controle border bg-superficie px-3 text-corpo placeholder:text-texto-apagado focus:outline-none ${
-            emVigor && segundos === atual
-              ? 'border-acento font-semibold text-acento'
-              : texto !== '' && segundos === null
-                ? 'border-risco text-texto'
-                : 'border-controle-linha text-texto focus:border-acento'
-          }`}
-        />
-        <Botao
-          variante="secundario"
-          onClick={aplicar}
-          motivo={
-            segundos === null
-              ? `De ${TEMPO_TURNO_MIN_SEG} segundos a ${TEMPO_TURNO_MAX_SEG / 60} minutos.`
-              : segundos === atual
-                ? 'Este já é o tempo em vigor.'
-                : undefined
-          }
-        >
-          Aplicar
-        </Botao>
+    <FolhaDeEscolha
+      titulo={titulo}
+      opcoes={presets.map((preset) => ({ valor: preset.valor, rotulo: preset.rotulo }))}
+      // Com um tempo personalizado em vigor nenhum preset está marcado — quem
+      // mostra o valor é o campo abaixo.
+      atual={personalizado ? Number.NaN : atual}
+      aoEscolher={aoEscolher}
+      aoFechar={aoFechar}
+    >
+      <div className="mt-4 flex flex-col gap-2 border-t border-dashed border-linha pt-4">
+        <label htmlFor="tempo-personalizado" className="text-corpo font-semibold text-texto">
+          Outro tempo, em segundos
+        </label>
+        <div className="flex items-start gap-2">
+          <input
+            id="tempo-personalizado"
+            type="text"
+            inputMode="numeric"
+            value={texto}
+            maxLength={String(TEMPO_TURNO_MAX_SEG).length}
+            placeholder="240"
+            aria-invalid={texto !== '' && segundos === null}
+            onChange={(evento) => setTexto(evento.target.value)}
+            className={`h-12 w-24 rounded-chip border-2 bg-superficie px-3 text-corpo text-texto caret-acento placeholder:text-texto-apagado focus:outline-none ${
+              texto !== '' && segundos === null ? 'border-acento' : 'border-linha'
+            }`}
+          />
+          <Botao
+            variante="secundario"
+            onClick={() => {
+              if (segundos !== null) {
+                aoEscolher(segundos)
+                aoFechar()
+              }
+            }}
+            motivo={
+              segundos === null
+                ? `De ${TEMPO_TURNO_MIN_SEG} segundos a ${TEMPO_TURNO_MAX_SEG / 60} minutos.`
+                : segundos === atual
+                  ? 'Este já é o tempo em vigor.'
+                  : undefined
+            }
+          >
+            Aplicar
+          </Botao>
+        </div>
+        {personalizado && (
+          <span className="font-mono text-rotulo text-texto-3 uppercase">
+            em vigor: {rotuloDoTempo(atual)}
+          </span>
+        )}
       </div>
-      <span className="text-[12px] text-texto-3">
-        {emVigor
-          ? `Em vigor: ${rotuloDoTempo(atual)}.`
-          : `De ${TEMPO_TURNO_MIN_SEG}s a ${TEMPO_TURNO_MAX_SEG / 60}min.`}
-      </span>
-    </div>
+    </FolhaDeEscolha>
   )
 }
 
 function rotuloDe<T>(opcoes: ReadonlyArray<{ valor: T; rotulo: string }>, atual: T): string {
   return opcoes.find((opcao) => opcao.valor === atual)?.rotulo ?? '—'
-}
-
-/** `CFG-04` — fora do lobby, e para quem não é host, as regras só se leem. */
-function Leitura({ rotulo, valor }: { rotulo: string; valor: string }) {
-  return (
-    <div className="flex items-center justify-between gap-3 border-t border-linha-suave py-3">
-      <dt className="text-apoio text-texto-2">{rotulo}</dt>
-      <dd className="text-apoio font-medium text-texto">{valor}</dd>
-    </div>
-  )
-}
-
-function Escolha<T>({
-  rotulo,
-  dica,
-  opcoes,
-  atual,
-  aoEscolher,
-}: {
-  rotulo: string
-  dica?: string
-  opcoes: ReadonlyArray<{ valor: T; rotulo: string }>
-  atual: T
-  aoEscolher(valor: T): void
-}) {
-  const [dicaAberta, setDicaAberta] = useState(false)
-
-  return (
-    <fieldset className="flex flex-col gap-2">
-      <legend className="mb-2 text-apoio text-texto-2 flex items-center gap-2">
-        {rotulo}
-        {dica && (
-          <DicaBotao aberta={dicaAberta} aoAlternar={() => setDicaAberta(!dicaAberta)} />
-        )}
-      </legend>
-      {dicaAberta && dica && (
-        <p className="text-xs text-texto-3 mb-1 -mt-1 leading-snug">{dica}</p>
-      )}
-      <div className="flex flex-wrap gap-2">
-        {opcoes.map((opcao) => {
-          const escolhida = opcao.valor === atual
-          return (
-            <button
-              key={opcao.rotulo}
-              type="button"
-              aria-pressed={escolhida}
-              onClick={() => aoEscolher(opcao.valor)}
-              className={`min-h-11 cursor-pointer rounded-controle border px-3.5 text-apoio transition-colors ${
-                escolhida
-                  ? 'border-acento bg-acento-suave font-semibold text-acento'
-                  : 'border-controle-linha font-medium text-texto-2 hover:bg-superficie-2'
-              }`}
-            >
-              {opcao.rotulo}
-            </button>
-          )
-        })}
-      </div>
-    </fieldset>
-  )
 }
