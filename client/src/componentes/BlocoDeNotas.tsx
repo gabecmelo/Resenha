@@ -5,6 +5,7 @@ import {
   digitou,
   rascunhoDoServidor,
 } from '../estado/notas'
+import { abreNoDesktop } from './PainelRecolhivel'
 
 /** `NOTA-01`, `AJU-26` — o campo para no limite; o servidor continua validando. */
 const LIMITE_DE_NOTAS = 2000
@@ -29,7 +30,7 @@ export interface PropsDoBloco {
  * está em edição.
  */
 export function BlocoDeNotas({ texto, aoMudar }: PropsDoBloco) {
-  const [aberto, setAberto] = useState(false)
+  const [aberto, setAberto] = useState(abreNoDesktop)
   const [rascunho, setRascunho] = useState(() => rascunhoDoServidor(texto))
 
   // A projeção só entra quando o campo não está em edição. `chegouDoServidor`

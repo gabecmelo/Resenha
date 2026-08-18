@@ -17,3 +17,20 @@ export function BadgePacote({ pacote }: { pacote: PacoteResumo }) {
     </span>
   )
 }
+
+/**
+ * A tira inteira, logo abaixo da faixa de fase nas telas de partida. Some
+ * quando a partida não roda com pacote nenhum — uma tira vazia não informa
+ * nada.
+ */
+export function TiraDePacotes({ pacotes }: { pacotes: PacoteResumo[] | undefined }) {
+  if (pacotes === undefined || pacotes.length === 0) return null
+
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      {pacotes.map((pacote) => (
+        <BadgePacote key={pacote.id} pacote={pacote} />
+      ))}
+    </div>
+  )
+}
