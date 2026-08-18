@@ -24,7 +24,8 @@ export interface PropsDoChat {
  * `AJU-16` — o apelido e a cor vêm gravados na própria mensagem, não da lista de
  * jogadores: quem escreveu continua nomeado depois de sair da sala.
  * `AJU-29` — o histórico tem altura própria e rola por dentro; a página não
- * estica quando a conversa cresce.
+ * estica quando a conversa cresce. Quem manda no tamanho é quem está lendo: a
+ * caixa tem a mesma alça de arrastar do bloco de notas.
  */
 export function Chat({ mensagens, aoEnviar }: PropsDoChat) {
   return (
@@ -45,6 +46,12 @@ export function Chat({ mensagens, aoEnviar }: PropsDoChat) {
   )
 }
 
+/**
+ * Até onde a conversa cresce sozinha antes de a caixa travar de altura. Depois
+ * disso quem decide é a alça de arrastar.
+ */
+const TETO_NATURAL = 0.45
+
 /** `AJU-29`, `AJU-30` — altura limitada, rolagem própria, sem arrastar quem leu. */
 function Historico({ mensagens }: { mensagens: MensagemChat[] }) {
   const caixa = useRef<HTMLDivElement>(null)
@@ -60,7 +67,20 @@ function Historico({ mensagens }: { mensagens: MensagemChat[] }) {
     ultimaQtd.current = mensagens.length
 
     const alvo = caixa.current
-    if (alvo === null || !grudadoNoFim.current) return
+    if (alvo === null) return
+
+    /*
+     * A altura é escrita direto no elemento, de propósito: depois que a caixa
+     * trava (ou que a pessoa arrasta a alça), quem manda nela é o DOM, e o
+     * React não pode reescrever isso a cada mensagem nova. Enquanto a conversa
+     * é curta não há altura nenhuma — a caixa cresce com o conteúdo.
+     */
+    if (alvo.style.height === '') {
+      const teto = window.innerHeight * TETO_NATURAL
+      if (alvo.scrollHeight > teto) alvo.style.height = `${Math.round(teto)}px`
+    }
+
+    if (!grudadoNoFim.current) return
     alvo.scrollTop = alvo.scrollHeight
   }, [mensagens.length])
 
@@ -70,7 +90,7 @@ function Historico({ mensagens }: { mensagens: MensagemChat[] }) {
       onScroll={(evento) => {
         grudadoNoFim.current = estaNoFim(evento.currentTarget)
       }}
-      className="max-h-[45vh] min-h-0 overflow-y-auto overscroll-contain"
+      className="max-h-[80vh] min-h-24 resize-y overflow-y-auto overscroll-contain"
     >
       <ol className="flex flex-col gap-3.5">
         {mensagens.map((mensagem, indice) => {
