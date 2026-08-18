@@ -235,24 +235,24 @@ O Resenha é um hub de party games; "Quem Sou Eu?" é o primeiro jogo, e o hub d
 | ESP-37 | P6: Pausar a rodada | Tasks | Verified |
 | ESP-38 | P6: Pausar a rodada | Tasks | Verified |
 | ESP-39 | P6: Pausar a rodada | Tasks | Verified |
-| ESP-40 | P7: A votação decide a partida | Tasks | Implementing |
-| ESP-41 | P7: A votação decide a partida | Tasks | Implementing |
-| ESP-42 | P7: A votação decide a partida | Tasks | Implementing |
-| ESP-43 | P7: A votação decide a partida | Tasks | Implementing |
-| ESP-44 | P7: A votação decide a partida | Tasks | Implementing |
-| ESP-45 | P7: A votação decide a partida | Tasks | Implementing |
-| ESP-46 | P7: A votação decide a partida | Tasks | Implementing |
-| ESP-47 | P7: A votação decide a partida | Tasks | Implementing |
-| ESP-48 | P7: A votação decide a partida | Tasks | Implementing |
-| ESP-49 | P7: A votação decide a partida | Tasks | Implementing |
-| ESP-50 | P7: A votação decide a partida | Tasks | Implementing |
-| ESP-51 | P7: A votação decide a partida | Tasks | Implementing |
+| ESP-40 | P7: A votação decide a partida | Tasks | Verified |
+| ESP-41 | P7: A votação decide a partida | Tasks | Verified |
+| ESP-42 | P7: A votação decide a partida | Tasks | Verified |
+| ESP-43 | P7: A votação decide a partida | Tasks | Verified |
+| ESP-44 | P7: A votação decide a partida | Tasks | Verified |
+| ESP-45 | P7: A votação decide a partida | Tasks | Verified |
+| ESP-46 | P7: A votação decide a partida | Tasks | Verified |
+| ESP-47 | P7: A votação decide a partida | Tasks | Verified |
+| ESP-48 | P7: A votação decide a partida | Tasks | Verified |
+| ESP-49 | P7: A votação decide a partida | Tasks | Verified |
+| ESP-50 | P7: A votação decide a partida | Tasks | Verified |
+| ESP-51 | P7: A votação decide a partida | Tasks | Verified |
 
 **ID format:** `ESP-[NUMBER]`, mapeado em ordem às ACs de P1 (01–16), P2 (17–21), P3 (22), P4 (23–26), P5 (27–34), P6 (35–39) e P7 (40–51) acima. `ESP-13` e `ESP-14` estão riscados: P7 os substituiu.
 
 **Status values:** Pending → In Design → In Tasks → Implementing → Verified
 
-**Coverage:** 51 total — 37 verificados, 2 substituídos (`ESP-13`, `ESP-14`), 12 em implementação (P7).
+**Coverage:** 51 total — 49 verificados, 2 substituídos (`ESP-13`, `ESP-14`).
 
 ---
 

@@ -131,52 +131,52 @@ O Resenha é um hub de party games. "Quem Sou Eu?" e "Espião" já estão jogáv
 
 | ID | User Story | Source | Status |
 | --- | --- | --- | --- |
-| CCT-01 | P1: Partida completa | Specify | Pending |
-| CCT-02 | P1: Partida completa | Specify | Pending |
-| CCT-03 | P1: Partida completa | Specify | Pending |
-| CCT-04 | P1: Partida completa | Specify | Pending |
-| CCT-05 | P1: Partida completa | Specify | Pending |
-| CCT-06 | P1: Partida completa | Specify | Pending |
-| CCT-07 | P1: Partida completa | Specify | Pending |
-| CCT-08 | P1: Partida completa | Specify | Pending |
-| CCT-09 | P1: Partida completa | Specify | Pending |
-| CCT-10 | P1: Partida completa | Specify | Pending |
-| CCT-11 | P1: Partida completa | Specify | Pending |
-| CCT-12 | P1: Partida completa | Specify | Pending |
-| CCT-13 | P1: Partida completa | Specify | Pending |
-| CCT-14 | P1: Partida completa | Specify | Pending |
-| CCT-15 | P1: Partida completa | Specify | Pending |
-| CCT-16 | P1: Partida completa | Specify | Pending |
-| CCT-17 | P1: Partida completa | Specify | Pending |
-| CCT-18 | P1: Partida completa | Specify | Pending |
-| CCT-19 | P2: A carta em branco | Specify | Pending |
-| CCT-20 | P2: A carta em branco | Specify | Pending |
-| CCT-21 | P2: A carta em branco | Specify | Pending |
-| CCT-22 | P2: A carta em branco | Specify | Pending |
-| CCT-23 | P2: A carta em branco | Specify | Pending |
-| CCT-24 | P2: A carta em branco | Specify | Pending |
-| CCT-25 | P2: A carta em branco | Specify | Pending |
-| CCT-26 | P3: O placar da partida | Specify | Pending |
-| CCT-27 | P3: O placar da partida | Specify | Pending |
-| CCT-28 | P3: O placar da partida | Specify | Pending |
-| CCT-29 | P3: O placar da partida | Specify | Pending |
-| CCT-30 | P3: O placar da partida | Specify | Pending |
-| CCT-31 | P4: Conteúdo por tom | Specify | Pending |
-| CCT-32 | P4: Conteúdo por tom | Specify | Pending |
-| CCT-33 | P4: Conteúdo por tom | Specify | Pending |
-| CCT-34 | P4: Conteúdo por tom | Specify | Pending |
+| CCT-01 | P1: Partida completa | Specify | Verified |
+| CCT-02 | P1: Partida completa | Specify | Verified |
+| CCT-03 | P1: Partida completa | Specify | Verified |
+| CCT-04 | P1: Partida completa | Specify | Verified |
+| CCT-05 | P1: Partida completa | Specify | Verified |
+| CCT-06 | P1: Partida completa | Specify | Verified |
+| CCT-07 | P1: Partida completa | Specify | Verified |
+| CCT-08 | P1: Partida completa | Specify | Verified |
+| CCT-09 | P1: Partida completa | Specify | Verified |
+| CCT-10 | P1: Partida completa | Specify | Verified |
+| CCT-11 | P1: Partida completa | Specify | Verified |
+| CCT-12 | P1: Partida completa | Specify | Verified |
+| CCT-13 | P1: Partida completa | Specify | Verified |
+| CCT-14 | P1: Partida completa | Specify | Verified |
+| CCT-15 | P1: Partida completa | Specify | Verified |
+| CCT-16 | P1: Partida completa | Specify | Verified |
+| CCT-17 | P1: Partida completa | Specify | Verified |
+| CCT-18 | P1: Partida completa | Specify | Verified |
+| CCT-19 | P2: A carta em branco | Specify | Verified |
+| CCT-20 | P2: A carta em branco | Specify | Verified |
+| CCT-21 | P2: A carta em branco | Specify | Verified |
+| CCT-22 | P2: A carta em branco | Specify | Verified |
+| CCT-23 | P2: A carta em branco | Specify | Verified |
+| CCT-24 | P2: A carta em branco | Specify | Verified |
+| CCT-25 | P2: A carta em branco | Specify | Verified |
+| CCT-26 | P3: O placar da partida | Specify | Verified |
+| CCT-27 | P3: O placar da partida | Specify | Verified |
+| CCT-28 | P3: O placar da partida | Specify | Verified |
+| CCT-29 | P3: O placar da partida | Specify | Verified |
+| CCT-30 | P3: O placar da partida | Specify | Verified |
+| CCT-31 | P4: Conteúdo por tom | Specify | Verified |
+| CCT-32 | P4: Conteúdo por tom | Specify | Verified |
+| CCT-33 | P4: Conteúdo por tom | Specify | Verified |
+| CCT-34 | P4: Conteúdo por tom | Specify | Verified |
 
 **ID format:** `CCT-[NUMBER]`, mapeado em ordem às ACs de P1 (01–18), P2 (19–25), P3 (26–30) e P4 (31–34) acima.
 
 **Status values:** Pending → In Design → In Tasks → Implementing → Verified
 
-**Coverage:** 34 total, 0 implementados.
+**Coverage:** 34 total, 34 implementados — servidor coberto por testes (62) e o fluxo completo jogado na mesa de 3 (mão, carta em branco, pilha anônima, julgamento, ponto, placar).
 
 ---
 
 ## Success Criteria
 
-- [ ] Uma sala de 3+ jogadores completa uma partida do lobby até o placar final, pelos dois caminhos de encerramento (meta atingida e encerramento manual do host)
-- [ ] O jogo entra no registro (`server/games/registro.ts`) sem alterar `core/despacho.ts`/`core/sala-do.ts`
-- [ ] `AD-015` registrado: `AD-003` passa a admitir placar quando quem julga é uma pessoa
-- [ ] Zero regressão nos testes unitários e de integração existentes
+- [x] Uma sala de 3+ jogadores completa uma partida do lobby até o placar final, pelos dois caminhos de encerramento (meta atingida e encerramento manual do host)
+- [x] O jogo entra no registro (`server/games/registro.ts`) sem alterar `core/despacho.ts`/`core/sala-do.ts`
+- [x] `AD-015` registrado: `AD-003` passa a admitir placar quando quem julga é uma pessoa
+- [x] Zero regressão nos testes unitários e de integração existentes
