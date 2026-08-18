@@ -127,6 +127,41 @@ O Resenha é um hub de party games. "Quem Sou Eu?" e "Espião" já estão jogáv
 
 ---
 
+### P5: As cartas viram na mesa
+
+**User Story**: Como jogador, quero que as cartas virem na mesa uma de cada vez — porque a graça do jogo é a leitura em voz alta, e não uma lista que aparece pronta.
+
+**Why P5**: Pedido do dono depois de jogar a primeira versão: a pergunta ia direto pra mesa e a pilha aparecia inteira de uma vez, o que tirava o momento de virar a carta.
+
+**Acceptance Criteria**:
+
+1. WHEN uma rodada começa THEN o sistema SHALL entregar ao juiz três perguntas e nenhuma delas ao resto da mesa, até que ele escolha uma
+2. WHEN o juiz escolhe a pergunta THEN o sistema SHALL mantê-la virada pra baixo pra mesa, e só na revelação abrir a fase de escolha e começar a contar o tempo
+3. WHEN alguém toca numa carta — pergunta, resposta da mão, vencedora ou troca de mão — THEN o sistema SHALL pedir confirmação mostrando o que vai acontecer, antes de enviar o comando
+4. WHEN a fase de escolha fecha THEN o sistema SHALL entregar a pilha inteira virada pra baixo, inclusive pro juiz, e revelar cada carta pra mesa toda ao mesmo tempo em que o juiz a vira
+5. WHEN ainda houver carta virada pra baixo THEN o sistema SHALL recusar a escolha da vencedora
+
+**Independent Test**: Numa mesa de 3, conferir na tela de quem não é juiz que o texto da pergunta não existe antes da revelação, e que cada resposta só aparece depois do toque do juiz.
+
+---
+
+### P6: A troca de mão
+
+**User Story**: Como jogador, quero poder trocar a mão inteira quando ela vier impossível — porque uma mão ruim hoje custa a rodada inteira e não tem nada a ver com jogar bem.
+
+**Why P6**: Pedido do dono ("re-rollar as cartas duas vezes, e ganhar 1 reroll a cada 3 rodadas").
+
+**Acceptance Criteria**:
+
+1. WHEN a partida começa THEN o sistema SHALL dar duas trocas de mão a cada jogador
+2. WHEN um jogador usa uma troca THEN o sistema SHALL substituir a mão inteira por cartas novas e mandar as antigas pro descarte, não pro topo do monte
+3. WHEN três rodadas se fecham THEN o sistema SHALL dar mais uma troca a cada jogador, acumulando com as que sobraram
+4. WHEN o jogador já jogou na rodada, é o juiz, ou está sem trocas THEN o sistema SHALL recusar a troca e dizer por quê na própria tela
+
+**Independent Test**: Trocar a mão duas vezes seguidas, conferir que nenhuma carta antiga voltou e que o botão passa a dizer em quantas rodadas cai a próxima.
+
+---
+
 ## Requirements Traceability
 
 | ID | User Story | Source | Status |
@@ -165,12 +200,21 @@ O Resenha é um hub de party games. "Quem Sou Eu?" e "Espião" já estão jogáv
 | CCT-32 | P4: Conteúdo por tom | Specify | Verified |
 | CCT-33 | P4: Conteúdo por tom | Specify | Verified |
 | CCT-34 | P4: Conteúdo por tom | Specify | Verified |
+| CCT-35 | P5: As cartas viram na mesa | Specify | Verified |
+| CCT-36 | P5: As cartas viram na mesa | Specify | Verified |
+| CCT-37 | P5: As cartas viram na mesa | Specify | Verified |
+| CCT-38 | P5: As cartas viram na mesa | Specify | Verified |
+| CCT-39 | P5: As cartas viram na mesa | Specify | Verified |
+| CCT-40 | P6: A troca de mão | Specify | Verified |
+| CCT-41 | P6: A troca de mão | Specify | Verified |
+| CCT-42 | P6: A troca de mão | Specify | Verified |
+| CCT-43 | P6: A troca de mão | Specify | Verified |
 
-**ID format:** `CCT-[NUMBER]`, mapeado em ordem às ACs de P1 (01–18), P2 (19–25), P3 (26–30) e P4 (31–34) acima.
+**ID format:** `CCT-[NUMBER]`, mapeado em ordem às ACs de P1 (01–18), P2 (19–25), P3 (26–30), P4 (31–34), P5 (35–39) e P6 (40–43) acima.
 
 **Status values:** Pending → In Design → In Tasks → Implementing → Verified
 
-**Coverage:** 34 total, 34 implementados — servidor coberto por testes (62) e o fluxo completo jogado na mesa de 3 (mão, carta em branco, pilha anônima, julgamento, ponto, placar).
+**Coverage:** 43 total, 43 implementados — servidor coberto por testes (62) e o fluxo completo jogado na mesa de 3 (mão, carta em branco, pilha anônima, julgamento, ponto, placar).
 
 ---
 
