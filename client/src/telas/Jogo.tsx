@@ -322,7 +322,7 @@ function Acoes({
 
       {/* `JOGO-04` — passar a vez é de quem está na vez. */}
       {ehMinhaVez && !sozinhoNoRodizio && (
-        <Botao larguraTotal variante="secundario" onClick={() => enviar({ t: 'passarVez' })} className="animacao-pulse-attention">
+        <Botao larguraTotal variante="secundario" onClick={() => enviar({ t: 'passarVez' })}>
           Passei a vez
         </Botao>
       )}
