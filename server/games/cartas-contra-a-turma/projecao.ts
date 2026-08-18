@@ -17,8 +17,10 @@ type FichaDeJogador = Projecao['jogadores'][number]
  * própria: `CCT-04` — a mão só vai pro dono dela; `CCT-06` — o que alguém
  * jogou não sai daqui antes da pilha fechar; `CCT-08` — a pilha vai
  * embaralhada e **sem autoria**, e a autoria só entra na projeção depois que o
- * juiz escolheu (`CCT-12`). Quem não pode ver não recebe — não é a tela que
- * decide esconder.
+ * juiz escolheu (`CCT-12`); `CCT-36`, `CCT-38` — carta virada pra baixo não
+ * viaja: nem a pergunta antes de o juiz revelar, nem a resposta que ele ainda
+ * não virou (e essa nem pra ele). Quem não pode ver não recebe — não é a tela
+ * que decide esconder.
  *
  * `estado` é `null` no lobby, quando ainda não há partida.
  */
@@ -92,10 +94,15 @@ function projetarCartas(
   const souJuiz = juizId === paraJogador
   const jaJoguei = estado.jogadas.find((j) => j.autorId === paraJogador)
 
+  // `CCT-36` — o juiz lê a pergunta antes da mesa porque foi ele quem escolheu.
+  const podeLerPergunta = estado.perguntaRevelada || souJuiz
+
   const cartas: ProjecaoCartas = {
     rodada: estado.rodada,
     fase: estado.fase,
-    pergunta: estado.pergunta,
+    pergunta: podeLerPergunta ? estado.pergunta : '',
+    perguntaEscolhida: estado.pergunta !== '',
+    perguntaRevelada: estado.perguntaRevelada,
     juiz: { id: juizId, apelido: apelidoDe(sala, juizId) },
     souJuiz,
     brancaVoltaEm: brancaVoltaEm(estado, paraJogador),
@@ -111,10 +118,16 @@ function projetarCartas(
     faltam: ativos
       .filter((j) => j.id !== juizId && !estado.jogadas.some((jogada) => jogada.autorId === j.id))
       .map((j) => ({ id: j.id, apelido: j.apelido })),
+    todasReveladas: estado.pilha !== null && estado.reveladas.length >= estado.pilha.length,
     prazoEscolha: estado.fase === 'escolha' ? sala.prazos.turno : null,
     prazoRevelacao: estado.fase === 'revelacao' ? sala.prazos.turno : null,
     placar: placarOrdenado(estado, sala),
     metaDePontos: sala.config.cartas.metaDePontos,
+  }
+
+  // `CCT-35` — as opções são a mão do juiz nesta rodada, e só dele.
+  if (souJuiz && estado.fase === 'pergunta' && estado.pergunta === '') {
+    cartas.opcoesPergunta = [...estado.opcoesPergunta]
   }
 
   // `CCT-04`, `CCT-05` — a mão é do dono, e o juiz não tem o que jogar.
@@ -122,9 +135,12 @@ function projetarCartas(
   if (mao !== undefined && !souJuiz && !encerrada) cartas.mao = [...mao]
   if (jaJoguei !== undefined) cartas.minhaJogada = jaJoguei.texto
 
-  // `CCT-08` — a pilha só existe depois que a escolha fecha.
-  if (estado.pilha !== null && estado.fase !== 'escolha') {
-    cartas.pilha = estado.pilha.map((indice) => estado.jogadas[indice]?.texto ?? '')
+  // `CCT-08`, `CCT-38` — a pilha só existe depois que a escolha fecha, e cada
+  // posição só carrega texto depois que o juiz virou aquela carta.
+  if (estado.pilha !== null && estado.fase !== 'escolha' && estado.fase !== 'pergunta') {
+    cartas.pilha = estado.pilha.map((indiceDaJogada, posicao) =>
+      estado.reveladas.includes(posicao) ? (estado.jogadas[indiceDaJogada]?.texto ?? '') : null,
+    )
   }
 
   // `CCT-12` — a autoria entra na projeção só na revelação.

@@ -11,6 +11,7 @@ import {
   JANELA_DE_REVELACAO_MS,
   LIMITE_CARTA_BRANCA,
   MIN_RESPOSTAS_NA_PILHA,
+  OPCOES_DE_PERGUNTA,
   RECARGA_DA_BRANCA,
   TAMANHO_DA_MAO,
 } from '../../../shared/protocolo'
@@ -46,7 +47,12 @@ export interface EstadoCartas {
   indiceJuiz: number
   /** 1-based. */
   rodada: number
+  /** `CCT-35` — as perguntas na mão do juiz; some quando ele escolhe. */
+  opcoesPergunta: string[]
+  /** Vazia até o juiz escolher (`CCT-35`). */
   pergunta: string
+  /** `CCT-36` — virada pra mesa. Antes disso só o juiz sabe o que está escrito. */
+  perguntaRevelada: boolean
   /** Privada por jogador — nunca projetada pra outro (`CCT-04`). */
   maos: Record<JogadorId, string[]>
   /**
@@ -60,11 +66,13 @@ export interface EstadoCartas {
    * depois que a fase de escolha fecha; guarda índices de `jogadas`.
    */
   pilha: number[] | null
+  /** `CCT-38` — índices **na pilha** que o juiz já virou pra mesa. */
+  reveladas: number[]
   /** Índice **na pilha** da carta que o juiz escolheu (`CCT-11`). */
   vencedoraNaPilha: number | null
   /** `CCT-26` — placar da partida (`AD-015`). */
   placar: Record<JogadorId, number>
-  fase: 'escolha' | 'julgamento' | 'revelacao'
+  fase: 'pergunta' | 'escolha' | 'julgamento' | 'revelacao'
   /** `CCT-28` — alguém bateu a meta; a partida acaba quando a revelação sai. */
   metaBatida: boolean
   pacotesSelecionados?: { id: string; nome: string; emoji: string }[]
@@ -78,6 +86,9 @@ export type EventoDeSala =
 
 type TipoDeComandoDeJogo =
   | 'jogarCarta'
+  | 'escolherPergunta'
+  | 'revelarPergunta'
+  | 'revelarCarta'
   | 'escolherVencedora'
   | 'encerrar'
   | 'novaPartida'
@@ -95,14 +106,17 @@ export function estadoVazio(): EstadoCartas {
     ordemJuizes: [],
     indiceJuiz: 0,
     rodada: 0,
+    opcoesPergunta: [],
     pergunta: '',
+    perguntaRevelada: false,
     maos: {},
     brancaVoltaNa: {},
     jogadas: [],
     pilha: null,
+    reveladas: [],
     vencedoraNaPilha: null,
     placar: {},
-    fase: 'escolha',
+    fase: 'pergunta',
     metaBatida: false,
   }
 }
@@ -138,7 +152,8 @@ export function iniciarRodada(ctx: ContextoDeSala, ambiente: Ambiente): Resultad
     ambiente.aleatorio,
   )
   estado.rodada = 1
-  estado.pergunta = tirarPergunta(estado)
+  // `CCT-35` — a primeira coisa da rodada é o juiz escolher a pergunta.
+  estado.opcoesPergunta = tirarPerguntas(estado, OPCOES_DE_PERGUNTA)
   for (const jogador of ativos) {
     estado.maos[jogador.id] = tirarRespostas(estado, TAMANHO_DA_MAO)
     estado.brancaVoltaNa[jogador.id] = 0
@@ -150,8 +165,11 @@ export function iniciarRodada(ctx: ContextoDeSala, ambiente: Ambiente): Resultad
     ok: true,
     valor: estado,
     faseSeguinte: 'jogo',
-    prazos: { turno: prazoDeEscolha(ctx, ambiente) },
-    eventos: [{ texto: `A partida começou. ${apelidoDe(ctx, juizDa(estado))} julga a primeira rodada.` }],
+    // O relógio da rodada só começa quando a pergunta é virada (`CCT-36`).
+    prazos: { turno: null },
+    eventos: [
+      { texto: `A partida começou. ${apelidoDe(ctx, juizDa(estado))} escolhe a carta da rodada.` },
+    ],
   }
 }
 
@@ -165,6 +183,12 @@ export function reduzir(
   switch (comando.t) {
     case 'jogarCarta':
       return jogarCarta(estado, ctx, comando.texto, comando.daBranca, ambiente)
+    case 'escolherPergunta':
+      return escolherPergunta(estado, ctx, comando.indice)
+    case 'revelarPergunta':
+      return revelarPergunta(estado, ctx, ambiente)
+    case 'revelarCarta':
+      return revelarCarta(estado, ctx, comando.indice)
     case 'escolherVencedora':
       return escolherVencedora(estado, ctx, comando.indice, ambiente)
     case 'encerrar':
@@ -180,6 +204,60 @@ export function reduzir(
       return saiuJogador(estado, ctx, comando.jogadorId, ambiente)
     default:
       return { ok: false, erro: 'COMANDO_INVALIDO' }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Fase da pergunta
+// ---------------------------------------------------------------------------
+
+/** `CCT-35` — o juiz escolhe qual das perguntas da mão dele vai valer. */
+function escolherPergunta(
+  estado: EstadoCartas,
+  ctx: ContextoDeSala,
+  indice: number,
+): ResultadoReducer<EstadoCartas> {
+  if (ctx.fase !== 'jogo') return { ok: false, erro: 'FASE_INVALIDA' }
+  if (estado.fase !== 'pergunta') return { ok: false, erro: 'FASE_INVALIDA' }
+  if (ctx.autorId !== juizDa(estado)) return { ok: false, erro: 'SEM_AUTORIDADE' }
+  // Escolher duas vezes trocaria a carta com a mesa já esperando.
+  if (estado.pergunta !== '') return { ok: false, erro: 'FASE_INVALIDA' }
+  if (!Number.isInteger(indice) || indice < 0 || indice >= estado.opcoesPergunta.length) {
+    return { ok: false, erro: 'CARTA_INVALIDA' }
+  }
+
+  const novo = clonar(estado)
+  novo.pergunta = novo.opcoesPergunta[indice]!
+  // As recusadas voltam pro fim do baralho: podem sair de novo mais pra frente.
+  novo.descartePerguntas.push(...novo.opcoesPergunta.filter((_, i) => i !== indice))
+  novo.opcoesPergunta = []
+
+  return { ok: true, estado: novo, eventos: [], prazos: {} }
+}
+
+/**
+ * `CCT-36` — o juiz vira a pergunta pra mesa. É este clique, e não a escolha,
+ * que larga o relógio: até aqui só ele sabe o que está escrito.
+ */
+function revelarPergunta(
+  estado: EstadoCartas,
+  ctx: ContextoDeSala,
+  ambiente: Ambiente,
+): ResultadoReducer<EstadoCartas> {
+  if (ctx.fase !== 'jogo') return { ok: false, erro: 'FASE_INVALIDA' }
+  if (estado.fase !== 'pergunta') return { ok: false, erro: 'FASE_INVALIDA' }
+  if (ctx.autorId !== juizDa(estado)) return { ok: false, erro: 'SEM_AUTORIDADE' }
+  if (estado.pergunta === '') return { ok: false, erro: 'FASE_INVALIDA' }
+
+  const novo = clonar(estado)
+  novo.perguntaRevelada = true
+  novo.fase = 'escolha'
+
+  return {
+    ok: true,
+    estado: novo,
+    eventos: [],
+    prazos: { turno: prazoDeEscolha(ctx, ambiente) },
   }
 }
 
@@ -242,7 +320,7 @@ function fecharEscolha(
   eventos: { texto: string }[],
 ): ResultadoReducer<EstadoCartas> {
   if (novo.jogadas.length < MIN_RESPOSTAS_NA_PILHA) {
-    return descartarRodada(novo, ctx, ambiente, [
+    return descartarRodada(novo, ctx, [
       ...eventos,
       { texto: 'Ninguém jogou o suficiente. Rodada descartada.' },
     ])
@@ -261,6 +339,30 @@ function fecharEscolha(
 // Julgamento e revelação
 // ---------------------------------------------------------------------------
 
+/**
+ * `CCT-38` — o juiz vira uma carta da pilha e ela passa a ser lida por todo
+ * mundo ao mesmo tempo. Antes disso o texto não sai do servidor nem pra ele:
+ * a pilha chega virada pra baixo pra mesa inteira.
+ */
+function revelarCarta(
+  estado: EstadoCartas,
+  ctx: ContextoDeSala,
+  indice: number,
+): ResultadoReducer<EstadoCartas> {
+  if (ctx.fase !== 'jogo') return { ok: false, erro: 'FASE_INVALIDA' }
+  if (estado.fase !== 'julgamento' || estado.pilha === null) return { ok: false, erro: 'FASE_INVALIDA' }
+  if (ctx.autorId !== juizDa(estado)) return { ok: false, erro: 'SEM_AUTORIDADE' }
+  if (!Number.isInteger(indice) || indice < 0 || indice >= estado.pilha.length) {
+    return { ok: false, erro: 'CARTA_INVALIDA' }
+  }
+  if (estado.reveladas.includes(indice)) return { ok: false, erro: 'FASE_INVALIDA' }
+
+  const novo = clonar(estado)
+  novo.reveladas.push(indice)
+
+  return { ok: true, estado: novo, eventos: [], prazos: {} }
+}
+
 /** `CCT-11`, `CCT-12`, `CCT-13` — o juiz aponta a vencedora e o ponto é dado. */
 function escolherVencedora(
   estado: EstadoCartas,
@@ -274,6 +376,8 @@ function escolherVencedora(
   if (!Number.isInteger(indice) || indice < 0 || indice >= estado.pilha.length) {
     return { ok: false, erro: 'CARTA_INVALIDA' }
   }
+  // `CCT-39` — não dá pra escolher o que a mesa ainda não leu.
+  if (estado.reveladas.length < estado.pilha.length) return { ok: false, erro: 'FASE_INVALIDA' }
 
   const novo = clonar(estado)
   novo.vencedoraNaPilha = indice
@@ -319,7 +423,7 @@ function venceuPrazoTurno(
         faseSeguinte: 'encerrada',
       }
     }
-    return proximaRodada(clonar(estado), ctx, ambiente, [])
+    return proximaRodada(clonar(estado), ctx, [])
   }
 
   return { ok: true, estado, eventos: [], prazos: {} }
@@ -333,21 +437,24 @@ function venceuPrazoTurno(
 function proximaRodada(
   novo: EstadoCartas,
   ctx: ContextoDeSala,
-  ambiente: Ambiente,
   eventos: { texto: string }[],
 ): ResultadoReducer<EstadoCartas> {
   for (const jogada of novo.jogadas) {
     novo.descarteRespostas.push(jogada.texto)
   }
-  novo.descartePerguntas.push(novo.pergunta)
+  // Rodada descartada antes da escolha não tem pergunta pra devolver.
+  if (novo.pergunta !== '') novo.descartePerguntas.push(novo.pergunta)
 
   novo.jogadas = []
   novo.pilha = null
+  novo.reveladas = []
   novo.vencedoraNaPilha = null
-  novo.fase = 'escolha'
+  novo.fase = 'pergunta'
   novo.rodada += 1
   novo.indiceJuiz = novo.ordemJuizes.length === 0 ? 0 : (novo.indiceJuiz + 1) % novo.ordemJuizes.length
-  novo.pergunta = tirarPergunta(novo)
+  novo.pergunta = ''
+  novo.perguntaRevelada = false
+  novo.opcoesPergunta = tirarPerguntas(novo, OPCOES_DE_PERGUNTA)
 
   for (const jogador of jogadoresAtivos(ctx)) {
     const mao = novo.maos[jogador.id] ?? []
@@ -363,7 +470,8 @@ function proximaRodada(
     ok: true,
     estado: novo,
     eventos,
-    prazos: { turno: prazoDeEscolha(ctx, ambiente) },
+    // De novo o juiz é quem larga o relógio, virando a pergunta (`CCT-36`).
+    prazos: { turno: null },
   }
 }
 
@@ -371,7 +479,6 @@ function proximaRodada(
 function descartarRodada(
   novo: EstadoCartas,
   ctx: ContextoDeSala,
-  ambiente: Ambiente,
   eventos: { texto: string }[],
 ): ResultadoReducer<EstadoCartas> {
   // As cartas jogadas voltam pra mão de quem as jogou: a rodada não aconteceu.
@@ -384,7 +491,7 @@ function descartarRodada(
     if (mao) mao.push(jogada.texto)
   }
   novo.jogadas = []
-  return proximaRodada(novo, ctx, ambiente, eventos)
+  return proximaRodada(novo, ctx, eventos)
 }
 
 // ---------------------------------------------------------------------------
@@ -466,12 +573,17 @@ function saiuJogador(
       novo.ordemJuizes.length === 0
         ? 0
         : (novo.indiceJuiz - 1 + novo.ordemJuizes.length) % novo.ordemJuizes.length
-    return descartarRodada(novo, ctx, ambiente, [
+    return descartarRodada(novo, ctx, [
       { texto: 'Quem julgava a rodada saiu. Rodada descartada.' },
     ])
   }
 
-  novo.jogadas = novo.jogadas.filter((j) => j.autorId !== jogadorId)
+  // Só antes da pilha fechar: depois disso `pilha` e `reveladas` são índices
+  // de `jogadas`, e tirar um item do meio apontaria tudo pra carta errada. Na
+  // mesa de verdade também é assim — a carta jogada fica, quem sai é a pessoa.
+  if (novo.fase === 'pergunta' || novo.fase === 'escolha') {
+    novo.jogadas = novo.jogadas.filter((j) => j.autorId !== jogadorId)
+  }
   if (novo.fase === 'escolha' && novo.jogadas.length >= quantosDevemJogar(novo, ctx)) {
     return fecharEscolha(novo, ctx, ambiente, [])
   }
@@ -508,13 +620,19 @@ function prazoDeEscolha(ctx: ContextoDeSala, ambiente: Ambiente): number | null 
   return segundos === null ? null : ambiente.agora + segundos * 1000
 }
 
-/** `CCT-15` — o monte vazio reembaralha o descarte em vez de acabar a partida. */
-function tirarPergunta(estado: EstadoCartas): string {
-  if (estado.montePerguntas.length === 0) {
-    estado.montePerguntas = estado.descartePerguntas
-    estado.descartePerguntas = []
+/** `CCT-15`, `CCT-35` — o monte vazio reembaralha o descarte em vez de acabar a partida. */
+function tirarPerguntas(estado: EstadoCartas, quantas: number): string[] {
+  const tiradas: string[] = []
+  for (let i = 0; i < quantas; i += 1) {
+    if (estado.montePerguntas.length === 0) {
+      estado.montePerguntas = estado.descartePerguntas
+      estado.descartePerguntas = []
+    }
+    const carta = estado.montePerguntas.shift()
+    if (carta === undefined) break
+    tiradas.push(carta)
   }
-  return estado.montePerguntas.shift() ?? ''
+  return tiradas
 }
 
 function tirarRespostas(estado: EstadoCartas, quantas: number): string[] {
@@ -562,10 +680,12 @@ function clonar(estado: EstadoCartas): EstadoCartas {
     descartePerguntas: [...estado.descartePerguntas],
     descarteRespostas: [...estado.descarteRespostas],
     ordemJuizes: [...estado.ordemJuizes],
+    opcoesPergunta: [...estado.opcoesPergunta],
     maos: Object.fromEntries(Object.entries(estado.maos).map(([id, mao]) => [id, [...mao]])),
     brancaVoltaNa: { ...estado.brancaVoltaNa },
     jogadas: estado.jogadas.map((j) => ({ ...j })),
     pilha: estado.pilha === null ? null : [...estado.pilha],
+    reveladas: [...estado.reveladas],
     placar: { ...estado.placar },
     ...(estado.pacotesSelecionados
       ? { pacotesSelecionados: estado.pacotesSelecionados.map((p) => ({ ...p })) }

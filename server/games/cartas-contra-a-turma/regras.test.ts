@@ -4,6 +4,7 @@ import {
   JANELA_DE_REVELACAO_MS,
   LIMITE_CARTA_BRANCA,
   RECARGA_DA_BRANCA,
+  OPCOES_DE_PERGUNTA,
   TAMANHO_DA_MAO,
   type Ambiente,
   type ContextoDeSala,
@@ -50,12 +51,28 @@ function ctx(over: Partial<ContextoDeSala> = {}): ContextoDeSala {
   }
 }
 
-/** Começa uma partida de verdade e devolve o estado inicial. */
-function partida(over: Partial<ContextoDeSala> = {}): { estado: EstadoCartas; contexto: ContextoDeSala } {
+/** Começa uma partida e para na fase da pergunta, antes de o juiz escolher. */
+function partidaCrua(over: Partial<ContextoDeSala> = {}): {
+  estado: EstadoCartas
+  contexto: ContextoDeSala
+} {
   const contexto = ctx(over)
   const inicio = iniciarRodada(contexto, AMBIENTE)
   if (!inicio.ok) throw new Error(`partida não iniciou: ${inicio.erro}`)
   return { estado: inicio.valor, contexto }
+}
+
+/** `CCT-35`, `CCT-36` — o juiz escolhe a pergunta e vira pra mesa. */
+function abrirPergunta(estado: EstadoCartas, contexto: ContextoDeSala): EstadoCartas {
+  const juiz = { ...contexto, autorId: juizDa(estado) }
+  const escolhida = aplicar(estado, juiz, { t: 'escolherPergunta', indice: 0 })
+  return aplicar(escolhida, juiz, { t: 'revelarPergunta' })
+}
+
+/** Começa uma partida de verdade e devolve o estado já na fase de escolha. */
+function partida(over: Partial<ContextoDeSala> = {}): { estado: EstadoCartas; contexto: ContextoDeSala } {
+  const { estado, contexto } = partidaCrua(over)
+  return { estado: abrirPergunta(estado, contexto), contexto }
 }
 
 function aplicar(
@@ -67,6 +84,15 @@ function aplicar(
   const r = reduzir(estado, contexto, comando, ambiente)
   if (!r.ok) throw new Error(`comando recusado: ${r.erro}`)
   return r.estado
+}
+
+/** `CCT-38` — o juiz vira a pilha inteira, que é o que destrava o julgamento. */
+function revelarTudo(estado: EstadoCartas, contexto: ContextoDeSala): EstadoCartas {
+  let atual = estado
+  for (let indice = 0; indice < (estado.pilha ?? []).length; indice += 1) {
+    atual = aplicar(atual, { ...contexto, autorId: juizDa(atual) }, { t: 'revelarCarta', indice })
+  }
+  return atual
 }
 
 /** Todo mundo que não é juiz joga a primeira carta da própria mão. */
@@ -82,6 +108,11 @@ function todosJogam(estado: EstadoCartas, contexto: ContextoDeSala): EstadoCarta
     })
   }
   return atual
+}
+
+/** A pilha fechada e já lida: é daqui que o juiz aponta a vencedora. */
+function pilhaNaMesa(estado: EstadoCartas, contexto: ContextoDeSala): EstadoCartas {
+  return revelarTudo(todosJogam(estado, contexto), contexto)
 }
 
 describe('iniciarRodada', () => {
@@ -107,6 +138,7 @@ describe('iniciarRodada', () => {
     const { estado } = partida()
     expect(estado.rodada).toBe(1)
     expect(estado.pergunta).toContain('_____')
+    expect(estado.perguntaRevelada).toBe(true)
     for (const id of ['a', 'b', 'c']) {
       expect(estado.maos[id]).toHaveLength(TAMANHO_DA_MAO)
     }
@@ -129,26 +161,149 @@ describe('iniciarRodada', () => {
     for (const id of ['a', 'b', 'c']) expect(brancaVoltaEm(estado, id)).toBe(0)
   })
 
-  it('CCT-01: o prazo de escolha sai do config', () => {
-    const contexto = ctx()
-    const r = iniciarRodada(contexto, AMBIENTE)
-    expect(r.ok && r.prazos?.turno).toBe(AMBIENTE.agora + 90 * 1000)
+  it('CCT-36: a partida começa sem relógio — quem larga é o juiz', () => {
+    const r = iniciarRodada(ctx(), AMBIENTE)
+    expect(r.ok && r.prazos?.turno).toBeNull()
+    expect(r.ok && r.valor.fase).toBe('pergunta')
+  })
+
+  it('CCT-01, CCT-36: o prazo de escolha sai do config e começa na revelação', () => {
+    const { estado, contexto } = partidaCrua()
+    const juiz = { ...contexto, autorId: juizDa(estado) }
+    const escolhida = aplicar(estado, juiz, { t: 'escolherPergunta', indice: 0 })
+    const r = reduzir(escolhida, juiz, { t: 'revelarPergunta' }, AMBIENTE)
+    expect(r.ok && r.prazos.turno).toBe(AMBIENTE.agora + 90 * 1000)
   })
 
   it('CCT-01: "sem tempo" não agenda prazo nenhum', () => {
     const contexto = ctx({
       config: { ...CONFIG_PADRAO, pacoteIds: [PACOTE_LEVE], cartas: { tempoEscolhaSeg: null, metaDePontos: 5 } },
     })
-    const r = iniciarRodada(contexto, AMBIENTE)
-    expect(r.ok && r.prazos?.turno).toBeNull()
+    const { estado } = partidaCrua({
+      config: { ...CONFIG_PADRAO, pacoteIds: [PACOTE_LEVE], cartas: { tempoEscolhaSeg: null, metaDePontos: 5 } },
+    })
+    const juiz = { ...contexto, autorId: juizDa(estado) }
+    const escolhida = aplicar(estado, juiz, { t: 'escolherPergunta', indice: 0 })
+    const r = reduzir(escolhida, juiz, { t: 'revelarPergunta' }, AMBIENTE)
+    expect(r.ok && r.prazos.turno).toBeNull()
   })
 
   it('CCT-32: só entram cartas dos pacotes escolhidos', () => {
     const pesado = CARTAS_TURMA[1]!
-    const contexto = ctx({ config: { ...CONFIG_PADRAO, pacoteIds: [pesado.id] } })
-    const r = iniciarRodada(contexto, AMBIENTE)
-    if (!r.ok) throw new Error(r.erro)
-    expect(pesado.perguntas).toContain(r.valor.pergunta)
+    const { estado } = partida({ config: { ...CONFIG_PADRAO, pacoteIds: [pesado.id] } })
+    expect(pesado.perguntas).toContain(estado.pergunta)
+  })
+})
+
+describe('CCT-35, CCT-36 — o juiz escolhe e vira a pergunta', () => {
+  it('CCT-35: o juiz recebe mais de uma pergunta pra escolher', () => {
+    const { estado } = partidaCrua()
+    expect(estado.fase).toBe('pergunta')
+    expect(estado.pergunta).toBe('')
+    expect(estado.opcoesPergunta).toHaveLength(OPCOES_DE_PERGUNTA)
+    for (const opcao of estado.opcoesPergunta) expect(opcao).toContain('_____')
+  })
+
+  it('CCT-35: só o juiz escolhe a pergunta', () => {
+    const { estado, contexto } = partidaCrua()
+    const outro = contexto.jogadores.find((j) => j.id !== juizDa(estado))!.id
+    const r = reduzir(estado, { ...contexto, autorId: outro }, { t: 'escolherPergunta', indice: 0 }, AMBIENTE)
+    expect(r).toEqual({ ok: false, erro: 'SEM_AUTORIDADE' })
+  })
+
+  it('CCT-35: as recusadas voltam pro descarte em vez de sumir', () => {
+    const { estado, contexto } = partidaCrua()
+    const opcoes = [...estado.opcoesPergunta]
+    const depois = aplicar(estado, { ...contexto, autorId: juizDa(estado) }, {
+      t: 'escolherPergunta',
+      indice: 1,
+    })
+    expect(depois.pergunta).toBe(opcoes[1])
+    expect(depois.opcoesPergunta).toEqual([])
+    expect(depois.descartePerguntas).toEqual([opcoes[0], opcoes[2]])
+  })
+
+  it('CCT-35: não dá pra trocar a pergunta depois de escolhida', () => {
+    const { estado, contexto } = partidaCrua()
+    const juiz = { ...contexto, autorId: juizDa(estado) }
+    const escolhida = aplicar(estado, juiz, { t: 'escolherPergunta', indice: 0 })
+    expect(reduzir(escolhida, juiz, { t: 'escolherPergunta', indice: 1 }, AMBIENTE)).toEqual({
+      ok: false,
+      erro: 'FASE_INVALIDA',
+    })
+  })
+
+  it('CCT-36: revelar sem ter escolhido é recusado', () => {
+    const { estado, contexto } = partidaCrua()
+    const r = reduzir(estado, { ...contexto, autorId: juizDa(estado) }, { t: 'revelarPergunta' }, AMBIENTE)
+    expect(r).toEqual({ ok: false, erro: 'FASE_INVALIDA' })
+  })
+
+  it('CCT-36: ninguém joga carta antes de a pergunta ser virada', () => {
+    const { estado, contexto } = partidaCrua()
+    const outro = contexto.jogadores.find((j) => j.id !== juizDa(estado))!.id
+    const r = reduzir(estado, { ...contexto, autorId: outro }, {
+      t: 'jogarCarta',
+      texto: estado.maos[outro]![0]!,
+      daBranca: false,
+    }, AMBIENTE)
+    expect(r).toEqual({ ok: false, erro: 'FASE_INVALIDA' })
+  })
+
+  it('CCT-36: revelada, a rodada abre para escolha', () => {
+    const { estado, contexto } = partidaCrua()
+    const depois = abrirPergunta(estado, contexto)
+    expect(depois.fase).toBe('escolha')
+    expect(depois.perguntaRevelada).toBe(true)
+    expect(depois.pergunta).not.toBe('')
+  })
+})
+
+describe('CCT-38, CCT-39 — a pilha vira uma carta por vez', () => {
+  it('CCT-38: a pilha começa inteira virada pra baixo', () => {
+    const { estado, contexto } = partida()
+    const fechado = todosJogam(estado, contexto)
+    expect(fechado.fase).toBe('julgamento')
+    expect(fechado.reveladas).toEqual([])
+  })
+
+  it('CCT-38: só o juiz vira carta', () => {
+    const { estado, contexto } = partida()
+    const fechado = todosJogam(estado, contexto)
+    const outro = contexto.jogadores.find((j) => j.id !== juizDa(fechado))!.id
+    const r = reduzir(fechado, { ...contexto, autorId: outro }, { t: 'revelarCarta', indice: 0 }, AMBIENTE)
+    expect(r).toEqual({ ok: false, erro: 'SEM_AUTORIDADE' })
+  })
+
+  it('CCT-38: virar duas vezes a mesma carta é recusado', () => {
+    const { estado, contexto } = partida()
+    const fechado = todosJogam(estado, contexto)
+    const juiz = { ...contexto, autorId: juizDa(fechado) }
+    const uma = aplicar(fechado, juiz, { t: 'revelarCarta', indice: 0 })
+    expect(uma.reveladas).toEqual([0])
+    expect(reduzir(uma, juiz, { t: 'revelarCarta', indice: 0 }, AMBIENTE)).toEqual({
+      ok: false,
+      erro: 'FASE_INVALIDA',
+    })
+  })
+
+  it('CCT-39: não dá pra escolher a vencedora com carta ainda virada', () => {
+    const { estado, contexto } = partida()
+    const fechado = todosJogam(estado, contexto)
+    const juiz = { ...contexto, autorId: juizDa(fechado) }
+    expect(reduzir(fechado, juiz, { t: 'escolherVencedora', indice: 0 }, AMBIENTE)).toEqual({
+      ok: false,
+      erro: 'FASE_INVALIDA',
+    })
+
+    const uma = aplicar(fechado, juiz, { t: 'revelarCarta', indice: 0 })
+    expect(reduzir(uma, juiz, { t: 'escolherVencedora', indice: 0 }, AMBIENTE)).toEqual({
+      ok: false,
+      erro: 'FASE_INVALIDA',
+    })
+
+    const todas = aplicar(uma, juiz, { t: 'revelarCarta', indice: 1 })
+    expect(reduzir(todas, juiz, { t: 'escolherVencedora', indice: 0 }, AMBIENTE).ok).toBe(true)
   })
 })
 
@@ -297,7 +452,7 @@ describe('CCT-19…CCT-25 — a carta em branco', () => {
 describe('CCT-11…CCT-14 — julgamento, ponto e próxima rodada', () => {
   it('CCT-11: só o juiz escolhe a vencedora', () => {
     const { estado, contexto } = partida()
-    const fechado = todosJogam(estado, contexto)
+    const fechado = pilhaNaMesa(estado, contexto)
     const naoJuiz = contexto.jogadores.find((j) => j.id !== juizDa(fechado))!.id
     const r = reduzir(fechado, { ...contexto, autorId: naoJuiz }, { t: 'escolherVencedora', indice: 0 }, AMBIENTE)
     expect(r).toEqual({ ok: false, erro: 'SEM_AUTORIDADE' })
@@ -305,7 +460,7 @@ describe('CCT-11…CCT-14 — julgamento, ponto e próxima rodada', () => {
 
   it('CCT-11: recusa índice fora da pilha', () => {
     const { estado, contexto } = partida()
-    const fechado = todosJogam(estado, contexto)
+    const fechado = pilhaNaMesa(estado, contexto)
     const juiz = juizDa(fechado)
     for (const indice of [-1, 2, 1.5]) {
       expect(reduzir(fechado, { ...contexto, autorId: juiz }, { t: 'escolherVencedora', indice }, AMBIENTE)).toEqual(
@@ -316,7 +471,7 @@ describe('CCT-11…CCT-14 — julgamento, ponto e próxima rodada', () => {
 
   it('CCT-13: o ponto vai pro autor da carta escolhida, não pra quem está na posição', () => {
     const { estado, contexto } = partida()
-    const fechado = todosJogam(estado, contexto)
+    const fechado = pilhaNaMesa(estado, contexto)
     const juiz = juizDa(fechado)
     const escolhido = fechado.jogadas[fechado.pilha![1]!]!.autorId
     const depois = aplicar(fechado, { ...contexto, autorId: juiz }, { t: 'escolherVencedora', indice: 1 })
@@ -327,21 +482,21 @@ describe('CCT-11…CCT-14 — julgamento, ponto e próxima rodada', () => {
 
   it('CCT-12: a revelação abre uma janela com prazo', () => {
     const { estado, contexto } = partida()
-    const fechado = todosJogam(estado, contexto)
+    const fechado = pilhaNaMesa(estado, contexto)
     const r = reduzir(fechado, { ...contexto, autorId: juizDa(fechado) }, { t: 'escolherVencedora', indice: 0 }, AMBIENTE)
     expect(r.ok && r.prazos.turno).toBe(AMBIENTE.agora + JANELA_DE_REVELACAO_MS)
   })
 
   it('CCT-14: fechada a janela, repõe as mãos, passa o juiz e vira nova pergunta', () => {
     const { estado, contexto } = partida()
-    const fechado = todosJogam(estado, contexto)
+    const fechado = pilhaNaMesa(estado, contexto)
     const juizAntes = juizDa(fechado)
     const revelando = aplicar(fechado, { ...contexto, autorId: juizAntes }, { t: 'escolherVencedora', indice: 0 })
     const proxima = aplicar(revelando, contexto, { t: 'venceuPrazoTurno' })
 
     expect(proxima.rodada).toBe(2)
     expect(juizDa(proxima)).not.toBe(juizAntes)
-    expect(proxima.fase).toBe('escolha')
+    expect(proxima.fase).toBe('pergunta')
     expect(proxima.jogadas).toEqual([])
     expect(proxima.pilha).toBeNull()
     expect(proxima.pergunta).not.toBe(fechado.pergunta)
@@ -349,13 +504,14 @@ describe('CCT-11…CCT-14 — julgamento, ponto e próxima rodada', () => {
   })
 
   it('CCT-14: o juiz roda por todo mundo antes de repetir', () => {
-    const inicial = partida()
+    const inicial = partidaCrua()
     const contexto = inicial.contexto
     let estado = inicial.estado
     const vistos: JogadorId[] = []
     for (let i = 0; i < 3; i += 1) {
       vistos.push(juizDa(estado))
-      const fechado = todosJogam(estado, contexto)
+      const aberta = abrirPergunta(estado, contexto)
+      const fechado = pilhaNaMesa(aberta, contexto)
       const revelando = aplicar(fechado, { ...contexto, autorId: juizDa(fechado) }, {
         t: 'escolherVencedora',
         indice: 0,
@@ -367,19 +523,20 @@ describe('CCT-11…CCT-14 — julgamento, ponto e próxima rodada', () => {
   })
 
   it('CCT-15: a pergunta usada não volta enquanto houver monte', () => {
-    const inicial = partida()
+    const inicial = partidaCrua()
     const contexto = inicial.contexto
     let estado = inicial.estado
-    const vistas = new Set<string>([estado.pergunta])
+    const vistas = new Set<string>()
     for (let i = 0; i < 5; i += 1) {
-      const fechado = todosJogam(estado, contexto)
+      const aberta = abrirPergunta(estado, contexto)
+      const fechado = pilhaNaMesa(aberta, contexto)
       const revelando = aplicar(fechado, { ...contexto, autorId: juizDa(fechado) }, {
         t: 'escolherVencedora',
         indice: 0,
       })
       estado = aplicar(revelando, contexto, { t: 'venceuPrazoTurno' })
-      expect(vistas.has(estado.pergunta)).toBe(false)
-      vistas.add(estado.pergunta)
+      expect(vistas.has(aberta.pergunta)).toBe(false)
+      vistas.add(aberta.pergunta)
     }
   })
 })
@@ -413,7 +570,7 @@ describe('CCT-09, CCT-10 — o relógio da escolha', () => {
     const depois = aplicar(um_so, contexto, { t: 'venceuPrazoTurno' })
 
     expect(depois.rodada).toBe(2)
-    expect(depois.fase).toBe('escolha')
+    expect(depois.fase).toBe('pergunta')
     expect(Object.values(depois.placar)).toEqual([0, 0, 0])
     // A carta de quem jogou volta pra mão: a rodada não aconteceu.
     expect(depois.maos[quem]).toContain(carta)
@@ -441,7 +598,7 @@ describe('CCT-26…CCT-30 — placar e fim da partida', () => {
     const inicio = iniciarRodada(contextoMeta, AMBIENTE)
     if (!inicio.ok) throw new Error(inicio.erro)
 
-    const fechado = todosJogam(inicio.valor, contextoMeta)
+    const fechado = pilhaNaMesa(abrirPergunta(inicio.valor, contextoMeta), contextoMeta)
     const revelando = aplicar(fechado, { ...contextoMeta, autorId: juizDa(fechado) }, {
       t: 'escolherVencedora',
       indice: 0,
@@ -458,7 +615,7 @@ describe('CCT-26…CCT-30 — placar e fim da partida', () => {
     })
     const inicio = iniciarRodada(contextoSemMeta, AMBIENTE)
     if (!inicio.ok) throw new Error(inicio.erro)
-    const fechado = todosJogam(inicio.valor, contextoSemMeta)
+    const fechado = pilhaNaMesa(abrirPergunta(inicio.valor, contextoSemMeta), contextoSemMeta)
     const revelando = aplicar(fechado, { ...contextoSemMeta, autorId: juizDa(fechado) }, {
       t: 'escolherVencedora',
       indice: 0,

@@ -188,6 +188,12 @@ export const META_MAX_PONTOS = 15
 /** `CCT-03`, `CCT-14` — cartas na mão de cada jogador, reposta a cada rodada. */
 export const TAMANHO_DA_MAO = 7
 
+/**
+ * `CCT-35` — quantas perguntas o juiz recebe pra escolher a da rodada. Três é
+ * o que cabe na tela sem virar catálogo e já dá escolha de verdade.
+ */
+export const OPCOES_DE_PERGUNTA = 3
+
 /** `CCT-24` — rodadas até a carta em branco voltar depois de gasta. */
 export const RECARGA_DA_BRANCA = 5
 
@@ -398,6 +404,12 @@ export type Comando =
   | { t: 'jogarCarta'; texto: string; daBranca: boolean }
   /** `CCT-11` — o juiz aponta a vencedora pelo índice na pilha embaralhada. */
   | { t: 'escolherVencedora'; indice: number }
+  /** `CCT-35` — o juiz escolhe qual pergunta vai valer, entre as que recebeu. */
+  | { t: 'escolherPergunta'; indice: number }
+  /** `CCT-36` — o juiz vira a pergunta pra mesa e a rodada começa a correr. */
+  | { t: 'revelarPergunta' }
+  /** `CCT-38` — o juiz vira uma carta da pilha; ela passa a ser lida por todos. */
+  | { t: 'revelarCarta'; indice: number }
 
 /** Servidor → cliente. */
 export type Mensagem =
@@ -512,9 +524,18 @@ export interface ResultadoDaVotacao {
 export interface ProjecaoCartas {
   /** 1-based. */
   rodada: number
-  fase: 'escolha' | 'julgamento' | 'revelacao'
-  /** A frase da rodada, com `_____` na lacuna. Visivel a todos. */
+  fase: 'pergunta' | 'escolha' | 'julgamento' | 'revelacao'
+  /**
+   * A frase da rodada, com `_____` na lacuna. Vazia enquanto a carta estiver
+   * virada pra baixo — o texto só entra na projeção de quem já pode ler
+   * (`CCT-36`), e o juiz lê antes porque foi ele quem escolheu.
+   */
   pergunta: string
+  /** `CCT-35` — as perguntas na mão do juiz. Só vai pra ele, e só antes da escolha. */
+  opcoesPergunta?: string[]
+  /** `CCT-35`, `CCT-36` — já escolheu, ainda não virou pra mesa. */
+  perguntaEscolhida: boolean
+  perguntaRevelada: boolean
   juiz: { id: JogadorId; apelido: string }
   souJuiz: boolean
   /** `CCT-04` — só vai pro dono dela, e nunca pro juiz. */
@@ -532,8 +553,14 @@ export interface ProjecaoCartas {
   faltam: { id: JogadorId; apelido: string }[]
   /** Instante absoluto em que a fase de escolha fecha sozinha. */
   prazoEscolha: number | null
-  /** `CCT-08` — embaralhada e sem autor. Presente em `julgamento` e `revelacao`. */
-  pilha?: string[]
+  /**
+   * `CCT-08`, `CCT-38` — embaralhada e sem autor. Presente em `julgamento` e
+   * `revelacao`. `null` na posição é carta virada pra baixo: o texto não
+   * trafega antes do juiz virar, nem pro próprio juiz.
+   */
+  pilha?: (string | null)[]
+  /** `CCT-39` — a pilha inteira já foi lida; só agora dá pra apontar a vencedora. */
+  todasReveladas: boolean
   /** `CCT-12`, `CCT-13` — presente só na `revelacao`. */
   vencedora?: { indice: number; texto: string; autor: { id: JogadorId; apelido: string } }
   /** Instante em que a revelação sai da tela e a próxima rodada começa. */

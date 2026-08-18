@@ -31,11 +31,14 @@ function estadoDe(over: Partial<EstadoCartas> = {}): EstadoCartas {
     ordemJuizes: ['a', 'b', 'c'],
     indiceJuiz: 0,
     rodada: 1,
+    opcoesPergunta: [],
     pergunta: 'A vida é _____.',
+    perguntaRevelada: true,
     maos: { a: ['mao de A'], b: ['mao de B'], c: ['mao de C'] },
     brancaVoltaNa: { a: 0, b: 0, c: 0 },
     jogadas: [],
     pilha: null,
+    reveladas: [],
     vencedoraNaPilha: null,
     placar: { a: 0, b: 0, c: 0 },
     fase: 'escolha',
@@ -124,7 +127,28 @@ describe('CCT-06, CCT-07 — a escolha corre às escuras', () => {
 })
 
 describe('CCT-08 — a pilha é anônima', () => {
-  const estado = estadoDe({ jogadas: JOGADAS, pilha: [1, 0], fase: 'julgamento' })
+  const estado = estadoDe({
+    jogadas: JOGADAS,
+    pilha: [1, 0],
+    reveladas: [0, 1],
+    fase: 'julgamento',
+  })
+
+  it('CCT-38: virada pra baixo, a pilha viaja sem texto nenhum', () => {
+    const fechada = estadoDe({ jogadas: JOGADAS, pilha: [1, 0], fase: 'julgamento' })
+    const cartas = projetar(fechada, sala(fechada), 'a').jogo?.cartas
+    expect(cartas?.pilha).toEqual([null, null])
+    expect(cartas?.todasReveladas).toBe(false)
+    // Nem pro juiz: virada pra baixo é virada pra baixo pra mesa inteira.
+    expect(JSON.stringify(projetar(fechada, sala(fechada), 'a'))).not.toContain('resposta do B')
+  })
+
+  it('CCT-38: o texto entra na projeção de todo mundo assim que o juiz vira', () => {
+    const uma = estadoDe({ jogadas: JOGADAS, pilha: [1, 0], reveladas: [0], fase: 'julgamento' })
+    for (const quem of ['a', 'b', 'c']) {
+      expect(projetar(uma, sala(uma), quem).jogo?.cartas?.pilha).toEqual(['resposta do C', null])
+    }
+  })
 
   it('a pilha sai embaralhada, na ordem que o servidor sorteou', () => {
     expect(projetar(estado, sala(estado), 'a').jogo?.cartas?.pilha).toEqual([
