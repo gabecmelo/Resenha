@@ -6,7 +6,7 @@ import type {
   ProjecaoCartas,
 } from '../../../shared/protocolo'
 import type { EstadoCartas } from './regras'
-import { brancaVoltaEm, campeoes, juizDa, quantosDevemJogar } from './regras'
+import { brancaVoltaEm, campeoes, juizDa, quantosDevemJogar, rerollVoltaEm } from './regras'
 
 type FichaDeJogador = Projecao['jogadores'][number]
 
@@ -106,6 +106,8 @@ function projetarCartas(
     juiz: { id: juizId, apelido: apelidoDe(sala, juizId) },
     souJuiz,
     brancaVoltaEm: brancaVoltaEm(estado, paraJogador),
+    rerolls: estado.rerolls[paraJogador] ?? 0,
+    proximoRerollEm: rerollVoltaEm(estado),
     quantosJogaram: estado.jogadas.length,
     totalEsperado: quantosDevemJogar(estado, {
       fase: sala.fase,

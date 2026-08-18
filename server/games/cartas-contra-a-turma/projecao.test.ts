@@ -36,6 +36,7 @@ function estadoDe(over: Partial<EstadoCartas> = {}): EstadoCartas {
     perguntaRevelada: true,
     maos: { a: ['mao de A'], b: ['mao de B'], c: ['mao de C'] },
     brancaVoltaNa: { a: 0, b: 0, c: 0 },
+    rerolls: { a: 2, b: 2, c: 2 },
     jogadas: [],
     pilha: null,
     reveladas: [],

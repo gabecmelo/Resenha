@@ -5,6 +5,7 @@ import {
   LIMITE_CARTA_BRANCA,
   RECARGA_DA_BRANCA,
   OPCOES_DE_PERGUNTA,
+  REROLLS_INICIAIS,
   TAMANHO_DA_MAO,
   type Ambiente,
   type ContextoDeSala,
@@ -538,6 +539,91 @@ describe('CCT-11…CCT-14 — julgamento, ponto e próxima rodada', () => {
       expect(vistas.has(aberta.pergunta)).toBe(false)
       vistas.add(aberta.pergunta)
     }
+  })
+})
+
+describe('CCT-40 — a troca de mão', () => {
+  it('começa com duas trocas pra cada um', () => {
+    const { estado } = partida()
+    for (const id of ['a', 'b', 'c']) expect(estado.rerolls[id]).toBe(REROLLS_INICIAIS)
+  })
+
+  it('troca a mão inteira e gasta uma', () => {
+    const { estado, contexto } = partida()
+    const quem = contexto.jogadores.find((j) => j.id !== juizDa(estado))!.id
+    const antes = [...estado.maos[quem]!]
+
+    const depois = aplicar(estado, { ...contexto, autorId: quem }, { t: 'trocarMao' })
+
+    expect(depois.maos[quem]).toHaveLength(TAMANHO_DA_MAO)
+    expect(depois.rerolls[quem]).toBe(REROLLS_INICIAIS - 1)
+    // Nenhuma carta velha sobrevive à troca.
+    for (const carta of depois.maos[quem]!) expect(antes).not.toContain(carta)
+    // E as velhas foram pro descarte, não pro topo do monte.
+    for (const carta of antes) expect(depois.descarteRespostas).toContain(carta)
+  })
+
+  it('não mexe na mão de mais ninguém', () => {
+    const { estado, contexto } = partida()
+    const quem = contexto.jogadores.find((j) => j.id !== juizDa(estado))!.id
+    const outro = contexto.jogadores.find((j) => j.id !== quem && j.id !== juizDa(estado))
+    const depois = aplicar(estado, { ...contexto, autorId: quem }, { t: 'trocarMao' })
+    if (outro !== undefined) expect(depois.maos[outro.id]).toEqual(estado.maos[outro.id])
+  })
+
+  it('acabadas as trocas, o comando é recusado', () => {
+    const { estado, contexto } = partida()
+    const quem = contexto.jogadores.find((j) => j.id !== juizDa(estado))!.id
+    const autor = { ...contexto, autorId: quem }
+    let atual = estado
+    for (let i = 0; i < REROLLS_INICIAIS; i += 1) atual = aplicar(atual, autor, { t: 'trocarMao' })
+
+    expect(atual.rerolls[quem]).toBe(0)
+    expect(reduzir(atual, autor, { t: 'trocarMao' }, AMBIENTE)).toEqual({
+      ok: false,
+      erro: 'CARTA_INVALIDA',
+    })
+  })
+
+  it('o juiz não troca mão — ele não tem mão nesta rodada', () => {
+    const { estado, contexto } = partida()
+    const r = reduzir(estado, { ...contexto, autorId: juizDa(estado) }, { t: 'trocarMao' }, AMBIENTE)
+    expect(r).toEqual({ ok: false, erro: 'SEM_AUTORIDADE' })
+  })
+
+  it('depois de jogar não dá mais pra trocar', () => {
+    const { estado, contexto } = partida()
+    const quem = contexto.jogadores.find((j) => j.id !== juizDa(estado))!.id
+    const autor = { ...contexto, autorId: quem }
+    const jogou = aplicar(estado, autor, {
+      t: 'jogarCarta',
+      texto: estado.maos[quem]![0]!,
+      daBranca: false,
+    })
+    expect(reduzir(jogou, autor, { t: 'trocarMao' }, AMBIENTE)).toEqual({
+      ok: false,
+      erro: 'FASE_INVALIDA',
+    })
+  })
+
+  it('a cada três rodadas todo mundo ganha mais uma', () => {
+    const inicial = partidaCrua()
+    const contexto = inicial.contexto
+    let estado = inicial.estado
+    const porRodada: number[] = []
+
+    for (let i = 0; i < 4; i += 1) {
+      porRodada.push(estado.rerolls['a'] ?? 0)
+      const fechado = pilhaNaMesa(abrirPergunta(estado, contexto), contexto)
+      const revelando = aplicar(fechado, { ...contexto, autorId: juizDa(fechado) }, {
+        t: 'escolherVencedora',
+        indice: 0,
+      })
+      estado = aplicar(revelando, contexto, { t: 'venceuPrazoTurno' })
+    }
+
+    // Rodadas 1, 2 e 3 com as duas iniciais; a 4ª abre com uma a mais.
+    expect(porRodada).toEqual([2, 2, 2, 3])
   })
 })
 

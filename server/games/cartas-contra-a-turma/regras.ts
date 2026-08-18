@@ -13,6 +13,8 @@ import {
   MIN_RESPOSTAS_NA_PILHA,
   OPCOES_DE_PERGUNTA,
   RECARGA_DA_BRANCA,
+  REROLLS_INICIAIS,
+  RODADAS_POR_REROLL,
   TAMANHO_DA_MAO,
 } from '../../../shared/protocolo'
 import { CARTAS_TURMA } from '../../../shared/cartas-turma-dados'
@@ -60,6 +62,8 @@ export interface EstadoCartas {
    * qualquer valor `<= rodada`) significa disponível agora.
    */
   brancaVoltaNa: Record<JogadorId, number>
+  /** `CCT-40` — trocas de mão que cada um ainda tem. */
+  rerolls: Record<JogadorId, number>
   jogadas: JogadaDaRodada[]
   /**
    * `CCT-08` — a ordem embaralhada em que a mesa vê as jogadas. Só existe
@@ -89,6 +93,7 @@ type TipoDeComandoDeJogo =
   | 'escolherPergunta'
   | 'revelarPergunta'
   | 'revelarCarta'
+  | 'trocarMao'
   | 'escolherVencedora'
   | 'encerrar'
   | 'novaPartida'
@@ -111,6 +116,7 @@ export function estadoVazio(): EstadoCartas {
     perguntaRevelada: false,
     maos: {},
     brancaVoltaNa: {},
+    rerolls: {},
     jogadas: [],
     pilha: null,
     reveladas: [],
@@ -157,6 +163,7 @@ export function iniciarRodada(ctx: ContextoDeSala, ambiente: Ambiente): Resultad
   for (const jogador of ativos) {
     estado.maos[jogador.id] = tirarRespostas(estado, TAMANHO_DA_MAO)
     estado.brancaVoltaNa[jogador.id] = 0
+    estado.rerolls[jogador.id] = REROLLS_INICIAIS
     estado.placar[jogador.id] = 0
   }
   estado.pacotesSelecionados = escolhidos.map((p) => ({ id: p.id, nome: p.nome, emoji: p.emoji }))
@@ -189,6 +196,8 @@ export function reduzir(
       return revelarPergunta(estado, ctx, ambiente)
     case 'revelarCarta':
       return revelarCarta(estado, ctx, comando.indice)
+    case 'trocarMao':
+      return trocarMao(estado, ctx)
     case 'escolherVencedora':
       return escolherVencedora(estado, ctx, comando.indice, ambiente)
     case 'encerrar':
@@ -305,6 +314,29 @@ function jogarCarta(
   if (novo.jogadas.length >= quantosDevemJogar(novo, ctx)) {
     return fecharEscolha(novo, ctx, ambiente, [])
   }
+
+  return { ok: true, estado: novo, eventos: [], prazos: {} }
+}
+
+/**
+ * `CCT-40` — troca a mão inteira por uma nova, gastando uma das trocas.
+ *
+ * A mão velha vai pro descarte, e não pro fim do monte: o que saiu não volta
+ * na próxima compra, senão a troca devolveria as mesmas cartas.
+ */
+function trocarMao(estado: EstadoCartas, ctx: ContextoDeSala): ResultadoReducer<EstadoCartas> {
+  if (ctx.fase !== 'jogo') return { ok: false, erro: 'FASE_INVALIDA' }
+  if (estado.fase !== 'escolha') return { ok: false, erro: 'FASE_INVALIDA' }
+  if (ctx.autorId === juizDa(estado)) return { ok: false, erro: 'SEM_AUTORIDADE' }
+  // Trocar depois de jogar seria trocar a carta que já está na mesa.
+  if (estado.jogadas.some((j) => j.autorId === ctx.autorId)) return { ok: false, erro: 'FASE_INVALIDA' }
+  if ((estado.rerolls[ctx.autorId] ?? 0) <= 0) return { ok: false, erro: 'CARTA_INVALIDA' }
+
+  const novo = clonar(estado)
+  const velha = novo.maos[ctx.autorId] ?? []
+  novo.descarteRespostas.push(...velha)
+  novo.maos[ctx.autorId] = tirarRespostas(novo, TAMANHO_DA_MAO)
+  novo.rerolls[ctx.autorId] = (novo.rerolls[ctx.autorId] ?? 0) - 1
 
   return { ok: true, estado: novo, eventos: [], prazos: {} }
 }
@@ -463,7 +495,10 @@ function proximaRodada(
     }
     novo.maos[jogador.id] = mao
     novo.brancaVoltaNa[jogador.id] ??= 0
+    novo.rerolls[jogador.id] ??= REROLLS_INICIAIS
     novo.placar[jogador.id] ??= 0
+    // `CCT-40` — a cada três rodadas fechadas, mais uma troca pra cada um.
+    if (ganhaReroll(novo.rodada)) novo.rerolls[jogador.id] += 1
   }
 
   return {
@@ -555,6 +590,7 @@ function saiuJogador(
   const novo = clonar(estado)
   delete novo.maos[jogadorId]
   delete novo.brancaVoltaNa[jogadorId]
+  delete novo.rerolls[jogadorId]
   delete novo.placar[jogadorId]
 
   const posicao = novo.ordemJuizes.indexOf(jogadorId)
@@ -601,6 +637,17 @@ export function juizDa(estado: EstadoCartas): JogadorId {
 
 export function brancaDisponivel(estado: EstadoCartas, jogadorId: JogadorId): boolean {
   return (estado.brancaVoltaNa[jogadorId] ?? 0) <= estado.rodada
+}
+
+/** `CCT-40` — a rodada que abre trazendo mais uma troca de mão pra mesa. */
+function ganhaReroll(rodada: number): boolean {
+  return rodada > 1 && (rodada - 1) % RODADAS_POR_REROLL === 0
+}
+
+/** `CCT-40` — em quantas rodadas cai a próxima troca. */
+export function rerollVoltaEm(estado: EstadoCartas): number {
+  const desde = (estado.rodada - 1) % RODADAS_POR_REROLL
+  return RODADAS_POR_REROLL - desde
 }
 
 /** `CCT-25` — em quantas rodadas a branca volta; `0` = agora. */
@@ -683,6 +730,7 @@ function clonar(estado: EstadoCartas): EstadoCartas {
     opcoesPergunta: [...estado.opcoesPergunta],
     maos: Object.fromEntries(Object.entries(estado.maos).map(([id, mao]) => [id, [...mao]])),
     brancaVoltaNa: { ...estado.brancaVoltaNa },
+    rerolls: { ...estado.rerolls },
     jogadas: estado.jogadas.map((j) => ({ ...j })),
     pilha: estado.pilha === null ? null : [...estado.pilha],
     reveladas: [...estado.reveladas],

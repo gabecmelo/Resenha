@@ -194,6 +194,14 @@ export const TAMANHO_DA_MAO = 7
  */
 export const OPCOES_DE_PERGUNTA = 3
 
+/**
+ * `CCT-40` — trocas de mão que cada um leva pra partida, e de quantas em
+ * quantas rodadas ganha mais uma. A mão ruim deixa de ser azar de rodada sem
+ * virar botão infinito.
+ */
+export const REROLLS_INICIAIS = 2
+export const RODADAS_POR_REROLL = 3
+
 /** `CCT-24` — rodadas até a carta em branco voltar depois de gasta. */
 export const RECARGA_DA_BRANCA = 5
 
@@ -410,6 +418,8 @@ export type Comando =
   | { t: 'revelarPergunta' }
   /** `CCT-38` — o juiz vira uma carta da pilha; ela passa a ser lida por todos. */
   | { t: 'revelarCarta'; indice: number }
+  /** `CCT-40` — troca a mão inteira por outra, gastando um reroll. */
+  | { t: 'trocarMao' }
 
 /** Servidor → cliente. */
 export type Mensagem =
@@ -547,6 +557,10 @@ export interface ProjecaoCartas {
    * rodadas ela volta.
    */
   brancaVoltaEm: number
+  /** `CCT-40` — trocas de mão que ainda me restam nesta partida. */
+  rerolls: number
+  /** `CCT-40` — em quantas rodadas cai a próxima troca. */
+  proximoRerollEm: number
   /** `CCT-07` — quantos já jogaram, nunca o que jogaram. */
   quantosJogaram: number
   totalEsperado: number
