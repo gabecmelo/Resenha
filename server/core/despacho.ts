@@ -12,7 +12,13 @@ import type {
   Resultado,
   ResultadoReducer,
 } from '../../shared/protocolo'
-import { CONFIG_PADRAO, TEMPO_TURNO_MAX_SEG, TEMPO_TURNO_MIN_SEG } from '../../shared/protocolo'
+import {
+  CONFIG_PADRAO,
+  TEMPO_TURNO_MAX_SEG,
+  TEMPO_TURNO_MIN_SEG,
+  TEMPO_VOTACAO_MAX_SEG,
+  TEMPO_VOTACAO_MIN_SEG,
+} from '../../shared/protocolo'
 import type { PacoteCompleto } from '../../shared/pacotes-dados'
 import * as chat from './chat'
 import { TIPOS_DE_PRAZO, definir } from './prazos'
@@ -202,6 +208,7 @@ function configurar(
         parcial.espiao?.tempoRodadaSeg === undefined
           ? sala.config.espiao.tempoRodadaSeg
           : parcial.espiao.tempoRodadaSeg,
+      tempoVotacaoSeg: parcial.espiao?.tempoVotacaoSeg ?? sala.config.espiao.tempoVotacaoSeg,
     },
   }
   return { ok: true, valor: SEM_EFEITOS }
@@ -258,6 +265,12 @@ function configEspiaoValida(parcial: Partial<ConfigEspiao>): boolean {
   if (segundos !== undefined && segundos !== null) {
     if (!Number.isInteger(segundos)) return false
     if (segundos < TEMPO_TURNO_MIN_SEG || segundos > TEMPO_TURNO_MAX_SEG) return false
+  }
+  // `ESP-28` — a votação sempre tem prazo; aqui `null` não é opção.
+  const votacao = parcial.tempoVotacaoSeg
+  if (votacao !== undefined) {
+    if (!Number.isInteger(votacao)) return false
+    if (votacao < TEMPO_VOTACAO_MIN_SEG || votacao > TEMPO_VOTACAO_MAX_SEG) return false
   }
   if (parcial.espioesSeVeem !== undefined && typeof parcial.espioesSeVeem !== 'boolean') return false
   return true

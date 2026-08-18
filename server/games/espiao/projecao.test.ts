@@ -34,6 +34,7 @@ function jogoDe(over: Partial<EstadoEspiao> = {}): EstadoEspiao {
     prontos: ['a', 'b', 'c'],
     rodadaIniciada: true,
     votacaoAberta: null,
+    resultadoVotacao: null,
     notas: {},
     ...over,
   }
@@ -178,7 +179,7 @@ describe('revelação ao encerrar (ESP-16)', () => {
 
 describe('visibilidade da votação (ESP-18, ESP-19)', () => {
   function estadoComVotacao(votos: Record<JogadorId, JogadorId | 'pular'>): EstadoEspiao {
-    return jogoDe({ votacaoAberta: { abertaEm: 5_000, votos } })
+    return jogoDe({ votacaoAberta: { abertaEm: 5_000, abertaPor: null, votos } })
   }
 
   it('`tempoReal` mostra os votos, atualizados conforme cada jogador vota', () => {
@@ -239,6 +240,98 @@ describe('visibilidade da votação (ESP-18, ESP-19)', () => {
     const projecao = projetar(estado, sala, 'a')
 
     expect(projecao.jogo?.espiao?.votacaoAberta).toBeUndefined()
+  })
+
+  it('mostra quem abriu a votação e o prazo dela (ESP-27, ESP-28)', () => {
+    const estado = jogoDe({ votacaoAberta: { abertaEm: 5_000, abertaPor: 'c', votos: {} } })
+    const sala = salaDe('jogo')
+
+    const projecao = projetar(estado, sala, 'a')
+
+    expect(projecao.jogo?.espiao?.votacaoAberta?.abertaPor).toEqual({
+      id: 'c',
+      apelido: 'C',
+    })
+    expect(projecao.jogo?.espiao?.votacaoAberta?.prazoVotacao).toBe(sala.prazos.turno)
+  })
+
+  it('votação aberta pelo relógio não atribui `abertaPor` a ninguém (ESP-27)', () => {
+    const estado = jogoDe({ votacaoAberta: { abertaEm: 5_000, abertaPor: null, votos: {} } })
+    const sala = salaDe('jogo')
+
+    const projecao = projetar(estado, sala, 'a')
+
+    expect(projecao.jogo?.espiao?.votacaoAberta?.abertaPor).toBeUndefined()
+  })
+
+  it('enquanto a votação corre, o relógio da rodada não corre (ESP-28)', () => {
+    const estado = jogoDe({ votacaoAberta: { abertaEm: 5_000, abertaPor: 'a', votos: {} } })
+    const sala = salaDe('jogo')
+
+    const projecao = projetar(estado, sala, 'a')
+
+    expect(projecao.jogo?.espiao?.prazoRodada).toBeNull()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Resultado da votação (ESP-29, ESP-30, ESP-33)
+// ---------------------------------------------------------------------------
+
+describe('resultado da votação (ESP-29, ESP-30, ESP-33)', () => {
+  const RESULTADO = {
+    votos: { a: 'b', c: 'b' } as Record<JogadorId, JogadorId | 'pular'>,
+    abertaPor: 'a',
+    acusado: 'b',
+    aMesaAcertou: true,
+    votosNoAcusado: 2,
+    maioriaMinima: 2,
+    totalAtivos: 3,
+  }
+
+  it('revela quem votou em quem mesmo com `visibilidadeVoto: oculta` (ESP-30)', () => {
+    const estado = jogoDe({ resultadoVotacao: RESULTADO })
+    const sala = salaDe('jogo', {
+      config: { ...CONFIG_PADRAO, espiao: { ...CONFIG_PADRAO.espiao, visibilidadeVoto: 'oculta' } },
+    })
+
+    const projecao = projetar(estado, sala, 'c')
+
+    expect(projecao.jogo?.espiao?.resultadoVotacao?.votos).toEqual({ a: 'b', c: 'b' })
+  })
+
+  it('traz a conta da acusação e o apelido de quem foi acusado (ESP-29)', () => {
+    const estado = jogoDe({ resultadoVotacao: RESULTADO })
+    const sala = salaDe('jogo')
+
+    const projecao = projetar(estado, sala, 'a')
+
+    expect(projecao.jogo?.espiao?.resultadoVotacao).toMatchObject({
+      acusado: { id: 'b', apelido: 'B' },
+      abertaPor: { id: 'a', apelido: 'A' },
+      aMesaAcertou: true,
+      votosNoAcusado: 2,
+      maioriaMinima: 2,
+      totalAtivos: 3,
+    })
+  })
+
+  it('na revelação o resultado não tem prazo pra sumir (ESP-33)', () => {
+    const estado = jogoDe({ resultadoVotacao: RESULTADO })
+    const sala = salaDe('encerrada')
+
+    const projecao = projetar(estado, sala, 'a')
+
+    expect(projecao.jogo?.espiao?.resultadoVotacao?.prazoFim).toBeNull()
+  })
+
+  it('sem votação fechada, `resultadoVotacao` fica ausente (ESP-34)', () => {
+    const estado = jogoDe({ resultadoVotacao: null })
+    const sala = salaDe('encerrada')
+
+    const projecao = projetar(estado, sala, 'a')
+
+    expect(projecao.jogo?.espiao?.resultadoVotacao).toBeUndefined()
   })
 })
 

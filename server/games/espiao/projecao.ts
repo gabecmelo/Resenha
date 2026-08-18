@@ -4,6 +4,7 @@ import type {
   JogadorId,
   Projecao,
   ProjecaoEspiao,
+  ResultadoDaVotacao,
 } from '../../../shared/protocolo'
 import type { EstadoEspiao } from './regras'
 
@@ -105,19 +106,61 @@ function projetarEspiao(
     espiao.espioes = estado.espioes.map((id) => ({ id, apelido: apelidoDe(sala, id) }))
   }
 
+  // `ESP-32` — o relógio da rodada só corre quando é a rodada que está de pé;
+  // nas outras duas janelas o mesmo prazo pertence à votação ou ao resultado.
+  if (estado.votacaoAberta !== null || estado.resultadoVotacao !== null) {
+    espiao.prazoRodada = null
+  }
+
   const votacao = estado.votacaoAberta
   if (votacao !== null) {
     const conectadosAtivos = ativos.filter((j) => j.conectado)
-    espiao.votacaoAberta = {
+    const aberta: NonNullable<ProjecaoEspiao['votacaoAberta']> = {
       meuVoto: votacao.votos[paraJogador] ?? null,
       // `ESP-06` (edge case) — só ativos conectados contam.
       quantosVotaram: conectadosAtivos.filter((j) => votacao.votos[j.id] !== undefined).length,
       total: conectadosAtivos.length,
+      // `ESP-28` — o prazo `turno` pertence à votação enquanto ela está aberta.
+      prazoVotacao: sala.prazos.turno,
+    }
+    // `ESP-27` — sem `abertaPor`, foi o relógio da rodada que abriu.
+    if (votacao.abertaPor !== null) {
+      aberta.abertaPor = {
+        id: votacao.abertaPor,
+        apelido: apelidoDe(sala, votacao.abertaPor),
+      }
     }
     // `ESP-18`, `ESP-19`
     if (sala.config.espiao.visibilidadeVoto === 'tempoReal') {
-      espiao.votacaoAberta.votos = votacao.votos
+      aberta.votos = votacao.votos
     }
+    espiao.votacaoAberta = aberta
+  }
+
+  // `ESP-30` — fechada a votação, o mapa de votos é público pra mesa inteira,
+  // inclusive com `visibilidadeVoto: 'oculta'`: o sigilo protegia a decisão
+  // enquanto ela estava sendo tomada, não o que ela decidiu.
+  const resultado = estado.resultadoVotacao
+  if (resultado !== null) {
+    const projetado: ResultadoDaVotacao = {
+      votos: resultado.votos,
+      aMesaAcertou: resultado.aMesaAcertou,
+      votosNoAcusado: resultado.votosNoAcusado,
+      maioriaMinima: resultado.maioriaMinima,
+      totalAtivos: resultado.totalAtivos,
+      // `ESP-33` — encerrada a partida, o resultado não tem mais prazo: ele fica.
+      prazoFim: encerrada ? null : sala.prazos.turno,
+    }
+    if (resultado.abertaPor !== null) {
+      projetado.abertaPor = {
+        id: resultado.abertaPor,
+        apelido: apelidoDe(sala, resultado.abertaPor),
+      }
+    }
+    if (resultado.acusado !== null) {
+      projetado.acusado = { id: resultado.acusado, apelido: apelidoDe(sala, resultado.acusado) }
+    }
+    espiao.resultadoVotacao = projetado
   }
 
   return espiao

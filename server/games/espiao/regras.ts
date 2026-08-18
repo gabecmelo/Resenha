@@ -10,7 +10,7 @@ import type {
 import type { Config } from '../../../shared/protocolo'
 import type { PacoteCompleto } from '../../../shared/pacotes-dados'
 import { montarPoolDeCartas } from '../../../shared/pacotes'
-import { espioesParaMesa } from '../../../shared/protocolo'
+import { JANELA_DE_RESULTADO_MS, espioesParaMesa } from '../../../shared/protocolo'
 import { embaralhar, sortearEspioes } from './sorteio'
 
 /**
@@ -23,8 +23,26 @@ const MIN_JOGADORES_ESPIAO = 3
 
 export interface VotacaoAberta {
   abertaEm: number
+  /** `ESP-27` — quem puxou a votação; `null` quando foi o relógio da rodada. */
+  abertaPor: JogadorId | null
   /** votante → alvo (`'pular'` é a opção de não acusar ninguém). */
   votos: Record<JogadorId, JogadorId | 'pular'>
+}
+
+/**
+ * `ESP-29`…`ESP-31` — o retrato de uma votação que fechou. É apurado uma vez e
+ * nunca recalculado: se alguém sai da sala durante a janela de resultado, o que
+ * a mesa decidiu continua sendo o que a mesa decidiu.
+ */
+export interface ResultadoVotacao {
+  votos: Record<JogadorId, JogadorId | 'pular'>
+  abertaPor: JogadorId | null
+  /** `null` quando ninguém alcançou maioria absoluta. */
+  acusado: JogadorId | null
+  aMesaAcertou: boolean
+  votosNoAcusado: number
+  maioriaMinima: number
+  totalAtivos: number
 }
 
 export interface EstadoEspiao {
@@ -39,6 +57,8 @@ export interface EstadoEspiao {
   /** false = tela de espera por PRONTO; true = tela padrão do jogo. */
   rodadaIniciada: boolean
   votacaoAberta: VotacaoAberta | null
+  /** `ESP-32` — de pé durante a janela de resultado e depois na revelação. */
+  resultadoVotacao: ResultadoVotacao | null
   /** `NOTA-02`-like — privado por jogador. */
   notas: Record<JogadorId, string>
   /** Mesmo padrão de `pacotesSelecionados` de "Quem Sou Eu" — visível durante o jogo. */
@@ -71,6 +91,7 @@ export function estadoVazio(): EstadoEspiao {
     prontos: [],
     rodadaIniciada: false,
     votacaoAberta: null,
+    resultadoVotacao: null,
     notas: {},
   }
 }
@@ -179,7 +200,7 @@ function marcarPronto(
 // Votação
 // ---------------------------------------------------------------------------
 
-/** `ESP-09` — qualquer jogador ativo pode abrir a votação durante a rodada. */
+/** `ESP-09`, `ESP-27`, `ESP-28` — qualquer jogador ativo abre a votação durante a rodada. */
 function abrirVotacao(
   estado: EstadoEspiao,
   ctx: ContextoDeSala,
@@ -188,41 +209,62 @@ function abrirVotacao(
   if (ctx.fase !== 'jogo') return { ok: false, erro: 'FASE_INVALIDA' }
   if (!estado.rodadaIniciada) return { ok: false, erro: 'COMANDO_INVALIDO' }
   if (estado.votacaoAberta !== null) return { ok: false, erro: 'COMANDO_INVALIDO' }
+  // Edge case — durante a janela de resultado a mesa está lendo o que acabou de
+  // acontecer; a próxima acusação espera a rodada voltar.
+  if (estado.resultadoVotacao !== null) return { ok: false, erro: 'COMANDO_INVALIDO' }
 
   const novo = clonar(estado)
-  novo.votacaoAberta = { abertaEm: ambiente.agora, votos: {} }
+  novo.votacaoAberta = { abertaEm: ambiente.agora, abertaPor: ctx.autorId, votos: {} }
 
-  // `AD-014`, tech decision — o prazo da rodada pausa enquanto a votação está aberta.
+  // `AD-010` — o mesmo prazo `turno` serve às três janelas da partida (rodada,
+  // votação, resultado); qual delas está valendo se lê pelo estado.
   return {
     ok: true,
     estado: novo,
-    eventos: [{ texto: 'A votação foi aberta.' }],
-    prazos: { turno: null },
+    eventos: [{ texto: `${apelidoNaMesa(ctx, ctx.autorId)} abriu a votação.` }],
+    prazos: { turno: prazoDaVotacao(ctx.config, ambiente.agora) },
   }
 }
 
-/** `ESP-10` — o timer esgotado abre a votação automaticamente. */
+/**
+ * O relógio venceu — qual relógio, o estado decide (`AD-010`): a janela de
+ * resultado devolve a rodada (`ESP-32`), a votação aberta fecha (`ESP-28`) e a
+ * rodada corrente abre a votação (`ESP-10`).
+ */
 function venceuPrazoTurno(
   estado: EstadoEspiao,
   ctx: ContextoDeSala,
   ambiente: Ambiente,
 ): ResultadoReducer<EstadoEspiao> {
   if (ctx.fase !== 'jogo') return { ok: false, erro: 'FASE_INVALIDA' }
-  if (ctx.config.espiao.tempoRodadaSeg === null) {
-    return { ok: true, estado, eventos: [], prazos: { turno: null } }
+
+  // `ESP-32` — acabou a leitura do resultado; a rodada recomeça do zero.
+  if (estado.resultadoVotacao !== null) {
+    const novo = clonar(estado)
+    novo.resultadoVotacao = null
+    return {
+      ok: true,
+      estado: novo,
+      eventos: [{ texto: 'A rodada voltou a correr.' }],
+      prazos: { turno: prazoDaRodada(ctx.config, ambiente.agora) },
+    }
   }
-  if (!estado.rodadaIniciada || estado.votacaoAberta !== null) {
+
+  // `ESP-28` — o tempo de votação acabou; vale o que já estava na mesa.
+  if (estado.votacaoAberta !== null) return fecharVotacao(estado, ctx, ambiente)
+
+  if (ctx.config.espiao.tempoRodadaSeg === null || !estado.rodadaIniciada) {
     return { ok: true, estado, eventos: [], prazos: { turno: null } }
   }
 
   const novo = clonar(estado)
-  novo.votacaoAberta = { abertaEm: ambiente.agora, votos: {} }
+  novo.votacaoAberta = { abertaEm: ambiente.agora, abertaPor: null, votos: {} }
 
   return {
     ok: true,
     estado: novo,
     eventos: [{ texto: 'O tempo da rodada acabou. A votação foi aberta automaticamente.' }],
-    prazos: { turno: null },
+    prazos: { turno: prazoDaVotacao(ctx.config, ambiente.agora) },
   }
 }
 
@@ -267,9 +309,12 @@ function encerrarVotacao(
 }
 
 /**
- * `ESP-13`, `ESP-14` — maioria absoluta sobre o total de jogadores ativos
- * (não só de quem votou, tech decision de `design.md`). Empate, maioria em
- * "pular" ou 0 votos válidos contam como "não acertou" (mesmo tratamento).
+ * `ESP-13`, `ESP-14`, `ESP-29`…`ESP-33` — maioria absoluta sobre o total de
+ * jogadores ativos (não só de quem votou, tech decision de `design.md`).
+ * Empate, maioria em "pular" ou 0 votos válidos contam como "não acertou".
+ *
+ * O voto do próprio espião conta como qualquer outro: quem está infiltrado
+ * também vota, às vezes até em si mesmo pra despistar.
  */
 function fecharVotacao(
   estado: EstadoEspiao,
@@ -280,41 +325,68 @@ function fecharVotacao(
   if (votacao === null) return { ok: false, erro: 'COMANDO_INVALIDO' }
 
   const totalAtivos = jogadoresAtivos(ctx).length
-  const vencedorId = vencedorDaVotacao(votacao.votos, totalAtivos)
-  const acertou = vencedorId !== null && estado.espioes.includes(vencedorId)
+  const apuracao = apurar(votacao.votos, totalAtivos)
+  const acusado = apuracao.acusado
+  const acertou = acusado !== null && estado.espioes.includes(acusado)
 
   const novo = clonar(estado)
   novo.votacaoAberta = null
+  novo.resultadoVotacao = {
+    votos: votacao.votos,
+    abertaPor: votacao.abertaPor,
+    acusado,
+    aMesaAcertou: acertou,
+    votosNoAcusado: apuracao.votosNoAcusado,
+    maioriaMinima: apuracao.maioriaMinima,
+    totalAtivos,
+  }
 
+  // `ESP-33` — acertou: a partida acaba e o resultado segue vivo na revelação.
   if (acertou) {
     return {
       ok: true,
       estado: novo,
-      eventos: [{ texto: 'A votação encontrou um espião! A partida terminou.' }],
+      eventos: [
+        { texto: `A mesa acusou ${apelidoNaMesa(ctx, acusado)} — e acertou. A partida terminou.` },
+      ],
       prazos: { turno: null },
       faseSeguinte: 'encerrada',
     }
   }
 
+  // `ESP-32` — errou: o resultado fica um tempo na tela antes de a rodada voltar.
   return {
     ok: true,
     estado: novo,
-    eventos: [{ texto: 'A votação não encontrou um espião. A partida continua.' }],
-    prazos: { turno: prazoDaRodada(ctx.config, ambiente.agora) },
+    eventos: [
+      {
+        texto:
+          acusado === null
+            ? 'A votação não decidiu nada. A rodada continua.'
+            : `A mesa acusou ${apelidoNaMesa(ctx, acusado)} — e errou. A rodada continua.`,
+      },
+    ],
+    prazos: { turno: ambiente.agora + JANELA_DE_RESULTADO_MS },
   }
 }
 
-/** `null` quando não há vencedor único com maioria absoluta. */
-function vencedorDaVotacao(
-  votos: Record<JogadorId, JogadorId | 'pular'>,
-  totalAtivos: number,
-): JogadorId | null {
+interface Apuracao {
+  /** `null` quando não há vencedor único com maioria absoluta. */
+  acusado: JogadorId | null
+  votosNoAcusado: number
+  maioriaMinima: number
+}
+
+function apurar(votos: Record<JogadorId, JogadorId | 'pular'>, totalAtivos: number): Apuracao {
+  const maioriaMinima = Math.floor(totalAtivos / 2) + 1
+  const semAcusado: Apuracao = { acusado: null, votosNoAcusado: 0, maioriaMinima }
+
   const contagens = new Map<JogadorId, number>()
   for (const voto of Object.values(votos)) {
     if (voto === 'pular') continue
     contagens.set(voto, (contagens.get(voto) ?? 0) + 1)
   }
-  if (contagens.size === 0) return null
+  if (contagens.size === 0) return semAcusado
 
   let maior = 0
   for (const contagem of contagens.values()) {
@@ -322,12 +394,10 @@ function vencedorDaVotacao(
   }
 
   const comMaior = [...contagens.entries()].filter(([, contagem]) => contagem === maior)
-  if (comMaior.length !== 1) return null // empate
+  if (comMaior.length !== 1) return semAcusado // empate
+  if (maior < maioriaMinima) return semAcusado
 
-  const maioriaMinima = Math.floor(totalAtivos / 2) + 1
-  if (maior < maioriaMinima) return null
-
-  return comMaior[0][0]
+  return { acusado: comMaior[0][0], votosNoAcusado: maior, maioriaMinima }
 }
 
 function todosAtivosConectadosVotaram(votacao: VotacaoAberta, ctx: ContextoDeSala): boolean {
@@ -346,6 +416,8 @@ function encerrar(estado: EstadoEspiao, ctx: ContextoDeSala): ResultadoReducer<E
 
   const novo = clonar(estado)
   novo.votacaoAberta = null
+  // `ESP-34` — encerrar na mão não é veredito: não houve aposta coletiva a julgar.
+  novo.resultadoVotacao = null
 
   return {
     ok: true,
@@ -466,6 +538,15 @@ function todosProntos(estado: EstadoEspiao, ctx: ContextoDeSala): boolean {
 /** `null` quando a configuração é "sem limite". */
 function prazoDaRodada(config: Config, agora: number): number | null {
   return config.espiao.tempoRodadaSeg === null ? null : agora + config.espiao.tempoRodadaSeg * 1_000
+}
+
+/** `ESP-28` — a votação sempre tem prazo, mesmo numa rodada sem relógio. */
+function prazoDaVotacao(config: Config, agora: number): number {
+  return agora + config.espiao.tempoVotacaoSeg * 1_000
+}
+
+function apelidoNaMesa(ctx: ContextoDeSala, id: JogadorId): string {
+  return ctx.jogadores.find((j) => j.id === id)?.apelido ?? 'Alguém'
 }
 
 function clonar(estado: EstadoEspiao): EstadoEspiao {

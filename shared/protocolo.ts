@@ -123,6 +123,12 @@ export interface ConfigEspiao {
   visibilidadeVoto: 'oculta' | 'tempoReal'
   /** Padrão 300 (5min). `null` = sem limite, mesmo padrão de `tempoTurnoSeg`. */
   tempoRodadaSeg: number | null
+  /**
+   * `ESP-28` — segundos que a mesa tem pra votar depois que a votação abre.
+   * Diferente do tempo de rodada, aqui `null` não existe: uma votação sem
+   * prazo trava a partida esperando quem foi ao banheiro. Padrão 60.
+   */
+  tempoVotacaoSeg: number
 }
 
 /** `ESP-01` — a partir desta mesa o automático passa a sortear 2 espiões. */
@@ -139,6 +145,7 @@ export const CONFIG_ESPIAO_PADRAO: ConfigEspiao = {
   espioesSeVeem: true,
   visibilidadeVoto: 'oculta',
   tempoRodadaSeg: 300,
+  tempoVotacaoSeg: 60,
 }
 
 export interface Config {
@@ -175,6 +182,21 @@ export const CONFIG_PADRAO: Config = {
  */
 export const TEMPO_TURNO_MIN_SEG = 10
 export const TEMPO_TURNO_MAX_SEG = 60 * 60
+
+/**
+ * `ESP-28` — faixa do tempo de votação. Abaixo de 15s não dá pra ler a mesa
+ * inteira antes de decidir; acima de 5min a votação deixa de ser um momento e
+ * vira uma segunda rodada.
+ */
+export const TEMPO_VOTACAO_MIN_SEG = 15
+export const TEMPO_VOTACAO_MAX_SEG = 5 * 60
+
+/**
+ * `ESP-32` — quanto tempo o resultado da votação fica na tela antes de a
+ * rodada voltar a correr. Não é configurável: é o tempo de ler o mapa de votos
+ * em voz alta, e uma mesa não deveria ter que decidir isso.
+ */
+export const JANELA_DE_RESULTADO_MS = 12_000
 
 /**
  * Prazos multiplexados sobre o alarme único do Durable Object (AD-010).
@@ -296,6 +318,8 @@ export type Comando =
   | { t: 'sair' }
   | { t: 'trocarJogo'; jogoId: string }
   | { t: 'abrirVotacao' }
+  | { t: 'pausar' }
+  | { t: 'retomar' }
   | { t: 'votar'; alvoId: JogadorId | null }
   | { t: 'encerrarVotacao' }
 
@@ -327,9 +351,50 @@ export interface ProjecaoEspiao {
     meuVoto: JogadorId | 'pular' | null
     quantosVotaram: number
     total: number
+    /**
+     * `ESP-27` — quem puxou a mesa pra tela. Ausente quando foi o relógio da
+     * rodada que abriu sozinho.
+     */
+    abertaPor?: { id: JogadorId; apelido: string }
+    /** `ESP-28` — instante absoluto em que a votação fecha sozinha. */
+    prazoVotacao: number | null
     /** Presente só se `config.espiao.visibilidadeVoto === 'tempoReal'`. */
     votos?: Record<JogadorId, JogadorId | 'pular'>
   }
+  /**
+   * `ESP-29`…`ESP-34` — o retrato da votação que acabou de fechar. Fica de pé
+   * na janela de resultado e, quando a acusação encerrou a partida, segue
+   * presente na revelação.
+   */
+  resultadoVotacao?: ResultadoDaVotacao
+  /** `ESP-35` — a rodada está pausada por quem comanda a mesa. */
+  pausadaPor?: { id: JogadorId; apelido: string }
+}
+
+/**
+ * `ESP-29`…`ESP-31` — o que a mesa inteira vê quando a votação fecha. Os votos
+ * vêm sempre completos, inclusive com `visibilidadeVoto: 'oculta'`: o sigilo
+ * protege a votação enquanto ela corre, não o que ela decidiu.
+ */
+export interface ResultadoDaVotacao {
+  /** votante → alvo. `'pular'` é quem escolheu não acusar ninguém. */
+  votos: Record<JogadorId, JogadorId | 'pular'>
+  /** Quem abriu a votação; ausente quando foi o relógio. */
+  abertaPor?: { id: JogadorId; apelido: string }
+  /** Quem a mesa acusou por maioria absoluta. Ausente = ninguém teve maioria. */
+  acusado?: { id: JogadorId; apelido: string }
+  /** Só verdadeiro quando houve acusado **e** ele era de fato espião. */
+  aMesaAcertou: boolean
+  /** Votos que o acusado recebeu; `0` quando não houve acusado. */
+  votosNoAcusado: number
+  /** Maioria absoluta dos ativos — o número que a acusação precisava alcançar. */
+  maioriaMinima: number
+  totalAtivos: number
+  /**
+   * `ESP-32` — instante em que a janela de resultado fecha e a rodada volta.
+   * `null` quando a partida acabou aqui e não há rodada pra voltar.
+   */
+  prazoFim: number | null
 }
 
 export interface Projecao {

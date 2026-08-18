@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   CONFIG_PADRAO,
+  JANELA_DE_RESULTADO_MS,
   type Ambiente,
   type ContextoDeSala,
   type Jogador,
@@ -319,20 +320,46 @@ describe('abrirVotacao (ESP-09)', () => {
     expect(resultado).toEqual({ ok: false, erro: 'COMANDO_INVALIDO' })
   })
 
-  it('qualquer jogador ativo pode abrir a votação durante a rodada', () => {
+  it('qualquer jogador ativo pode abrir a votação, e a mesa registra quem abriu (ESP-27)', () => {
     const { estado, base } = emRodada()
 
     const resultado = reduzirOk(estado, { ...base, autorId: 'c' }, { t: 'abrirVotacao' })
 
-    expect(resultado.estado.votacaoAberta).toEqual({ abertaEm: AMBIENTE.agora, votos: {} })
+    expect(resultado.estado.votacaoAberta).toEqual({
+      abertaEm: AMBIENTE.agora,
+      abertaPor: 'c',
+      votos: {},
+    })
   })
 
-  it('pausa o prazo da rodada ao abrir (prazos.turno: null)', () => {
+  it('anuncia à mesa quem abriu a votação, pelo apelido (ESP-27)', () => {
+    const { estado, base } = emRodada()
+
+    const resultado = reduzirOk(estado, { ...base, autorId: 'c' }, { t: 'abrirVotacao' })
+
+    const apelido = base.jogadores.find((j) => j.id === 'c')!.apelido
+    expect(resultado.eventos).toEqual([{ texto: `${apelido} abriu a votação.` }])
+  })
+
+  it('troca o relógio da rodada pelo relógio da votação ao abrir (ESP-28)', () => {
     const { estado, base } = emRodada()
 
     const resultado = reduzirOk(estado, base, { t: 'abrirVotacao' })
 
-    expect(resultado.prazos).toEqual({ turno: null })
+    expect(resultado.prazos).toEqual({
+      turno: AMBIENTE.agora + base.config.espiao.tempoVotacaoSeg * 1_000,
+    })
+  })
+
+  it('recusa abrir enquanto o resultado da votação anterior ainda está na tela (edge case)', () => {
+    const { estado, base } = emRodada()
+    const aberta = reduzirOk(estado, base, { t: 'abrirVotacao' }).estado
+    // Ninguém acerta: fecha com 0 votos e abre a janela de resultado.
+    const comResultado = reduzirOk(aberta, base, { t: 'encerrarVotacao' }).estado
+
+    const resultado = reduzir(comResultado, base, { t: 'abrirVotacao' }, AMBIENTE)
+
+    expect(resultado).toEqual({ ok: false, erro: 'COMANDO_INVALIDO' })
   })
 
   it('recusa abrir uma segunda votação enquanto a primeira está aberta', () => {
@@ -357,8 +384,15 @@ describe('venceuPrazoTurno abre a votação automaticamente (ESP-10)', () => {
 
     const resultado = reduzirOk(estado, base, { t: 'venceuPrazoTurno' })
 
-    expect(resultado.estado.votacaoAberta).toEqual({ abertaEm: AMBIENTE.agora, votos: {} })
-    expect(resultado.prazos).toEqual({ turno: null })
+    // `ESP-27` — sem `abertaPor`: foi o relógio, não uma pessoa.
+    expect(resultado.estado.votacaoAberta).toEqual({
+      abertaEm: AMBIENTE.agora,
+      abertaPor: null,
+      votos: {},
+    })
+    expect(resultado.prazos).toEqual({
+      turno: AMBIENTE.agora + base.config.espiao.tempoVotacaoSeg * 1_000,
+    })
   })
 
   it('não faz nada quando `tempoRodadaSeg` é `null` (sem prazo agendado)', () => {
@@ -370,13 +404,28 @@ describe('venceuPrazoTurno abre a votação automaticamente (ESP-10)', () => {
     expect(resultado.estado).toEqual(estado)
   })
 
-  it('não faz nada (no-op) se a votação já está aberta', () => {
+  it('fecha a votação sozinho quando o relógio dela vence (ESP-28)', () => {
     const { estado, base } = emRodada()
     const aberta = reduzirOk(estado, base, { t: 'abrirVotacao' }).estado
+    const votada = reduzirOk(aberta, { ...base, autorId: 'a' }, { t: 'votar', alvoId: 'b' }).estado
 
-    const resultado = reduzirOk(aberta, base, { t: 'venceuPrazoTurno' })
+    const resultado = reduzirOk(votada, base, { t: 'venceuPrazoTurno' })
 
-    expect(resultado.estado).toEqual(aberta)
+    expect(resultado.estado.votacaoAberta).toBeNull()
+    expect(resultado.estado.resultadoVotacao?.votos).toEqual({ a: 'b' })
+  })
+
+  it('devolve a rodada quando a janela de resultado vence, com o relógio cheio (ESP-32)', () => {
+    const { estado, base } = emRodada()
+    const aberta = reduzirOk(estado, base, { t: 'abrirVotacao' }).estado
+    const comResultado = reduzirOk(aberta, base, { t: 'encerrarVotacao' }).estado
+
+    const resultado = reduzirOk(comResultado, base, { t: 'venceuPrazoTurno' })
+
+    expect(resultado.estado.resultadoVotacao).toBeNull()
+    expect(resultado.prazos).toEqual({
+      turno: AMBIENTE.agora + base.config.espiao.tempoRodadaSeg! * 1_000,
+    })
   })
 })
 
@@ -536,13 +585,55 @@ describe('resultado da votação — maioria absoluta sobre o total de ativos (E
     })
   })
 
-  it('maioria em quem não é espião não encerra a partida e reabre o prazo (ESP-14)', () => {
-    const { resultado, base } = partidaComVotos({ a: 'c', b: 'c' }) // 2 de 3 votam em 'c', que não é espião
+  it('maioria em quem não é espião não encerra a partida e abre a janela de resultado (ESP-14, ESP-32)', () => {
+    const { resultado } = partidaComVotos({ a: 'c', b: 'c' }) // 2 de 3 votam em 'c', que não é espião
 
     expect({ faseSeguinte: resultado.faseSeguinte, prazos: resultado.prazos }).toEqual({
       faseSeguinte: undefined,
-      prazos: { turno: AMBIENTE.agora + base.config.espiao.tempoRodadaSeg! * 1_000 },
+      prazos: { turno: AMBIENTE.agora + JANELA_DE_RESULTADO_MS },
     })
+  })
+
+  it('revela o mapa de votos e a conta da acusação quando a votação fecha (ESP-29, ESP-30)', () => {
+    const { resultado } = partidaComVotos({ a: 'c', b: 'c' })
+
+    expect(resultado.estado.resultadoVotacao).toEqual({
+      votos: { a: 'c', b: 'c' },
+      abertaPor: 'a',
+      acusado: 'c',
+      aMesaAcertou: false,
+      votosNoAcusado: 2,
+      maioriaMinima: 2,
+      totalAtivos: 3,
+    })
+  })
+
+  it('o voto do próprio espião conta na maioria que o entrega (ESP-31)', () => {
+    // 'b' é o espião e vota em si mesmo pra despistar; com 'a' dá a maioria.
+    const { resultado } = partidaComVotos({ a: 'b', b: 'b' })
+
+    expect({
+      faseSeguinte: resultado.faseSeguinte,
+      acertou: resultado.estado.resultadoVotacao?.aMesaAcertou,
+      votos: resultado.estado.resultadoVotacao?.votosNoAcusado,
+    }).toEqual({ faseSeguinte: 'encerrada', acertou: true, votos: 2 })
+  })
+
+  it('o resultado sobrevive ao fim da partida, sem prazo pra sumir (ESP-33)', () => {
+    const { resultado } = partidaComVotos({ a: 'b', c: 'b' })
+
+    expect(resultado.estado.resultadoVotacao?.acusado).toBe('b')
+    expect(resultado.prazos).toEqual({ turno: null })
+  })
+
+  it('sem maioria, o resultado registra que ninguém foi acusado (ESP-29)', () => {
+    const { resultado } = partidaComVotos({ a: 'b', c: 'a' }) // empate
+
+    expect({
+      acusado: resultado.estado.resultadoVotacao?.acusado,
+      votosNoAcusado: resultado.estado.resultadoVotacao?.votosNoAcusado,
+      acertou: resultado.estado.resultadoVotacao?.aMesaAcertou,
+    }).toEqual({ acusado: null, votosNoAcusado: 0, acertou: false })
   })
 
   it('empate não encerra a partida (ESP-14)', () => {
