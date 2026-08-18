@@ -22,7 +22,7 @@
 - **Decision**: O sistema é o **tabuleiro**, não o juiz. Perguntas e respostas sim/não acontecem fora do sistema (voz, presencial). O sistema não registra perguntas, não valida respostas, não pontua e não decide vencedor.
 - **Reason**: As regras variam de grupo para grupo; modelar regras no software engessaria o jogo e multiplicaria requisitos sem valor.
 - **Trade-off**: Abre mão de estatísticas, ranking e automação de regras. A autoridade de arbitragem fica com o host (encerrar partida, pular vez, confirmar "Descobri!", expulsar).
-- **Scope**: Todos os jogos do hub.
+- **Scope**: Todos os jogos do hub — com a exceção registrada em `AD-015` (placar da partida quando quem julga é uma pessoa).
 - **Date**: 2026-08-02
 - **Status**: active
 
@@ -113,6 +113,14 @@
 - **Trade-off**: Cada jogo novo ainda soma uma chave opcional a mais em `Config`/`Projecao.jogo` — não é uma solução type-safe (nada impede em tempo de compilação que um reducer leia o namespace errado), só um contêiner de crescimento mais organizado que o achatamento puro. Se um 3º jogo mostrar necessidade de isolamento mais forte, a Opção 3 (genérico) volta à mesa.
 - **Scope**: `shared/protocolo.ts` (`Config.espiao`, `Projecao.jogo.espiao`, `PacoteResumo.jogoId`, novos `Comando`s de votação), `shared/jogos-catalogo.ts` (`minJogadores`), `server/core/sala-do.ts` (filtro de pacotes por `jogoId`), `server/core/despacho.ts` (`configValida` valida `parcial.espiao`), `client/src/App.tsx` (roteamento de tela por `jogoId` além de `fase`), `client/src/telas/Lobby.tsx` (painel de config condicional por `jogoId`).
 - **Date**: 2026-08-13
+- **Status**: active
+
+### AD-015
+- **Decision**: `AD-003` ("o sistema é o tabuleiro, não o juiz — não pontua e não decide vencedor", escopo "todos os jogos do hub") ganha uma exceção explícita: **um jogo pode manter placar da partida quando quem julga é uma pessoa da mesa**. Cartas Contra a Turma é o primeiro caso — o juiz humano escolhe a carta vencedora, e o sistema só conta o que ele decidiu. O placar é **da partida**: nasce e morre com ela, não vira ranking, histórico nem estatística entre partidas.
+- **Reason**: Pedido explícito do dono ("Placar da partida") ao moldar o jogo. O que `AD-003` protege é o sistema não **arbitrar regra** — não validar resposta, não decidir quem acertou. Contar pontos que um humano atribuiu não fere isso: o tabuleiro sempre teve casinha de pontuação. Sem placar, o jogo não tem disputa e a rodada não tem consequência.
+- **Trade-off**: `AD-003` deixa de ser uma regra sem exceção e passa a exigir julgamento caso a caso ("quem decidiu esse ponto, o sistema ou uma pessoa?"). O limite fica em: se pra somar o ponto o sistema precisar **avaliar** algo, é `AD-003` e é proibido; se ele só registra a escolha de um jogador, é permitido. Persistência entre partidas continua fora, sem exceção.
+- **Scope**: `.specs/features/cartas-contra-a-turma/` (P3, `CCT-26`…`CCT-30`), `server/games/cartas-contra-a-turma/`, `shared/protocolo.ts` (`Projecao.jogo.cartasContraATurma.placar`). Espião e Quem Sou Eu seguem sob `AD-003` sem alteração.
+- **Date**: 2026-08-18
 - **Status**: active
 
 ## Handoff
