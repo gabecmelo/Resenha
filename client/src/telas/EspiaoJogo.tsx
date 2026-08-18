@@ -404,9 +404,11 @@ export function EspiaoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
               <span>
                 {espiao.votacoesRestantes === null
                   ? 'a mesa pode abrir quantas votações quiser'
-                  : `depois desta sobram ${espiao.votacoesRestantes - 1} ${
-                      espiao.votacoesRestantes - 1 === 1 ? 'votação' : 'votações'
-                    }`}
+                  : espiao.votacoesRestantes - 1 === 0
+                    ? 'esta é a última que a mesa pode abrir'
+                    : espiao.votacoesRestantes - 1 === 1
+                      ? 'depois desta sobra 1 votação'
+                      : `depois desta sobram ${espiao.votacoesRestantes - 1} votações`}
               </span>
             </li>
           </ul>

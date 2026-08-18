@@ -125,8 +125,8 @@ export function ResultadoDaVotacao({
         {naoVotaram.length > 0 && (
           <p className="border-t border-dashed border-linha pt-2.5 text-apoio text-texto-3">
             {naoVotaram.map((jogador) => jogador.apelido).join(', ')}{' '}
-            {naoVotaram.length === 1 ? 'não votou' : 'não votaram'} — e isso contou contra a
-            acusação.
+            {naoVotaram.length === 1 ? 'não votou' : 'não votaram'} — quem não vota não pesa em
+            nada, só deixa a decisão pra quem votou.
           </p>
         )}
       </div>
