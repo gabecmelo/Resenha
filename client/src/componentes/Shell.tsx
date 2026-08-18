@@ -1,6 +1,7 @@
 import { type ReactNode, useState } from 'react'
 import { linkDeConvite } from '../estado/entrada'
 import { AlternadorDeTema } from './AlternadorDeTema'
+import { LogoResenha } from './LogoResenha'
 import { Modal } from './Modal'
 import { SomToggle } from './SomToggle'
 
@@ -41,17 +42,13 @@ export function Shell({ titulo = 'Resenha', codigo, faixa, aoSair, children }: P
             Fora de uma sala a marca fala sozinha, em caixa baixa; dentro dela o
             disco acende e o nome do jogo assume — é o contexto que importa ali.
           */}
+          <LogoResenha tamanho={22} />
           {codigo === undefined ? (
             <span className="flex-none font-display text-[17px] tracking-[-0.01em] text-texto">
               resenha
             </span>
           ) : (
-            <>
-              <span aria-hidden="true" className="h-2.5 w-2.5 flex-none rounded-pilula bg-acento" />
-              <span className="flex-none truncate text-apoio font-semibold text-texto">
-                {titulo}
-              </span>
-            </>
+            <span className="flex-none truncate text-apoio font-semibold text-texto">{titulo}</span>
           )}
 
           {codigo !== undefined && <CopiarConvite codigo={codigo} />}
@@ -66,9 +63,9 @@ export function Shell({ titulo = 'Resenha', codigo, faixa, aoSair, children }: P
               aria-label="Sair da sala"
               title="Sair da sala"
               onClick={() => setConfirmandoSaida(true)}
-              className="flex h-11 w-9 flex-none cursor-pointer items-center justify-center rounded-chip text-[17px] text-texto-3 hover:text-texto"
+              className="flex h-11 w-9 flex-none cursor-pointer items-center justify-center rounded-chip text-texto-3 hover:text-texto"
             >
-              <span aria-hidden="true">⎋</span>
+              <IconeSair />
             </button>
           )}
         </div>
@@ -96,6 +93,30 @@ export function Shell({ titulo = 'Resenha', codigo, faixa, aoSair, children }: P
         />
       )}
     </div>
+  )
+}
+
+/**
+ * Porta com a seta saindo — o mesmo desenho que todo jogo usa para "sair".
+ * Vale mais que um glifo bonito: é o ícone que a pessoa já sabe ler sem pensar.
+ */
+function IconeSair() {
+  return (
+    <svg
+      width="19"
+      height="19"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M14 20h4a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-4" />
+      <path d="M10 17l5-5-5-5" />
+      <path d="M15 12H3" />
+    </svg>
   )
 }
 

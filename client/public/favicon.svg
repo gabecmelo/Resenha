@@ -1,12 +1,29 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!--
+    Direção Bancada: duas cartas de papel sobre a mesa. A de trás é esmalte — a
+    carta que todo mundo vê; a da frente é papel com contorno de tinta — a sua,
+    guardada. Sem verde: aquela paleta não existe mais.
+  -->
   <style>
-    .verso { fill: #2a7a5e; }
-    .frente { fill: #ffffff; stroke: #1b1917; }
+    .mesa { fill: #efe4d2; }
+    .verso { fill: #c93a22; }
+    .frente { fill: #fbf5e9; stroke: #1b1712; }
     @media (prefers-color-scheme: dark) {
-      .verso { fill: #34936f; }
-      .frente { fill: #121312; stroke: #f4f1ec; }
+      .mesa { fill: #141210; }
+      .verso { fill: #f2603f; }
+      .frente { fill: #211d19; stroke: #f5eddf; }
     }
   </style>
-  <rect class="verso" x="20" y="12" width="30" height="38" rx="6" transform="rotate(9 35 31)" />
-  <rect class="frente" x="12.5" y="15.5" width="29" height="37" rx="6" stroke-width="3.5" transform="rotate(-8 27 34)" />
+  <rect class="mesa" width="64" height="64" rx="10" />
+  <rect class="verso" x="21" y="13" width="29" height="37" rx="4" transform="rotate(9 35 31)" />
+  <rect
+    class="frente"
+    x="13.5"
+    y="16.5"
+    width="28"
+    height="36"
+    rx="4"
+    stroke-width="3.5"
+    transform="rotate(-8 27 34)"
+  />
 </svg>
