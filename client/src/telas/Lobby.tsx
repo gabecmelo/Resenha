@@ -46,7 +46,7 @@ export function Lobby({ projecao, enviar, aoSair }: PropsDaTela) {
   // `AJU-34`, `AD-014` — o mínimo vem do catálogo do jogo ativo, não de um
   // número escrito nesta tela nem da constante única do produto.
   const minimoDoJogo = minJogadoresDoJogo(sala.jogoId)
-  const pendencias = pendenciasParaIniciar(ativos.length, minimoDoJogo, sala.config)
+  const pendencias = pendenciasParaIniciar(ativos.length, minimoDoJogo, sala.config, sala.jogoId)
 
   const acao = (
     <AcaoDeIniciar
@@ -96,7 +96,14 @@ export function Lobby({ projecao, enviar, aoSair }: PropsDaTela) {
                     Quem escolhe é {host?.apelido ?? 'o host'}, que criou a sala.
                   </p>
                 )}
-                {sala.jogoId === 'espiao' ? (
+                {sala.jogoId === 'cartas-contra-a-turma' ? (
+                  <RegrasCartas
+                    config={sala.config}
+                    pacotesDisponiveis={sala.pacotesDisponiveis}
+                    souHost={eu.ehHost}
+                    enviar={enviar}
+                  />
+                ) : sala.jogoId === 'espiao' ? (
                   <RegrasEspiao
                     config={sala.config}
                     pacotesDisponiveis={sala.pacotesDisponiveis}
@@ -129,10 +136,20 @@ export function Lobby({ projecao, enviar, aoSair }: PropsDaTela) {
  * quando são dois — descobrir que falta gente, resolver, e só então descobrir
  * que falta pacote é o jeito mais fácil de irritar quem está organizando.
  */
-function pendenciasParaIniciar(ativos: number, minimo: number, config: Config): string[] {
+function pendenciasParaIniciar(
+  ativos: number,
+  minimo: number,
+  config: Config,
+  jogoId: string,
+): string[] {
   const lista: string[] = []
   const gente = motivoParaIniciar(ativos, minimo)
   if (gente !== undefined) lista.push(gente)
+  // `CCT-34` — Cartas Contra a Turma só existe com pacote; não passa por
+  // `modoPacote`, que é vocabulário de "Quem Sou Eu?".
+  if (jogoId === 'cartas-contra-a-turma' && config.pacoteIds.length === 0) {
+    lista.push('Escolha ao menos um pacote de cartas.')
+  }
   if (config.modoPacote === 'pacote' && config.pacoteIds.length === 0) {
     lista.push('Escolha ao menos um pacote.')
   }
@@ -783,6 +800,113 @@ const PRESETS_DE_TEMPO_RODADA: ReadonlyArray<{ valor: number | null; rotulo: str
   { valor: 300, rotulo: '5min' },
   { valor: 600, rotulo: '10min' },
 ]
+
+const PRESETS_DE_TEMPO_ESCOLHA: ReadonlyArray<{ valor: number | null; rotulo: string }> = [
+  { valor: null, rotulo: 'Sem tempo' },
+  { valor: 60, rotulo: '1min' },
+  { valor: 90, rotulo: '1min30' },
+  { valor: 180, rotulo: '3min' },
+]
+
+const PRESETS_DE_META: ReadonlyArray<{ valor: number | null; rotulo: string }> = [
+  { valor: null, rotulo: 'Sem meta' },
+  { valor: 3, rotulo: '3 pontos' },
+  { valor: 5, rotulo: '5 pontos' },
+  { valor: 8, rotulo: '8 pontos' },
+  { valor: 10, rotulo: '10 pontos' },
+]
+
+/** `CCT-01`, `CCT-31` — as regras do Cartas Contra a Turma. */
+function RegrasCartas({
+  config,
+  pacotesDisponiveis,
+  souHost,
+  enviar,
+}: {
+  config: Config
+  pacotesDisponiveis: PacoteResumo[] | undefined
+  souHost: boolean
+  enviar: PropsDaTela['enviar']
+}) {
+  const [folha, setFolha] = useState<string | null>(null)
+  const [modalPacotesAberto, setModalPacotesAberto] = useState(false)
+  const [pacoteIdsRascunho, setPacoteIdsRascunho] = useState<string[]>(config.pacoteIds)
+
+  const pacotesSelecionados =
+    pacotesDisponiveis?.filter((p) => config.pacoteIds.includes(p.id)) ?? []
+
+  const abrir = (nome: string) => (souHost ? () => setFolha(nome) : undefined)
+  const mudarCartas = (parcial: Partial<Config['cartas']>) =>
+    enviar({ t: 'configurar', config: { cartas: { ...config.cartas, ...parcial } } })
+
+  return (
+    <div className="flex flex-col">
+      <LinhaDeRegra
+        rotulo="Pacotes de cartas"
+        dica="O tom da mesa mora aqui: leve pra jogar com a família, pesado pra madrugada."
+        valor={resumoDePacotes(pacotesSelecionados)}
+        aoAbrir={
+          souHost
+            ? () => {
+                setPacoteIdsRascunho(config.pacoteIds)
+                setModalPacotesAberto(true)
+              }
+            : undefined
+        }
+      />
+      <LinhaDeRegra
+        rotulo="Tempo de escolha"
+        dica="Quanto tempo a mesa tem pra jogar a carta. Quem não jogar fica de fora da rodada."
+        valor={rotuloDe(PRESETS_DE_TEMPO_ESCOLHA, config.cartas.tempoEscolhaSeg)}
+        aoAbrir={abrir('tempoEscolha')}
+      />
+      <LinhaDeRegra
+        rotulo="Meta de pontos"
+        dica="Quem chegar primeiro leva a partida. Sem meta, a partida só acaba quando o host encerra."
+        valor={rotuloDe(PRESETS_DE_META, config.cartas.metaDePontos)}
+        aoAbrir={abrir('meta')}
+      />
+
+      {folha === 'tempoEscolha' && (
+        <FolhaDeEscolha
+          titulo="Tempo de escolha"
+          descricao="A rodada fecha sozinha quando esse tempo vence — ou antes, se todo mundo já jogou."
+          opcoes={PRESETS_DE_TEMPO_ESCOLHA}
+          atual={config.cartas.tempoEscolhaSeg}
+          aoEscolher={(tempoEscolhaSeg) => mudarCartas({ tempoEscolhaSeg })}
+          aoFechar={() => setFolha(null)}
+        />
+      )}
+
+      {folha === 'meta' && (
+        <FolhaDeEscolha
+          titulo="Meta de pontos"
+          descricao="Cada rodada vencida vale 1 ponto."
+          opcoes={PRESETS_DE_META}
+          atual={config.cartas.metaDePontos}
+          aoEscolher={(metaDePontos) => mudarCartas({ metaDePontos })}
+          aoFechar={() => setFolha(null)}
+        />
+      )}
+
+      {modalPacotesAberto && (
+        <GavetaDePacotes
+          titulo="Pacotes de cartas"
+          descricao="Pode escolher mais de um — as cartas se somam. O tom vem escrito na descrição."
+          unidade="cartas"
+          disponiveis={pacotesDisponiveis}
+          rascunho={pacoteIdsRascunho}
+          aoAlternar={setPacoteIdsRascunho}
+          aoConfirmar={() => {
+            enviar({ t: 'configurar', config: { pacoteIds: pacoteIdsRascunho } })
+            setModalPacotesAberto(false)
+          }}
+          aoFechar={() => setModalPacotesAberto(false)}
+        />
+      )}
+    </div>
+  )
+}
 
 function RegrasEspiao({
   config,

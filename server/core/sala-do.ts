@@ -326,9 +326,15 @@ export class SalaDeJogo {
     await this.persistir(sala)
 
     let pacotes: PacoteResumo[] | undefined = undefined;
-    if (sala.fase === 'lobby' && sala.config.modoPacote === 'pacote') {
+    if (sala.fase === 'lobby') {
       const todos = await this.getPacotesDisponiveis();
       // `ESP-22` — cada jogo só vê os pacotes que ele mesmo pode jogar.
+      //
+      // O catálogo vai no lobby de qualquer sala, e não só quando
+      // `modoPacote === 'pacote'`: aquele campo é vocabulário de "Quem Sou
+      // Eu?" (que tem escrita livre), e os jogos que só existem com pacote
+      // não deveriam precisar falar essa língua pra ver a própria lista
+      // (`CCT-31`). Quem não usa pacote simplesmente não desenha a lista.
       pacotes = todos.filter((p) => p.jogoId === sala.jogoId);
     }
 

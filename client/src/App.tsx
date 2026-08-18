@@ -2,6 +2,8 @@ import { useMemo, useState, useEffect } from 'react'
 import { ProvedorDeConexao, useConexao } from './estado/conexao'
 import { caminhoDaSala, codigoDaUrl } from './estado/entrada'
 import { criarSessao, reentradaAutomatica } from './estado/sessao'
+import { CartasEncerrada } from './telas/CartasEncerrada'
+import { CartasJogo } from './telas/CartasJogo'
 import { Encerrada } from './telas/Encerrada'
 import { EspiaoAguardando } from './telas/EspiaoAguardando'
 import { EspiaoEncerrada } from './telas/EspiaoEncerrada'
@@ -150,6 +152,9 @@ function Sala({
     case 'escrita':
       return <Escrita projecao={projecao} enviar={enviar} aoSair={deixarSala} />
     case 'jogo':
+      if (projecao.sala.jogoId === 'cartas-contra-a-turma') {
+        return <CartasJogo projecao={projecao} enviar={enviar} aoSair={deixarSala} />
+      }
       if (projecao.sala.jogoId === 'espiao') {
         return projecao.jogo?.espiao?.rodadaIniciada ? (
           <EspiaoJogo projecao={projecao} enviar={enviar} aoSair={deixarSala} />
@@ -159,6 +164,9 @@ function Sala({
       }
       return <Jogo projecao={projecao} enviar={enviar} aoSair={deixarSala} />
     case 'encerrada':
+      if (projecao.sala.jogoId === 'cartas-contra-a-turma') {
+        return <CartasEncerrada projecao={projecao} enviar={enviar} aoSair={deixarSala} />
+      }
       if (projecao.sala.jogoId === 'espiao') {
         return <EspiaoEncerrada projecao={projecao} enviar={enviar} aoSair={deixarSala} />
       }
