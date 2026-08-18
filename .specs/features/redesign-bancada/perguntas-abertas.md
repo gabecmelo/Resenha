@@ -19,7 +19,7 @@ arquivo fica como registro do que foi decidido e por quê.
    não mais `⏸ pausado`.
 4. **"Voltar ao lobby"** — um botão só, que envia `novaPartida`. De lá a mesa
    decide se troca as regras, troca de jogo ou só começa de novo.
-5. **Enigmas Macabros** — entrou no catálogo como `emBreve`, atrás de terminar o
+5. **Enigmas Sinistros** — entrou no catálogo como `emBreve`, atrás de terminar o
    Espião e o Cartas Contra a Turma.
 6. **Papel do Espião** — o alternador foi pro fim da linha do rótulo (direita),
    onde o polegar já está no celular.
