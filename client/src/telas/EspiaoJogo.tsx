@@ -17,6 +17,7 @@ import {
 } from '../componentes'
 import { estaAcabando, formatarTempo } from '../estado/relogio'
 import { useRestante } from '../estado/contagem'
+import { DICAS_DE_PERGUNTA } from '../estado/dicas-de-pergunta'
 import { useBatidaDeSuspense } from '../estado/suspense'
 import { tocarAcertou, tocarSuaVez, tocarTempoAcabando, tocarVezOutro } from '../sons'
 import { nomeDoJogo } from '../../../shared/jogos-catalogo'
@@ -35,25 +36,6 @@ import type { PropsDaTela } from './tela'
  * Nada aqui decide quem é espião, quem venceu ou quando a votação fecha: tudo
  * isso chega pronto na projeção (AD-008).
  */
-
-/** `ESP-20` — sorteio 100% local, sem round-trip nem ligação com o local sorteado (`AD-003`). */
-const DICAS_DE_PERGUNTA = [
-  'O que você faria aqui num dia comum?',
-  'Você viria sozinho ou acompanhado?',
-  'Que roupa você usaria pra vir aqui?',
-  'Isso é um lugar caro ou barato?',
-  'Você ficaria em pé ou sentado a maior parte do tempo?',
-  'Tem barulho aqui, ou é um lugar silencioso?',
-  'Você precisaria de ingresso pra entrar?',
-  'Que horas do dia esse lugar fica mais cheio?',
-  'Você traria crianças pra cá?',
-  'É um lugar coberto ou ao ar livre?',
-  'Você ficaria mais de uma hora aqui?',
-  'Tem cheiro característico nesse lugar?',
-  'Você precisaria de algum equipamento especial pra estar aqui?',
-  'Esse lugar existe há muito tempo?',
-  'Você indicaria esse lugar pra um amigo?',
-]
 
 /** A partir daqui a votação ganha busca e atalho — é o caso de 20 em 360px. */
 const MESA_GRANDE = 10
