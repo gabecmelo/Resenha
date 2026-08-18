@@ -104,6 +104,7 @@ export function EspiaoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
   if (espiao === undefined) return null
 
   const outrosEspioes = espiao.espioes?.filter((espiaoDaLista) => espiaoDaLista.id !== eu.id) ?? []
+  const comeca = jogadores.find((jogador) => jogador.id === espiao.comecaPerguntando.id)
   const chute = espiao.chuteDoEspiao
   const semVotacoes = espiao.votacoesRestantes === 0
 
@@ -177,6 +178,28 @@ export function EspiaoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
       <div className="flex flex-col gap-5 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,330px)] lg:items-start lg:gap-6">
         <div className="flex flex-col gap-5">
           <TiraDePacotes pacotes={sala.pacotesSelecionados} />
+
+          {/*
+            Quem começa perguntando aparece **na rodada**, e não só na tela de
+            espera: é a primeira coisa que a mesa esquece assim que o papel
+            aparece, e sem isso ninguém sabe de quem é a vez de abrir a boca.
+            Some quando a votação toma a tela — ali a vez já não é de ninguém.
+          */}
+          {emRodada && (
+            <section className="flex items-center gap-2.5 rounded-papel border border-linha bg-superficie-2 px-3.5 py-3">
+              <span className="font-mono text-rotulo text-texto-3 uppercase">começa perguntando</span>
+              <span aria-hidden="true" className="min-w-6 flex-1 border-b border-dotted border-linha" />
+              {comeca !== undefined && (
+                <MarcadorDeJogador apelido={comeca.apelido} cor={comeca.cor} />
+              )}
+              <span className="min-w-0 truncate font-semibold text-texto">
+                {espiao.comecaPerguntando.apelido}
+                {espiao.comecaPerguntando.id === eu.id && (
+                  <span className="font-normal text-texto-3"> · você</span>
+                )}
+              </span>
+            </section>
+          )}
 
           <PapelDoJogador
             souEspiao={espiao.souEspiao}
