@@ -123,14 +123,18 @@ export function EspiaoEncerrada({ projecao, enviar, aoSair }: PropsDaTela) {
       <BarraDeAcao>
         {eu.ehHost ? (
           <>
+            {/*
+              Um botão só: voltar ao lobby *é* começar outra partida. De lá a
+              mesa decide se muda as regras, troca de jogo ou só começa de novo.
+            */}
             <Botao larguraTotal onClick={() => enviar({ t: 'novaPartida' })}>
               {aguardando.length > 0
-                ? `Nova partida com ${ativos.length + aguardando.length}`
-                : 'Nova partida'}
+                ? `Voltar ao lobby com ${ativos.length + aguardando.length}`
+                : 'Voltar ao lobby'}
             </Botao>
             <p className="text-apoio text-texto-3">
-              Mesma mesa, local novo · ninguém precisa entrar de novo. As anotações desta partida
-              somem.
+              Mesma mesa, ninguém precisa entrar de novo. No lobby você escolhe as regras da
+              próxima ou troca de jogo — e as anotações desta partida somem.
             </p>
           </>
         ) : (
