@@ -20,6 +20,10 @@ import {
   MAX_VOTACOES_TETO,
   META_MAX_PONTOS,
   META_MIN_PONTOS,
+  RECARGA_BRANCA_MAX,
+  RECARGA_BRANCA_MIN,
+  REROLLS_MAX,
+  REROLLS_MIN,
   TEMPO_ESCOLHA_MAX_SEG,
   TEMPO_ESCOLHA_MIN_SEG,
   TEMPO_VOTACAO_MAX_SEG,
@@ -229,6 +233,9 @@ function configurar(
         parcial.cartas?.metaDePontos === undefined
           ? sala.config.cartas.metaDePontos
           : parcial.cartas.metaDePontos,
+      rerollsIniciais: parcial.cartas?.rerollsIniciais ?? sala.config.cartas.rerollsIniciais,
+      recargaDaBrancaRodadas:
+        parcial.cartas?.recargaDaBrancaRodadas ?? sala.config.cartas.recargaDaBrancaRodadas,
     },
   }
   return { ok: true, valor: SEM_EFEITOS }
@@ -280,6 +287,17 @@ function configCartasValida(parcial: Partial<ConfigCartas>): boolean {
   if (meta !== undefined && meta !== null) {
     if (!Number.isInteger(meta)) return false
     if (meta < META_MIN_PONTOS || meta > META_MAX_PONTOS) return false
+  }
+  // `CCT-44`, `CCT-45` — zero é opção nos dois: sem troca, e branca sempre à mão.
+  const rerolls = parcial.rerollsIniciais
+  if (rerolls !== undefined) {
+    if (!Number.isInteger(rerolls)) return false
+    if (rerolls < REROLLS_MIN || rerolls > REROLLS_MAX) return false
+  }
+  const recarga = parcial.recargaDaBrancaRodadas
+  if (recarga !== undefined) {
+    if (!Number.isInteger(recarga)) return false
+    if (recarga < RECARGA_BRANCA_MIN || recarga > RECARGA_BRANCA_MAX) return false
   }
   return true
 }

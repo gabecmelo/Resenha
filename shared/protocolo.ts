@@ -167,11 +167,17 @@ export interface ConfigCartas {
    * partida só acaba quando o host encerra.
    */
   metaDePontos: number | null
+  /** `CCT-44` — trocas de mão com que cada um começa. `0` desliga a mecânica. */
+  rerollsIniciais: number
+  /** `CCT-45` — rodadas até a carta em branco voltar. `0` = sempre disponível. */
+  recargaDaBrancaRodadas: number
 }
 
 export const CONFIG_CARTAS_PADRAO: ConfigCartas = {
   tempoEscolhaSeg: 90,
   metaDePontos: 5,
+  rerollsIniciais: 2,
+  recargaDaBrancaRodadas: 5,
 }
 
 /**
@@ -194,16 +200,16 @@ export const TAMANHO_DA_MAO = 7
  */
 export const OPCOES_DE_PERGUNTA = 3
 
-/**
- * `CCT-40` — trocas de mão que cada um leva pra partida, e de quantas em
- * quantas rodadas ganha mais uma. A mão ruim deixa de ser azar de rodada sem
- * virar botão infinito.
- */
-export const REROLLS_INICIAIS = 2
+/** `CCT-40`, `CCT-42` — de quantas em quantas rodadas cai mais uma troca de mão. */
 export const RODADAS_POR_REROLL = 3
 
-/** `CCT-24` — rodadas até a carta em branco voltar depois de gasta. */
-export const RECARGA_DA_BRANCA = 5
+/** `CCT-44` — faixa das trocas de mão; `0` desliga a mecânica. */
+export const REROLLS_MIN = 0
+export const REROLLS_MAX = 10
+
+/** `CCT-45` — faixa da recarga da branca; `0` deixa ela sempre disponível. */
+export const RECARGA_BRANCA_MIN = 0
+export const RECARGA_BRANCA_MAX = 15
 
 /** `CCT-22` — teto de uma carta escrita à mão. */
 export const LIMITE_CARTA_BRANCA = 120

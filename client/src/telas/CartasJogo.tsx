@@ -400,7 +400,11 @@ export function CartasJogo({ projecao, enviar, aoSair }: PropsDaTela) {
             limite={LIMITE_CARTA_BRANCA}
             autoFoco
             placeholder="a pior coisa que você conseguir pensar"
-            dica="Depois de gastar, ela volta daqui a 5 rodadas."
+            dica={
+              sala.config.cartas.recargaDaBrancaRodadas === 0
+                ? 'Nesta sala ela não recarrega: dá pra escrever toda rodada.'
+                : `Depois de gastar, ela volta daqui a ${sala.config.cartas.recargaDaBrancaRodadas} rodadas.`
+            }
           />
         </Modal>
       )}

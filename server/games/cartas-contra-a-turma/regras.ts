@@ -12,8 +12,6 @@ import {
   LIMITE_CARTA_BRANCA,
   MIN_RESPOSTAS_NA_PILHA,
   OPCOES_DE_PERGUNTA,
-  RECARGA_DA_BRANCA,
-  REROLLS_INICIAIS,
   RODADAS_POR_REROLL,
   TAMANHO_DA_MAO,
 } from '../../../shared/protocolo'
@@ -163,7 +161,7 @@ export function iniciarRodada(ctx: ContextoDeSala, ambiente: Ambiente): Resultad
   for (const jogador of ativos) {
     estado.maos[jogador.id] = tirarRespostas(estado, TAMANHO_DA_MAO)
     estado.brancaVoltaNa[jogador.id] = 0
-    estado.rerolls[jogador.id] = REROLLS_INICIAIS
+    estado.rerolls[jogador.id] = ctx.config.cartas.rerollsIniciais
     estado.placar[jogador.id] = 0
   }
   estado.pacotesSelecionados = escolhidos.map((p) => ({ id: p.id, nome: p.nome, emoji: p.emoji }))
@@ -300,7 +298,7 @@ function jogarCarta(
     if (limpo.length === 0 || limpo.length > LIMITE_CARTA_BRANCA) {
       return { ok: false, erro: 'CARTA_INVALIDA' }
     }
-    novo.brancaVoltaNa[ctx.autorId] = estado.rodada + RECARGA_DA_BRANCA
+    novo.brancaVoltaNa[ctx.autorId] = estado.rodada + ctx.config.cartas.recargaDaBrancaRodadas
     novo.jogadas.push({ autorId: ctx.autorId, texto: limpo, daBranca: true })
   } else {
     const mao = novo.maos[ctx.autorId] ?? []
@@ -495,7 +493,7 @@ function proximaRodada(
     }
     novo.maos[jogador.id] = mao
     novo.brancaVoltaNa[jogador.id] ??= 0
-    novo.rerolls[jogador.id] ??= REROLLS_INICIAIS
+    novo.rerolls[jogador.id] ??= ctx.config.cartas.rerollsIniciais
     novo.placar[jogador.id] ??= 0
     // `CCT-40` — a cada três rodadas fechadas, mais uma troca pra cada um.
     if (ganhaReroll(novo.rodada)) novo.rerolls[jogador.id] += 1

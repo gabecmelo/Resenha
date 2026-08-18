@@ -162,6 +162,22 @@ O Resenha é um hub de party games. "Quem Sou Eu?" e "Espião" já estão jogáv
 
 ---
 
+### P7: As duas mecânicas na mão do host
+
+**User Story**: Como host, quero regular quantas trocas de mão a mesa tem e de quanto em quanto tempo a carta em branco volta — porque uma mesa que escreve bem quer escrever mais, e uma que trava quer trocar mais.
+
+**Why P7**: Pedido do dono depois de jogar com os dois números fixos no código.
+
+**Acceptance Criteria**:
+
+1. WHEN o host abre as regras no lobby THEN o sistema SHALL oferecer "Trocas de mão" e "Carta em branco" como opções configuráveis, com o valor atual à vista
+2. WHEN o host escolhe um valor THEN o sistema SHALL usá-lo na partida seguinte, aceitando zero nos dois casos — sem troca de mão, e branca sempre disponível
+3. WHEN um valor fora da faixa chega ao servidor THEN o sistema SHALL recusar a configuração inteira
+
+**Independent Test**: Abrir uma sala com "sem troca" e "sempre à mão" e conferir que o botão de trocar recusa desde a rodada 1 e que a branca pode ser usada em rodadas seguidas.
+
+---
+
 ## Requirements Traceability
 
 | ID | User Story | Source | Status |
@@ -209,12 +225,15 @@ O Resenha é um hub de party games. "Quem Sou Eu?" e "Espião" já estão jogáv
 | CCT-41 | P6: A troca de mão | Specify | Verified |
 | CCT-42 | P6: A troca de mão | Specify | Verified |
 | CCT-43 | P6: A troca de mão | Specify | Verified |
+| CCT-44 | P7: Mecânicas configuráveis | Specify | Verified |
+| CCT-45 | P7: Mecânicas configuráveis | Specify | Verified |
+| CCT-46 | P7: Mecânicas configuráveis | Specify | Verified |
 
-**ID format:** `CCT-[NUMBER]`, mapeado em ordem às ACs de P1 (01–18), P2 (19–25), P3 (26–30), P4 (31–34), P5 (35–39) e P6 (40–43) acima.
+**ID format:** `CCT-[NUMBER]`, mapeado em ordem às ACs de P1 (01–18), P2 (19–25), P3 (26–30), P4 (31–34), P5 (35–39), P6 (40–43) e P7 (44–46) acima.
 
 **Status values:** Pending → In Design → In Tasks → Implementing → Verified
 
-**Coverage:** 43 total, 43 implementados — servidor coberto por testes (62) e o fluxo completo jogado na mesa de 3 (mão, carta em branco, pilha anônima, julgamento, ponto, placar).
+**Coverage:** 46 total, 46 implementados — servidor coberto por testes (62) e o fluxo completo jogado na mesa de 3 (mão, carta em branco, pilha anônima, julgamento, ponto, placar).
 
 ---
 

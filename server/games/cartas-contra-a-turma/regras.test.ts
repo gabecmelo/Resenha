@@ -3,9 +3,7 @@ import {
   CONFIG_PADRAO,
   JANELA_DE_REVELACAO_MS,
   LIMITE_CARTA_BRANCA,
-  RECARGA_DA_BRANCA,
   OPCOES_DE_PERGUNTA,
-  REROLLS_INICIAIS,
   TAMANHO_DA_MAO,
   type Ambiente,
   type ContextoDeSala,
@@ -26,6 +24,8 @@ import {
 
 const AMBIENTE: Ambiente = { agora: 10_000, aleatorio: () => 0 }
 const PACOTE_LEVE = CARTAS_TURMA[0]!.id
+const RECARGA_DA_BRANCA = CONFIG_PADRAO.cartas.recargaDaBrancaRodadas
+const REROLLS_INICIAIS = CONFIG_PADRAO.cartas.rerollsIniciais
 
 function jogador(id: JogadorId, situacao: Situacao = 'ativo'): Jogador {
   return {
@@ -61,6 +61,12 @@ function partidaCrua(over: Partial<ContextoDeSala> = {}): {
   const inicio = iniciarRodada(contexto, AMBIENTE)
   if (!inicio.ok) throw new Error(`partida não iniciou: ${inicio.erro}`)
   return { estado: inicio.valor, contexto }
+}
+
+function iniciar(contexto: ContextoDeSala): EstadoCartas {
+  const inicio = iniciarRodada(contexto, AMBIENTE)
+  if (!inicio.ok) throw new Error(`partida não iniciou: ${inicio.erro}`)
+  return inicio.valor
 }
 
 /** `CCT-35`, `CCT-36` — o juiz escolhe a pergunta e vira pra mesa. */
@@ -178,10 +184,10 @@ describe('iniciarRodada', () => {
 
   it('CCT-01: "sem tempo" não agenda prazo nenhum', () => {
     const contexto = ctx({
-      config: { ...CONFIG_PADRAO, pacoteIds: [PACOTE_LEVE], cartas: { tempoEscolhaSeg: null, metaDePontos: 5 } },
+      config: { ...CONFIG_PADRAO, pacoteIds: [PACOTE_LEVE], cartas: { ...CONFIG_PADRAO.cartas, tempoEscolhaSeg: null, metaDePontos: 5 } },
     })
     const { estado } = partidaCrua({
-      config: { ...CONFIG_PADRAO, pacoteIds: [PACOTE_LEVE], cartas: { tempoEscolhaSeg: null, metaDePontos: 5 } },
+      config: { ...CONFIG_PADRAO, pacoteIds: [PACOTE_LEVE], cartas: { ...CONFIG_PADRAO.cartas, tempoEscolhaSeg: null, metaDePontos: 5 } },
     })
     const juiz = { ...contexto, autorId: juizDa(estado) }
     const escolhida = aplicar(estado, juiz, { t: 'escolherPergunta', indice: 0 })
@@ -627,6 +633,53 @@ describe('CCT-40 — a troca de mão', () => {
   })
 })
 
+describe('CCT-44, CCT-45 — as duas mecânicas saem do config', () => {
+  function comCartas(over: Partial<(typeof CONFIG_PADRAO)['cartas']>) {
+    return ctx({ config: { ...CONFIG_PADRAO, pacoteIds: [PACOTE_LEVE], cartas: { ...CONFIG_PADRAO.cartas, ...over } } })
+  }
+
+  it('CCT-44: a mesa começa com o número de trocas que o host escolheu', () => {
+    const contexto = comCartas({ rerollsIniciais: 5 })
+    const inicio = iniciarRodada(contexto, AMBIENTE)
+    if (!inicio.ok) throw new Error(inicio.erro)
+    for (const id of ['a', 'b', 'c']) expect(inicio.valor.rerolls[id]).toBe(5)
+  })
+
+  it('CCT-44: zero trocas recusa o comando desde a primeira rodada', () => {
+    const contexto = comCartas({ rerollsIniciais: 0 })
+    const estado = abrirPergunta(iniciar(contexto), contexto)
+    const quem = contexto.jogadores.find((j) => j.id !== juizDa(estado))!.id
+    expect(reduzir(estado, { ...contexto, autorId: quem }, { t: 'trocarMao' }, AMBIENTE)).toEqual({
+      ok: false,
+      erro: 'CARTA_INVALIDA',
+    })
+  })
+
+  it('CCT-45: a recarga da branca sai do config', () => {
+    const contexto = comCartas({ recargaDaBrancaRodadas: 2 })
+    const estado = abrirPergunta(iniciar(contexto), contexto)
+    const quem = contexto.jogadores.find((j) => j.id !== juizDa(estado))!.id
+    const depois = aplicar(estado, { ...contexto, autorId: quem }, {
+      t: 'jogarCarta',
+      texto: 'escrita na hora',
+      daBranca: true,
+    })
+    expect(brancaVoltaEm(depois, quem)).toBe(2)
+  })
+
+  it('CCT-45: recarga zero deixa a branca sempre à mão', () => {
+    const contexto = comCartas({ recargaDaBrancaRodadas: 0 })
+    const estado = abrirPergunta(iniciar(contexto), contexto)
+    const quem = contexto.jogadores.find((j) => j.id !== juizDa(estado))!.id
+    const depois = aplicar(estado, { ...contexto, autorId: quem }, {
+      t: 'jogarCarta',
+      texto: 'escrita na hora',
+      daBranca: true,
+    })
+    expect(brancaVoltaEm(depois, quem)).toBe(0)
+  })
+})
+
 describe('CCT-09, CCT-10 — o relógio da escolha', () => {
   it('CCT-09: o prazo fecha a rodada só com quem jogou', () => {
     const { estado, contexto } = partida()
@@ -679,7 +732,7 @@ describe('CCT-09, CCT-10 — o relógio da escolha', () => {
 describe('CCT-26…CCT-30 — placar e fim da partida', () => {
   it('CCT-28: bater a meta encerra a partida quando a revelação sai', () => {
     const contextoMeta = ctx({
-      config: { ...CONFIG_PADRAO, pacoteIds: [PACOTE_LEVE], cartas: { tempoEscolhaSeg: 90, metaDePontos: 1 } },
+      config: { ...CONFIG_PADRAO, pacoteIds: [PACOTE_LEVE], cartas: { ...CONFIG_PADRAO.cartas, tempoEscolhaSeg: 90, metaDePontos: 1 } },
     })
     const inicio = iniciarRodada(contextoMeta, AMBIENTE)
     if (!inicio.ok) throw new Error(inicio.erro)
@@ -697,7 +750,7 @@ describe('CCT-26…CCT-30 — placar e fim da partida', () => {
 
   it('CCT-28: sem meta, a partida não acaba sozinha', () => {
     const contextoSemMeta = ctx({
-      config: { ...CONFIG_PADRAO, pacoteIds: [PACOTE_LEVE], cartas: { tempoEscolhaSeg: 90, metaDePontos: null } },
+      config: { ...CONFIG_PADRAO, pacoteIds: [PACOTE_LEVE], cartas: { ...CONFIG_PADRAO.cartas, tempoEscolhaSeg: 90, metaDePontos: null } },
     })
     const inicio = iniciarRodada(contextoSemMeta, AMBIENTE)
     if (!inicio.ok) throw new Error(inicio.erro)

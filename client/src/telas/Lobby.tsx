@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useState, type ReactNode } from 'react'
 import {
   MESA_GRANDE_ESPIAO,
+  RODADAS_POR_REROLL,
   type Config,
   type Dificuldade,
   type JogadorId,
@@ -815,6 +816,24 @@ const PRESETS_DE_TEMPO_ESCOLHA: ReadonlyArray<{ valor: number | null; rotulo: st
   { valor: 180, rotulo: '3min' },
 ]
 
+/** `CCT-44` — quantas trocas de mão cada um leva pra partida. */
+const PRESETS_DE_REROLLS: ReadonlyArray<{ valor: number; rotulo: string }> = [
+  { valor: 0, rotulo: 'Sem troca' },
+  { valor: 1, rotulo: '1 troca' },
+  { valor: 2, rotulo: '2 trocas' },
+  { valor: 4, rotulo: '4 trocas' },
+  { valor: 8, rotulo: '8 trocas' },
+]
+
+/** `CCT-45` — rodadas até a carta em branco voltar depois de gasta. */
+const PRESETS_DE_RECARGA: ReadonlyArray<{ valor: number; rotulo: string }> = [
+  { valor: 0, rotulo: 'Sempre à mão' },
+  { valor: 3, rotulo: 'A cada 3 rodadas' },
+  { valor: 5, rotulo: 'A cada 5 rodadas' },
+  { valor: 8, rotulo: 'A cada 8 rodadas' },
+  { valor: 12, rotulo: 'A cada 12 rodadas' },
+]
+
 const PRESETS_DE_META: ReadonlyArray<{ valor: number | null; rotulo: string }> = [
   { valor: null, rotulo: 'Sem meta' },
   { valor: 3, rotulo: '3 pontos' },
@@ -873,6 +892,18 @@ function RegrasCartas({
         valor={rotuloDe(PRESETS_DE_META, config.cartas.metaDePontos)}
         aoAbrir={abrir('meta')}
       />
+      <LinhaDeRegra
+        rotulo="Trocas de mão"
+        dica={`Quantas vezes cada um pode trocar a mão inteira. Ganha mais uma a cada ${RODADAS_POR_REROLL} rodadas.`}
+        valor={rotuloDe(PRESETS_DE_REROLLS, config.cartas.rerollsIniciais)}
+        aoAbrir={abrir('rerolls')}
+      />
+      <LinhaDeRegra
+        rotulo="Carta em branco"
+        dica="De quantas em quantas rodadas volta a chance de escrever a própria resposta."
+        valor={rotuloDe(PRESETS_DE_RECARGA, config.cartas.recargaDaBrancaRodadas)}
+        aoAbrir={abrir('recarga')}
+      />
 
       {folha === 'tempoEscolha' && (
         <FolhaDeEscolha
@@ -892,6 +923,28 @@ function RegrasCartas({
           opcoes={PRESETS_DE_META}
           atual={config.cartas.metaDePontos}
           aoEscolher={(metaDePontos) => mudarCartas({ metaDePontos })}
+          aoFechar={() => setFolha(null)}
+        />
+      )}
+
+      {folha === 'rerolls' && (
+        <FolhaDeEscolha
+          titulo="Trocas de mão"
+          descricao={`A mão velha vai pro descarte e sete novas entram. Cada um ganha mais uma troca a cada ${RODADAS_POR_REROLL} rodadas.`}
+          opcoes={PRESETS_DE_REROLLS}
+          atual={config.cartas.rerollsIniciais}
+          aoEscolher={(rerollsIniciais) => mudarCartas({ rerollsIniciais })}
+          aoFechar={() => setFolha(null)}
+        />
+      )}
+
+      {folha === 'recarga' && (
+        <FolhaDeEscolha
+          titulo="Carta em branco"
+          descricao="Depois de gastar a carta em branco, é esse o tempo até ela voltar. Em “sempre à mão”, dá pra escrever toda rodada."
+          opcoes={PRESETS_DE_RECARGA}
+          atual={config.cartas.recargaDaBrancaRodadas}
+          aoEscolher={(recargaDaBrancaRodadas) => mudarCartas({ recargaDaBrancaRodadas })}
           aoFechar={() => setFolha(null)}
         />
       )}
