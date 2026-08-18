@@ -48,9 +48,12 @@ export function Chat({ mensagens, aoEnviar }: PropsDoChat) {
 
 /**
  * Até onde a conversa cresce sozinha antes de a caixa travar de altura. Depois
- * disso quem decide é a alça de arrastar.
+ * disso quem decide é a alça de arrastar — e aí ela pode passar bem disto.
+ *
+ * Valor fixo, e não fração da tela: numa tela alta 45% viravam quase 500px de
+ * conversa empurrando todo o resto da mesa pra baixo.
  */
-const TETO_NATURAL = 0.45
+const TETO_NATURAL_PX = 300
 
 /** `AJU-29`, `AJU-30` — altura limitada, rolagem própria, sem arrastar quem leu. */
 function Historico({ mensagens }: { mensagens: MensagemChat[] }) {
@@ -76,8 +79,7 @@ function Historico({ mensagens }: { mensagens: MensagemChat[] }) {
      * é curta não há altura nenhuma — a caixa cresce com o conteúdo.
      */
     if (alvo.style.height === '') {
-      const teto = window.innerHeight * TETO_NATURAL
-      if (alvo.scrollHeight > teto) alvo.style.height = `${Math.round(teto)}px`
+      if (alvo.scrollHeight > TETO_NATURAL_PX) alvo.style.height = `${TETO_NATURAL_PX}px`
     }
 
     if (!grudadoNoFim.current) return
