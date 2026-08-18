@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
-import { Botao, FichaDeJogador, Shell } from '../componentes'
+import { Botao, FaixaDeFase, FichaDeJogador, Shell } from '../componentes'
 import { tocarEntrada } from '../sons'
+import { nomeDoJogo } from '../../../shared/jogos-catalogo'
 import type { PropsDaTela } from './tela'
 
 /**
@@ -28,7 +29,8 @@ export function EspiaoAguardando({ projecao, enviar, aoSair }: PropsDaTela) {
   return (
     <Shell
       codigo={sala.codigo}
-      legenda={`Aguardando prontos · ${espiao.prontos}/${espiao.total}`}
+      titulo={nomeDoJogo(sala.jogoId)}
+      faixa={<FaixaDeFase>{`Aguardando prontos · ${espiao.prontos}/${espiao.total}`}</FaixaDeFase>}
       aoSair={aoSair}
     >
       <div className="mx-auto flex max-w-[480px] flex-col gap-6">

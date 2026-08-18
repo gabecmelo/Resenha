@@ -24,9 +24,11 @@ export function SomToggle() {
         ativarSom(novo)
         setAtivo(novo)
       }}
-      className="flex h-11 w-11 flex-none cursor-pointer items-center justify-center rounded-controle text-[18px] text-texto-2 hover:bg-superficie-2 hover:text-texto focus:bg-superficie-2 focus:outline-none"
+      className={`flex h-11 w-9 flex-none cursor-pointer items-center justify-center rounded-chip text-[17px] hover:text-texto ${ativo ? 'text-acento' : 'text-texto-3'}`}
     >
-      {ativo ? '🔊' : '🔇'}
+      <span aria-hidden="true" className={ativo ? '' : 'line-through decoration-2'}>
+        ♪
+      </span>
     </button>
   )
 }

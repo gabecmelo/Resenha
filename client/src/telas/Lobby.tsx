@@ -9,8 +9,16 @@ import {
   TEMPO_TURNO_MAX_SEG,
   TEMPO_TURNO_MIN_SEG,
 } from '../../../shared/protocolo'
-import { CATALOGO_DE_JOGOS, minJogadoresDoJogo } from '../../../shared/jogos-catalogo'
-import { Botao, Chat, FichaDeJogador, Modal, SeletorDeJogos, Shell } from '../componentes'
+import { minJogadoresDoJogo, nomeDoJogo } from '../../../shared/jogos-catalogo'
+import {
+  Botao,
+  Chat,
+  FaixaDeFase,
+  FichaDeJogador,
+  Modal,
+  SeletorDeJogos,
+  Shell,
+} from '../componentes'
 import { linkDeConvite, motivoParaIniciar } from '../estado/entrada'
 import { montarPoolDeCartas } from '../../../shared/pacotes'
 import { PACOTES } from '../../../shared/pacotes-dados'
@@ -48,12 +56,14 @@ export function Lobby({ projecao, enviar, aoSair }: PropsDaTela) {
     }
   }
 
-  const nomeDoJogo = CATALOGO_DE_JOGOS.find((jogo) => jogo.id === sala.jogoId)?.nome ?? sala.jogoId
 
   return (
     <Shell
       codigo={sala.codigo}
-      legenda={`${ativos.length} ${ativos.length === 1 ? 'pessoa' : 'pessoas'} · ${nomeDoJogo}`}
+      titulo={nomeDoJogo(sala.jogoId)}
+      faixa={
+        <FaixaDeFase>{`${ativos.length} ${ativos.length === 1 ? 'pessoa' : 'pessoas'} na sala`}</FaixaDeFase>
+      }
       aoSair={aoSair}
     >
       <div className="grid grid-cols-1 gap-7 lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)_minmax(0,320px)] lg:items-start lg:gap-8">
@@ -214,7 +224,7 @@ function JogoDaSala({
   // Rascunho local: só vira comando de verdade em "Confirmar"; "Cancelar"
   // descarta sem tocar na sala — mesmo padrão de `pacoteIdsRascunho`.
   const [jogoIdRascunho, setJogoIdRascunho] = useState(jogoId)
-  const nomeDoJogo = CATALOGO_DE_JOGOS.find((jogo) => jogo.id === jogoId)?.nome ?? jogoId
+  const nome = nomeDoJogo(jogoId)
 
   const abrirModal = () => {
     setJogoIdRascunho(jogoId)
@@ -226,13 +236,13 @@ function JogoDaSala({
       <Titulo texto="Jogo" />
       {souHost ? (
         <div className="flex items-center justify-between rounded-bloco border border-linha bg-superficie px-4 py-3">
-          <span className="font-semibold text-texto">{nomeDoJogo}</span>
+          <span className="font-semibold text-texto">{nome}</span>
           <Botao variante="secundario" onClick={abrirModal}>
             Mudar jogo
           </Botao>
         </div>
       ) : (
-        <p className="text-[15px] text-texto-2">{nomeDoJogo}</p>
+        <p className="text-[15px] text-texto-2">{nome}</p>
       )}
 
       {modalAberto && (

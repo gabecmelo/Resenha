@@ -1,14 +1,7 @@
-import {
-  BadgePacote,
-  BlocoDeNotas,
-  Botao,
-  Chat,
-  FichaDeJogador,
-  MarcadorDeJogador,
-  Shell,
-} from '../componentes'
+import { BadgePacote, BlocoDeNotas, Botao, Chat, FaixaDeFase, FichaDeJogador, MarcadorDeJogador, Shell } from '../componentes'
 import { useEffect } from 'react'
 import { tocarAcertou } from '../sons'
+import { nomeDoJogo } from '../../../shared/jogos-catalogo'
 import type { PropsDaTela } from './tela'
 
 /**
@@ -35,7 +28,8 @@ export function EspiaoEncerrada({ projecao, enviar, aoSair }: PropsDaTela) {
   return (
     <Shell
       codigo={sala.codigo}
-      legenda={`Partida encerrada · ${ativos.length} na mesa`}
+      titulo={nomeDoJogo(sala.jogoId)}
+      faixa={<FaixaDeFase>{`Partida encerrada · ${ativos.length} na mesa`}</FaixaDeFase>}
       aoSair={aoSair}
     >
       <div className="grid grid-cols-1 gap-7 lg:grid-cols-[minmax(0,1fr)_minmax(0,320px)] lg:items-start lg:gap-8">

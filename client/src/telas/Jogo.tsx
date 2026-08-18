@@ -1,17 +1,8 @@
 import { type RefObject, useEffect, useRef, useState } from 'react'
 import type { JogadorId, Projecao } from '../../../shared/protocolo'
-import {
-  BlocoDeNotas,
-  Botao,
-  Carta,
-  Chat,
-  IndicadorDeVez,
-  MarcadorDeJogador,
-  Modal,
-  Shell,
-  BadgePacote,
-} from '../componentes'
+import { BadgePacote, BlocoDeNotas, Botao, Carta, Chat, FaixaDeFase, IndicadorDeVez, MarcadorDeJogador, Modal, Shell } from '../componentes'
 import { tocarSuaVez, tocarVezOutro, tocarAcertou } from '../sons'
+import { nomeDoJogo } from '../../../shared/jogos-catalogo'
 import type { PropsDaTela } from './tela'
 
 /**
@@ -94,7 +85,8 @@ export function Jogo({ projecao, enviar, aoSair }: PropsDaTela) {
   return (
     <Shell
       codigo={sala.codigo}
-      legenda={`Partida em andamento · ${ativos.length} na mesa`}
+      titulo={nomeDoJogo(sala.jogoId)}
+      faixa={<FaixaDeFase>{`Partida em andamento · ${ativos.length} na mesa`}</FaixaDeFase>}
       aoSair={aoSair}
     >
       <div className="flex flex-col gap-6">

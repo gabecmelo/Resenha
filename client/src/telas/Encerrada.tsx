@@ -1,4 +1,5 @@
-import { BlocoDeNotas, Botao, Carta, Chat, MarcadorDeJogador, Shell, BadgePacote } from '../componentes'
+import { BadgePacote, BlocoDeNotas, Botao, Carta, Chat, FaixaDeFase, MarcadorDeJogador, Shell } from '../componentes'
+import { nomeDoJogo } from '../../../shared/jogos-catalogo'
 import type { PropsDaTela } from './tela'
 
 /**
@@ -20,7 +21,8 @@ export function Encerrada({ projecao, enviar, aoSair }: PropsDaTela) {
   return (
     <Shell
       codigo={sala.codigo}
-      legenda={`Partida encerrada · ${ativos.length} na mesa`}
+      titulo={nomeDoJogo(sala.jogoId)}
+      faixa={<FaixaDeFase>{`Partida encerrada · ${ativos.length} na mesa`}</FaixaDeFase>}
       aoSair={aoSair}
     >
       <div className="grid grid-cols-1 gap-7 lg:grid-cols-[minmax(0,1fr)_minmax(0,320px)] lg:items-start lg:gap-8">

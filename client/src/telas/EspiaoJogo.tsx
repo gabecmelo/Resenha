@@ -1,16 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import type { JogadorId, Projecao, ProjecaoEspiao } from '../../../shared/protocolo'
-import {
-  BadgePacote,
-  BlocoDeNotas,
-  Botao,
-  Chat,
-  MarcadorDeJogador,
-  Modal,
-  Shell,
-} from '../componentes'
+import { BadgePacote, BlocoDeNotas, Botao, Chat, FaixaDeFase, MarcadorDeJogador, Modal, Shell } from '../componentes'
 import { estaAcabando, formatarTempo, getAgora, restanteAte } from '../estado/relogio'
 import { tocarSuaVez, tocarTempoAcabando, tocarVezOutro } from '../sons'
+import { nomeDoJogo } from '../../../shared/jogos-catalogo'
 import type { PropsDaTela } from './tela'
 
 /**
@@ -71,7 +64,8 @@ export function EspiaoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
   return (
     <Shell
       codigo={sala.codigo}
-      legenda={`Partida em andamento · ${ativos.length} na mesa`}
+      titulo={nomeDoJogo(sala.jogoId)}
+      faixa={<FaixaDeFase>{`Partida em andamento · ${ativos.length} na mesa`}</FaixaDeFase>}
       aoSair={aoSair}
     >
       <div className="flex flex-col gap-6">

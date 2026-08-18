@@ -46,3 +46,8 @@ export const CATALOGO_DE_JOGOS: JogoCatalogo[] = [
     minJogadores: 3,
   },
 ]
+
+/** O nome de exibição do jogo, ou o próprio id quando ele não está no catálogo. */
+export function nomeDoJogo(jogoId: string): string {
+  return jogoDoCatalogo(jogoId)?.nome ?? jogoId
+}

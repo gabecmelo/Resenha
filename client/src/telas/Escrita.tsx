@@ -1,12 +1,6 @@
 import { useState } from 'react'
-import {
-  BlocoDeNotas,
-  Botao,
-  CampoDeTexto,
-  Chat,
-  MarcadorDeJogador,
-  Shell,
-} from '../componentes'
+import { BlocoDeNotas, Botao, CampoDeTexto, Chat, FaixaDeFase, MarcadorDeJogador, Shell } from '../componentes'
+import { nomeDoJogo } from '../../../shared/jogos-catalogo'
 import type { PropsDaTela } from './tela'
 
 /**
@@ -56,7 +50,8 @@ export function Escrita({ projecao, enviar, aoSair }: PropsDaTela) {
   return (
     <Shell
       codigo={sala.codigo}
-      legenda={`Escrevendo as cartas · ${prontos} de ${total} prontos`}
+      titulo={nomeDoJogo(sala.jogoId)}
+      faixa={<FaixaDeFase>{`Escrevendo as cartas · ${prontos} de ${total} prontos`}</FaixaDeFase>}
       aoSair={aoSair}
     >
       <div className="grid grid-cols-1 gap-7 lg:grid-cols-[minmax(0,1fr)_minmax(0,300px)_minmax(0,300px)] lg:items-start lg:gap-8">
