@@ -18,9 +18,10 @@ export interface PropsDaFicha {
 /**
  * Uma linha da lista de jogadores.
  *
- * O estado vem de texto e opacidade — nunca de um ícone colorido solto. Só um
- * rótulo de situação aparece por vez; a ordem abaixo é a de urgência para quem
- * está lendo a lista.
+ * **Cor, inicial, apelido e glifo, os quatro sempre.** A cor nunca é o único
+ * sinal: cada estado leva um glifo e a palavra escrita, para quem não distingue
+ * matiz e para tela lavada de sol. Só um rótulo de situação aparece por vez, e
+ * a ordem abaixo é a de urgência para quem está lendo a lista.
  */
 export function FichaDeJogador({
   apelido,
@@ -37,31 +38,31 @@ export function FichaDeJogador({
 
   return (
     <li
-      className={`flex items-center gap-3 border-t border-linha-suave px-2 py-3 ${
-        ehAVezDele ? 'rounded-painel bg-acento-suave' : ''
+      className={`flex min-h-12 items-center gap-2.5 px-2 py-2.5 ${
+        ehAVezDele
+          ? 'rounded-botao border border-acento bg-acento-suave'
+          : 'linha-valor'
       } ${!conectado ? 'opacity-55' : ''}`}
     >
       <MarcadorDeJogador apelido={apelido} cor={cor} tamanho="grande" />
       <span
         className={`min-w-0 flex-1 truncate text-corpo ${
           ehVoce || ehAVezDele ? 'font-semibold' : 'font-medium'
-        } ${descobriu ? 'text-texto-2 line-through decoration-linha' : 'text-texto'}`}
+        } ${descobriu ? 'text-texto-2' : 'text-texto'}`}
       >
         {apelido}
-        {ehVoce && <span className="text-miudo font-medium text-acento"> · você</span>}
+        {ehVoce && <span className="text-miudo font-semibold text-texto-3"> · você</span>}
       </span>
       {ehHost && (
-        <span className="shrink-0 rounded-pilula bg-superficie-2 px-2.5 py-0.5 font-mono text-[10px] tracking-[0.08em] text-texto-2 uppercase">
-          host
+        <span className="flex-none font-mono text-compacto-apoio text-texto-3 whitespace-nowrap">
+          <span aria-hidden="true">★</span> comanda
         </span>
       )}
       {situacao !== null && (
         <span
-          className={`shrink-0 text-miudo ${
-            situacao.destacado ? 'font-semibold text-acento' : 'text-texto-2'
-          }`}
+          className={`flex-none font-mono text-compacto-apoio whitespace-nowrap ${situacao.cor}`}
         >
-          {situacao.texto}
+          <span aria-hidden="true">{situacao.glifo}</span> {situacao.texto}
         </span>
       )}
       {acoes}
@@ -79,10 +80,10 @@ function rotuloDeSituacao({
   conectado: boolean
   descobriu: boolean
   pronto: boolean
-}): { texto: string; destacado: boolean } | null {
-  if (ehAVezDele) return { texto: 'é a vez', destacado: true }
-  if (!conectado) return { texto: 'desconectado', destacado: false }
-  if (descobriu) return { texto: 'já descobriu', destacado: false }
-  if (pronto) return { texto: 'pronto', destacado: true }
+}): { glifo: string; texto: string; cor: string } | null {
+  if (ehAVezDele) return { glifo: '◆', texto: 'é a vez', cor: 'text-acento' }
+  if (!conectado) return { glifo: '○', texto: 'caiu', cor: 'text-texto-3' }
+  if (descobriu) return { glifo: '✓', texto: 'achou', cor: 'text-pronto' }
+  if (pronto) return { glifo: '✓', texto: 'pronto', cor: 'text-pronto' }
   return null
 }
