@@ -7,6 +7,7 @@ import {
   LIMITE_PADRAO,
   MAX_APELIDO,
   limiteDigitado,
+  motivoDoCodigo,
   motivoParaCriar,
   motivoParaEntrar,
   normalizarCodigo,
@@ -15,9 +16,11 @@ import {
 /**
  * A porta de entrada (`SALA-01`…`SALA-06`, `SALA-08`).
  *
- * Um campo de apelido serve aos dois caminhos: criar uma sala ou entrar com um
- * código. Quem chega por link encontra o código pronto e o cursor no apelido —
- * digitar e apertar Enter são as duas interações até estar dentro.
+ * São dois caminhos, e o código vem primeiro: quem já tem um código veio pra
+ * usá-lo, e deixar isso no rodapé fazia a pessoa cair no "Criar uma sala" no
+ * automático. Digitar o código não pede apelido nenhum — ele leva à **mesma
+ * porta** de quem chegou por link de convite, onde o apelido é a única coisa
+ * que falta.
  *
  * Esta tela também é onde as recusas do servidor aparecem: enquanto não houver
  * projeção, é ela que está no ar.
@@ -60,6 +63,9 @@ export function Inicio({
   const [limite, setLimite] = useState(LIMITE_PADRAO)
   // `HUB-01` — o jogo padrão já vem pré-selecionado.
   const [jogoId, setJogoId] = useState(JOGO_PADRAO)
+  // Chegou por link ou já achou a sala pelo código: em ambos os casos a pessoa
+  // está na porta, e o que falta é dizer como te chamam.
+  const [naPorta, setNaPorta] = useState(codigoInicial !== '')
   const [criando, setCriando] = useState(false)
   const [falhaAoCriar, setFalhaAoCriar] = useState(false)
   // O erro é do objeto que chegou: dispensar um não esconde o próximo.
@@ -67,12 +73,29 @@ export function Inicio({
 
   const visivel = erro !== null && erro !== dispensado ? erro : null
   const dePorta = visivel !== null && ERROS_DE_PORTA.includes(visivel.codigo) ? visivel : null
-  // `HUB-01` — quem chega por link de convite não escolhe nada: o jogo é do host.
-  const veioPorConvite = codigoInicial !== ''
+
+  /*
+   * Apelido recusado não é erro terminal: a conexão continua tentando por baixo
+   * e `conectando` fica preso em `true`. Sem isto o botão nunca reabilita e a
+   * pessoa fica olhando pra um "Entrando…" que não vai chegar a lugar nenhum —
+   * justamente na tela onde o apelido é a única coisa a corrigir.
+   */
+  const travadoNoApelido = erroDoApelido(visivel) !== undefined
+  const entrando = conectando && !travadoNoApelido
+  // `HUB-01` — quem entra numa sala pronta não escolhe nada: o jogo é do host.
+  const veioPorConvite = naPorta
 
   const voltarAoFormulario = () => {
     setDispensado(erro)
+    setNaPorta(false)
     aoDesistir()
+  }
+
+  /** O código sozinho já abre a porta — o apelido é o passo seguinte. */
+  const irParaAPorta = () => {
+    if (motivoDoCodigo(codigo) !== undefined) return
+    setDispensado(erro)
+    setNaPorta(true)
   }
 
   const tentarEntrar = () => {
@@ -129,61 +152,59 @@ export function Inicio({
 
         <div className="flex w-full flex-col gap-7 lg:max-w-[420px]">
           {veioPorConvite ? (
-            <Convite codigo={codigoInicial} />
-          ) : (
-            <section className="flex flex-col gap-2.5">
-              <h2 className="font-mono text-rotulo text-texto-3 uppercase">o que vamos jogar</h2>
-              <SeletorDeJogos jogoIdSelecionado={jogoId} aoSelecionar={setJogoId} />
-            </section>
-          )}
-
-          <div className="flex flex-col gap-3.5">
-            <CampoDeTexto
-              rotulo="Como te chamam?"
-              valor={apelido}
-              aoMudar={setApelido}
-              placeholder="Seu apelido na mesa"
-              dica={`De 2 a ${MAX_APELIDO} caracteres.`}
-              limite={MAX_APELIDO}
-              autoFoco
-              erro={erroDoApelido(visivel)}
-              aoTeclarEnter={veioPorConvite ? tentarEntrar : undefined}
-            />
-
-            {!veioPorConvite && <LimiteDaSala valor={limite} aoMudar={setLimite} />}
-
-            <Botao
-              larguraTotal
-              carregando={veioPorConvite ? conectando : criando}
-              onClick={veioPorConvite ? tentarEntrar : criarSala}
-              motivo={veioPorConvite ? motivoParaEntrar(apelido, codigo) : motivoDeCriar}
-            >
-              {veioPorConvite
-                ? conectando
-                  ? 'Entrando…'
-                  : 'Entrar na sala'
-                : criando
-                  ? 'Abrindo…'
-                  : 'Criar uma sala'}
-            </Botao>
-
-            {falhaAoCriar && (
-              <p className="flex gap-2 text-apoio text-acento">
-                <span aria-hidden="true">▲</span>
-                <span>Não deu para abrir a sala agora. Tente de novo.</span>
-              </p>
-            )}
-          </div>
-
-          {!veioPorConvite && (
             <>
-              <Separador />
+              <Convite codigo={normalizarCodigo(codigo)} />
 
-              <div className="flex flex-col gap-2">
-                <label
-                  htmlFor="codigo-da-sala"
-                  className="text-[15px] font-semibold text-texto"
+              <div className="flex flex-col gap-3.5">
+                <CampoDeTexto
+                  rotulo="Como te chamam?"
+                  valor={apelido}
+                  aoMudar={setApelido}
+                  placeholder="Seu apelido na mesa"
+                  dica={`De 2 a ${MAX_APELIDO} caracteres.`}
+                  limite={MAX_APELIDO}
+                  autoFoco
+                  erro={erroDoApelido(visivel)}
+                  aoTeclarEnter={tentarEntrar}
+                />
+
+                <Botao
+                  larguraTotal
+                  carregando={entrando}
+                  onClick={tentarEntrar}
+                  motivo={motivoParaEntrar(apelido, codigo)}
                 >
+                  {entrando ? 'Entrando…' : 'Entrar na sala'}
+                </Botao>
+
+                {visivel !== null && erroDoApelido(visivel) === undefined && (
+                  <p className="flex gap-2 text-apoio text-acento">
+                    <span aria-hidden="true">▲</span>
+                    <span>{visivel.mensagem}</span>
+                  </p>
+                )}
+
+                {/*
+                  A saída existe sempre: quem digitou pode ter errado uma letra,
+                  e quem veio por link pode preferir abrir a sala dele.
+                */}
+                <button
+                  type="button"
+                  onClick={() => setNaPorta(false)}
+                  className="min-h-11 cursor-pointer self-start font-mono text-rotulo text-texto-3 uppercase underline underline-offset-4"
+                >
+                  ← entrar em outra sala
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              {/*
+                Primeiro o código: quem já tem um veio pra usá-lo, e o caminho
+                dessa pessoa não pode ser o mais longe do polegar.
+              */}
+              <div className="flex flex-col gap-2">
+                <label htmlFor="codigo-da-sala" className="text-[15px] font-semibold text-texto">
                   Já tem um código?
                 </label>
                 <div className="flex gap-2">
@@ -195,17 +216,11 @@ export function Inicio({
                     maxLength={TAMANHO_CODIGO}
                     onChange={(evento) => setCodigo(normalizarCodigo(evento.target.value))}
                     onKeyDown={(evento) => {
-                      if (evento.key === 'Enter') tentarEntrar()
+                      if (evento.key === 'Enter') irParaAPorta()
                     }}
                     className="min-h-[52px] w-full min-w-0 rounded-chip border border-linha bg-superficie px-3.5 font-mono text-[22px] tracking-[0.28em] text-texto caret-acento uppercase placeholder:text-texto-apagado focus:border-controle-linha focus:outline-none"
                   />
-                  <Botao
-                    variante="secundario"
-                    carregando={conectando}
-                    onClick={tentarEntrar}
-                    motivo={motivoParaEntrar(apelido, codigo)}
-                    motivoOculto
-                  >
+                  <Botao onClick={irParaAPorta} motivo={motivoDoCodigo(codigo)} motivoOculto>
                     Entrar
                   </Botao>
                 </div>
@@ -216,6 +231,43 @@ export function Inicio({
                   <p className="flex gap-2 text-apoio text-acento">
                     <span aria-hidden="true">▲</span>
                     <span>{visivel.mensagem}</span>
+                  </p>
+                )}
+              </div>
+
+              <Separador />
+
+              <section className="flex flex-col gap-2.5">
+                <h2 className="font-mono text-rotulo text-texto-3 uppercase">o que vamos jogar</h2>
+                <SeletorDeJogos jogoIdSelecionado={jogoId} aoSelecionar={setJogoId} />
+              </section>
+
+              <div className="flex flex-col gap-3.5">
+                <CampoDeTexto
+                  rotulo="Como te chamam?"
+                  valor={apelido}
+                  aoMudar={setApelido}
+                  placeholder="Seu apelido na mesa"
+                  dica={`De 2 a ${MAX_APELIDO} caracteres.`}
+                  limite={MAX_APELIDO}
+                  erro={erroDoApelido(visivel)}
+                />
+
+                <LimiteDaSala valor={limite} aoMudar={setLimite} />
+
+                <Botao
+                  larguraTotal
+                  carregando={criando}
+                  onClick={criarSala}
+                  motivo={motivoDeCriar}
+                >
+                  {criando ? 'Abrindo…' : 'Criar uma sala'}
+                </Botao>
+
+                {falhaAoCriar && (
+                  <p className="flex gap-2 text-apoio text-acento">
+                    <span aria-hidden="true">▲</span>
+                    <span>Não deu para abrir a sala agora. Tente de novo.</span>
                   </p>
                 )}
               </div>
@@ -297,7 +349,7 @@ function Apresentacao() {
   )
 }
 
-/** `SALA-02` — chegou por link: o código já está resolvido, falta o apelido. */
+/** `SALA-02` — a sala já está resolvida: o que falta é dizer como te chamam. */
 function Convite({ codigo }: { codigo: string }) {
   return (
     <div className="flex flex-col items-start gap-2 rounded-papel border-2 border-controle-linha bg-superficie p-4 shadow-botao">

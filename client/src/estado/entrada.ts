@@ -92,11 +92,13 @@ export function motivoParaCriar(apelido: string, limite: string): string | undef
   return undefined
 }
 
-/** Por que ainda não dá para entrar, ou `undefined` quando dá. */
-export function motivoParaEntrar(apelido: string, codigo: string): string | undefined {
-  const doApelido = motivoDoApelido(apelido, 'para entrar')
-  if (doApelido !== undefined) return doApelido
-
+/**
+ * Por que o código digitado ainda não serve, ou `undefined` quando serve.
+ *
+ * Vive separado do apelido porque na porta de entrada os dois passos são
+ * separados: primeiro se acha a sala, depois se diz como te chamam.
+ */
+export function motivoDoCodigo(codigo: string): string | undefined {
   const normalizado = normalizarCodigo(codigo)
   const faltam = TAMANHO_CODIGO - normalizado.length
   if (faltam > 0) {
@@ -107,6 +109,14 @@ export function motivoParaEntrar(apelido: string, codigo: string): string | unde
   if (!ehCodigoCompleto(normalizado)) return 'O código não leva I nem O.'
 
   return undefined
+}
+
+/** Por que ainda não dá para entrar, ou `undefined` quando dá. */
+export function motivoParaEntrar(apelido: string, codigo: string): string | undefined {
+  const doApelido = motivoDoApelido(apelido, 'para entrar')
+  if (doApelido !== undefined) return doApelido
+
+  return motivoDoCodigo(codigo)
 }
 
 /**
