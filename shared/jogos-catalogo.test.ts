@@ -1,22 +1,26 @@
 import { describe, expect, it } from 'vitest'
-import { CATALOGO_DE_JOGOS, JOGO_PADRAO } from './jogos-catalogo'
+import { CATALOGO_DE_JOGOS, JOGO_PADRAO, jogosJogaveis } from './jogos-catalogo'
 
 describe('CATALOGO_DE_JOGOS', () => {
-  it('contém exatamente as entradas quem-sou-eu e espiao com id/nome/descricao/minJogadores (`HUB-01`)', () => {
-    expect(CATALOGO_DE_JOGOS).toEqual([
-      {
-        id: 'quem-sou-eu',
-        nome: 'Quem Sou Eu?',
-        descricao: 'Cada um recebe uma carta que todos veem menos ele.',
-        minJogadores: 2,
-      },
-      {
-        id: 'espiao',
-        nome: 'Espião',
-        descricao: 'Um local secreto é sorteado; só o espião não sabe qual é.',
-        minJogadores: 3,
-      },
+  it('lista os jogos do hub, cada um com nome, descrição e mínimo próprios (`HUB-01`)', () => {
+    expect(CATALOGO_DE_JOGOS.map((jogo) => jogo.id)).toEqual([
+      'quem-sou-eu',
+      'espiao',
+      'cartas-contra-a-turma',
     ])
+    for (const jogo of CATALOGO_DE_JOGOS) {
+      expect(jogo.nome.length).toBeGreaterThan(0)
+      expect(jogo.descricao.length).toBeGreaterThan(0)
+    }
+  })
+
+  // O catálogo anuncia mais do que o servidor aceita: `cartas-contra-a-turma`
+  // existe como promessa na tela, mas não está em `REGISTRO_DE_JOGOS`. Deixar
+  // ele escapar pro seletor criaria uma sala que o servidor recusa depois.
+  it('mantém o jogo "em breve" fora dos jogáveis', () => {
+    const jogaveis = jogosJogaveis().map((jogo) => jogo.id)
+    expect(jogaveis).toEqual(['quem-sou-eu', 'espiao'])
+    expect(jogaveis).not.toContain('cartas-contra-a-turma')
   })
 
   it('não repete nenhum id (`HUB-14` — registro é aditivo, uma linha por jogo)', () => {
