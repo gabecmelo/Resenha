@@ -177,9 +177,9 @@ export function EspiaoEncerrada({ projecao, enviar, aoSair }: PropsDaTela) {
             )}
             <p className="text-apoio leading-snug text-texto-2">
               <strong className="font-semibold text-texto">
-                {host?.apelido ?? 'Quem comanda a sala'} decide
+                {host?.apelido ?? 'O host'} decide
               </strong>{' '}
-              se tem próxima rodada. Fique onde está — se começar outra, você entra sozinho.
+              se tem próxima rodada. Fique onde está — se começar outra, você entra automaticamente.
             </p>
           </div>
         )}

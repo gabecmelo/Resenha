@@ -329,7 +329,7 @@ function ProgressoDaMesa({
 
       <p className="border-t border-dashed border-linha pt-2.5 text-apoio text-texto-3">
         <span aria-hidden="true">🔒 </span>Aqui só aparece quem terminou. Nenhuma carta é mostrada
-        pra ninguém — nem pra quem comanda.
+        pra ninguém — nem pro host.
       </p>
     </section>
   )
@@ -471,7 +471,7 @@ function AcoesDaFase({
       ) : (
         todosProntos && (
           <p className="text-apoio text-texto-2">
-            Esperando {apelidoDoHost ?? 'quem comanda a sala'} começar — todo mundo já marcou
+            Esperando {apelidoDoHost ?? 'o host'} começar — todo mundo já marcou
             pronto.
           </p>
         )
@@ -507,7 +507,7 @@ function Espectador({ apelidoDoHost }: { apelidoDoHost: string | undefined }) {
         automaticamente.
       </p>
       <p className="text-apoio text-texto-3">
-        {apelidoDoHost ?? 'Quem comanda a sala'} pode voltar ao lobby pra incluir você nesta.
+        {apelidoDoHost ?? 'O host'} pode voltar ao lobby pra incluir você nesta.
       </p>
     </section>
   )

@@ -99,7 +99,7 @@ const FECHAMENTOS: Partial<
     selo: 'você saiu da mesa',
     titulo: 'Tiraram você desta sala',
     explicacao:
-      'Quem comanda a sala tirou você da partida. Pra voltar, alguém de lá precisa te chamar de novo.',
+      'O host tirou você da partida. Pra voltar, alguém de lá precisa te chamar de novo.',
   },
   SALA_CHEIA: {
     selo: 'sala cheia',

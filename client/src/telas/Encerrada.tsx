@@ -71,7 +71,7 @@ export function Encerrada({ projecao, enviar, aoSair }: PropsDaTela) {
             </ul>
           </section>
 
-          <p className="flex gap-2.5 rounded-papel border border-dashed border-linha p-3.5 text-apoio leading-relaxed text-texto-2">
+          {/* <p className="flex gap-2.5 rounded-papel border border-dashed border-linha p-3.5 text-apoio leading-relaxed text-texto-2">
             <span aria-hidden="true" className="text-[18px] leading-none">
               🤫
             </span>
@@ -82,7 +82,7 @@ export function Encerrada({ projecao, enviar, aoSair }: PropsDaTela) {
               A autoria de cada carta fica em segredo pra sempre — metade da graça é acusar a
               pessoa errada.
             </span>
-          </p>
+          </p> */}
 
           {/* `FIM-03` — quem chegou no meio entra na próxima sem fazer nada. */}
           {aguardando.length > 0 && <EntramNaProxima jogadores={aguardando} />}
@@ -129,9 +129,9 @@ export function Encerrada({ projecao, enviar, aoSair }: PropsDaTela) {
             )}
             <p className="text-apoio leading-snug text-texto-2">
               <strong className="font-semibold text-texto">
-                {host?.apelido ?? 'Quem comanda a sala'} decide
+                {host?.apelido ?? 'O host'} decide
               </strong>{' '}
-              se tem próxima partida. Fique onde está — se começar outra, você entra sozinho.
+              se tem próxima partida. Fique onde está — se começar outra, você entra automaticamente.
             </p>
           </div>
         )}
@@ -146,9 +146,9 @@ function VoceEra({ texto }: { texto: string }) {
     <section className="flex flex-col gap-2.5 rounded-papel bg-acento p-5 sm:p-6">
       <span className="font-mono text-rotulo text-acento-contraste/75 uppercase">você era</span>
       <span className="font-display text-display text-balance text-acento-contraste">{texto}</span>
-      <p className="text-apoio leading-relaxed text-acento-contraste/85">
+      {/* <p className="text-apoio leading-relaxed text-acento-contraste/85">
         Ficou a partida inteira na sua testa — a única carta da mesa que você nunca viu.
-      </p>
+      </p> */}
     </section>
   )
 }

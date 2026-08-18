@@ -55,7 +55,7 @@ export function Carta({
       : !conectado
         ? { glifo: '○', palavra: 'fora', cor: 'text-texto-3' }
         : ehHost
-          ? { glifo: '★', palavra: 'comanda', cor: 'text-texto-3' }
+          ? { glifo: '★', palavra: 'host', cor: 'text-texto-3' }
           : null
 
   return (
