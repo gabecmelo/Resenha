@@ -114,6 +114,45 @@ O Resenha é um hub de party games; "Quem Sou Eu?" é o primeiro jogo, e o hub d
 
 ---
 
+### P5: A votação vira um momento da mesa (estilo Among Us)
+
+**User Story**: Como jogador, quero que abrir a votação pare a rodada, dê um tempo fechado pra todo mundo decidir e depois **revele quem votou em quem e o veredito**, pra que a acusação seja um momento coletivo e não um clique que some sem resposta.
+
+**Why P5**: Fechar a votação hoje devolve a mesa direto pra rodada sem contar o que aconteceu — quem não estava olhando a tela não fica sabendo nem quem foi acusado. A revelação também não conseguia dizer se a mesa acertou, porque o resultado não sobrevivia na projeção.
+
+**Acceptance Criteria**:
+
+1. WHEN alguém abre a votação THEN o sistema SHALL registrar quem abriu e SHALL mostrar isso a toda a mesa — quando a votação abre sozinha pelo fim do relógio da rodada, SHALL registrar que foi o relógio, sem atribuir a ninguém
+2. WHEN a votação abre THEN o sistema SHALL iniciar um relógio próprio de votação, com a duração de `config.espiao.tempoVotacaoSeg` (padrão 60s), e SHALL fechar a votação sozinho quando ele vencer — sem depender de ninguém apertar nada
+3. WHEN todos os jogadores ativos conectados já votaram THEN o sistema SHALL fechar a votação na hora, sem esperar o relógio vencer
+4. WHEN a votação fecha THEN o sistema SHALL revelar a toda a mesa **quem votou em quem**, inclusive quando `visibilidadeVoto` é `'oculta'` — o sigilo vale enquanto a votação corre, não depois dela
+5. WHEN a votação fecha THEN o sistema SHALL informar, junto dos votos, quem foi acusado (se alguém alcançou maioria absoluta dos ativos), quantos votos essa pessoa teve, quantos eram necessários, e se a mesa acertou — sendo "acertou" a acusação com maioria em cima de alguém que era de fato espião, **contando o voto do próprio espião**
+6. WHEN a votação fecha sem acertar THEN o sistema SHALL manter o resultado visível por uma janela curta e SHALL voltar a rodada a correr quando ela vencer, retomando o relógio da rodada do zero
+7. WHEN a votação fecha acertando THEN o sistema SHALL encerrar a partida e SHALL manter o resultado da votação disponível na revelação, para que ela mostre o veredito e o mapa de votos
+8. WHEN a partida é encerrada pelo host sem uma votação decisiva THEN o sistema SHALL revelar local e espiões sem veredito nenhum — não houve aposta coletiva a julgar
+
+**Independent Test**: Mesa de 3, um espião. Abrir a votação → todo mundo vê "Fulano abriu a votação" e um relógio de 60s. Dois votam no espião → a votação fecha na hora, a mesa vê o mapa de votos e "a mesa acertou", e a partida termina mostrando o mesmo veredito na revelação. Repetir votando em quem não é espião → o resultado aparece, some sozinho e a rodada volta a correr.
+
+---
+
+### P6: Pausar a rodada
+
+**User Story**: Como quem comanda a mesa, quero pausar a rodada quando a resenha para (alguém foi buscar bebida, chegou gente), pra que o relógio não corra contra ninguém enquanto ninguém está jogando.
+
+**Why P6**: O relógio da rodada é o que empurra a partida. Sem pausa, a única saída de uma interrupção real é encerrar a partida.
+
+**Acceptance Criteria**:
+
+1. WHEN o host pausa a rodada THEN o sistema SHALL congelar o tempo restante e SHALL informar a toda a mesa que a rodada está pausada e por quem
+2. WHEN o host retoma a rodada THEN o sistema SHALL voltar a contar exatamente do tempo que restava, e não do tempo cheio
+3. WHEN a rodada está pausada THEN o sistema SHALL recusar abrir votação, votar e qualquer outra ação de rodada — pausado é pausado pra todo mundo, inclusive o host
+4. WHEN alguém que não é host tenta pausar ou retomar THEN o sistema SHALL recusar com `SEM_AUTORIDADE`, e a ação SHALL NOT existir na tela dessa pessoa (`VIS-04`)
+5. WHEN a rodada não tem relógio (`tempoRodadaSeg: null`) THEN o sistema SHALL ainda assim aceitar a pausa, que continua valendo como "a mesa parou" para as demais ações
+
+**Independent Test**: Host pausa com 3:20 no relógio, espera 30s reais e retoma — o relógio volta em 3:20, não em 2:50 nem em 5:00. Com a rodada pausada, "Abrir votação" recusa.
+
+---
+
 ## Edge Cases
 
 - WHEN um jogador sai da sala durante a fase de "aguardando prontos" ou "jogo" e os ativos restantes ficam abaixo de 3 THEN o sistema SHALL cancelar a partida e voltar a sala ao lobby (mesmo padrão de "Quem Sou Eu")
@@ -122,6 +161,9 @@ O Resenha é um hub de party games; "Quem Sou Eu?" é o primeiro jogo, e o hub d
 - WHEN um jogador desconecta durante uma votação aberta THEN o sistema SHALL considerar a votação "todos votaram" contando apenas jogadores ativos conectados, sem travar esperando por quem caiu
 - WHEN um jogador tenta votar mais de uma vez na mesma votação THEN o sistema SHALL substituir o voto anterior dele, não somar um segundo voto
 - WHEN a votação fecha com 0 votos válidos (todos escolheram "pular" ou ninguém votou e o host encerrou) THEN o sistema SHALL tratar como "não acertou" (mesma regra do empate)
+- WHEN a votação fecha e a janela de resultado está aberta THEN o sistema SHALL recusar abrir outra votação até a rodada voltar a correr
+- WHEN o host pausa a rodada durante uma votação aberta THEN o sistema SHALL congelar o relógio da votação do mesmo jeito, sem fechar a votação nem descartar os votos já dados
+- WHEN um jogador sai da sala durante a janela de resultado THEN o sistema SHALL manter o resultado como foi apurado — ele é um retrato do que aconteceu, não um cálculo que se refaz
 
 ---
 
@@ -155,6 +197,19 @@ O Resenha é um hub de party games; "Quem Sou Eu?" é o primeiro jogo, e o hub d
 | ESP-24 | P4: Acertos de UX do review | Review | Verified |
 | ESP-25 | P4: Acertos de UX do review | Review | Verified |
 | ESP-26 | P4: Acertos de UX do review | Review | Verified |
+| ESP-27 | P5: A votação vira um momento da mesa | Tasks | Pending |
+| ESP-28 | P5: A votação vira um momento da mesa | Tasks | Pending |
+| ESP-29 | P5: A votação vira um momento da mesa | Tasks | Pending |
+| ESP-30 | P5: A votação vira um momento da mesa | Tasks | Pending |
+| ESP-31 | P5: A votação vira um momento da mesa | Tasks | Pending |
+| ESP-32 | P5: A votação vira um momento da mesa | Tasks | Pending |
+| ESP-33 | P5: A votação vira um momento da mesa | Tasks | Pending |
+| ESP-34 | P5: A votação vira um momento da mesa | Tasks | Pending |
+| ESP-35 | P6: Pausar a rodada | Tasks | Pending |
+| ESP-36 | P6: Pausar a rodada | Tasks | Pending |
+| ESP-37 | P6: Pausar a rodada | Tasks | Pending |
+| ESP-38 | P6: Pausar a rodada | Tasks | Pending |
+| ESP-39 | P6: Pausar a rodada | Tasks | Pending |
 
 **ID format:** `ESP-[NUMBER]`, mapeado em ordem às ACs de P1 (01–16), P2 (17–21), P3 (22) e P4 (23–26) acima.
 
