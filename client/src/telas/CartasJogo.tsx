@@ -453,8 +453,9 @@ function CartaPergunta({ cartas, aoRevelar }: { cartas: ProjecaoCartas; aoRevela
   const naMao = cartas.fase === 'pergunta'
   const rotulo = cartas.souJuiz ? 'você julga esta' : `${cartas.juiz.apelido} julga esta`
 
-  // Pra mesa, na fase da pergunta, não há texto nenhum na projeção.
-  if (naMao && !cartas.souJuiz) {
+  // O verso: pra mesa a fase inteira, e pro juiz enquanto ele não escolheu —
+  // até lá o lugar da carta está vazio pra ele também.
+  if (naMao && (!cartas.souJuiz || !cartas.perguntaEscolhida)) {
     return (
       <section className="rounded-papel border border-dashed border-linha bg-superficie-2 p-4 sm:p-5">
         <p className="text-rotulo text-texto-3 uppercase">carta da rodada</p>
@@ -462,9 +463,11 @@ function CartaPergunta({ cartas, aoRevelar }: { cartas: ProjecaoCartas; aoRevela
           {cartas.perguntaEscolhida ? '· · · · ·' : '? ? ?'}
         </p>
         <p className="mt-2 text-apoio leading-snug text-texto-3">
-          {cartas.perguntaEscolhida
-            ? `${cartas.juiz.apelido} escolheu. Falta virar.`
-            : `${cartas.juiz.apelido} ainda está escolhendo.`}
+          {cartas.souJuiz
+            ? 'Escolha uma das três aqui embaixo.'
+            : cartas.perguntaEscolhida
+              ? `${cartas.juiz.apelido} escolheu. Falta virar.`
+              : `${cartas.juiz.apelido} ainda está escolhendo.`}
         </p>
       </section>
     )
