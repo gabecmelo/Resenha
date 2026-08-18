@@ -77,7 +77,12 @@ export function Shell({ titulo = 'Resenha', codigo, faixa, aoSair, children }: P
         </div>
       )}
 
-      <main className="mx-auto w-full max-w-[1280px] flex-1 px-3 pb-6 sm:px-4">
+      {/*
+        O respiro de cima mora aqui, e não em cada tela: o cabeçalho e a faixa
+        são grudentos (`sticky`), e sem esta folga o conteúdo nasce colado neles
+        — o papel precisa de margem contra a borda da mesa.
+      */}
+      <main className="mx-auto w-full max-w-[1280px] flex-1 px-3 pt-4 pb-6 sm:px-4 sm:pt-5">
         {children}
       </main>
 
@@ -158,7 +163,7 @@ function CopiarConvite({ codigo }: { codigo: string }) {
  */
 export function BarraDeAcao({ children }: { children: ReactNode }) {
   return (
-    <div className="sticky bottom-0 z-20 -mx-3 flex flex-col gap-2.5 border-t-2 border-controle-linha bg-superficie px-3 pt-3 pb-[max(12px,env(safe-area-inset-bottom))] sm:-mx-4 sm:px-4 lg:static lg:mx-0 lg:rounded-papel lg:border lg:border-linha lg:p-4">
+    <div className="sticky bottom-0 z-20 mt-4 -mx-3 flex flex-col gap-2.5 border-t-2 border-controle-linha bg-superficie px-3 pt-3 pb-[max(12px,env(safe-area-inset-bottom))] sm:-mx-4 sm:px-4 lg:static lg:mt-6 lg:mx-0 lg:rounded-papel lg:border lg:border-linha lg:p-4">
       {children}
     </div>
   )

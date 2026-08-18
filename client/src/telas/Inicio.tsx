@@ -130,7 +130,7 @@ export function Inicio({
   if (dePorta !== null) {
     return (
       <Shell>
-        <div className="mx-auto w-full max-w-[420px] pt-4">
+        <div className="mx-auto w-full max-w-[420px]">
           <PortaFechada
             erro={dePorta}
             codigo={codigo}
@@ -147,7 +147,7 @@ export function Inicio({
 
   return (
     <Shell>
-      <div className="mx-auto flex w-full max-w-[420px] flex-col gap-7 pt-3 lg:max-w-none lg:flex-row lg:items-start lg:justify-center lg:gap-16 lg:pt-6">
+      <div className="mx-auto flex w-full max-w-[420px] flex-col gap-7 lg:max-w-none lg:flex-row lg:items-start lg:justify-center lg:gap-16 lg:pt-4">
         <Apresentacao />
 
         <div className="flex w-full flex-col gap-7 lg:max-w-[420px]">
@@ -438,7 +438,7 @@ const TEXTOS_DE_PORTA: Partial<
   TOKEN_BANIDO: {
     titulo: 'Você foi removido desta sala',
     explicacao:
-      'Quem comanda a sala tirou você da partida. Para voltar, alguém de lá precisa te chamar de novo.',
+      'O host tirou você da partida. Para voltar, alguém de lá precisa te chamar de novo.',
   },
   SALA_EXPIRADA: {
     titulo: 'Esta sala expirou',

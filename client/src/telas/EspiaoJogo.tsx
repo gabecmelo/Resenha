@@ -268,7 +268,7 @@ export function EspiaoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
           </p>
         ) : votacao === undefined ? (
           <>
-            <div className="flex items-stretch gap-2">
+            <div className="flex items-center gap-2">
               <div className="min-w-0 flex-1">
                 <Botao larguraTotal onClick={() => setConfirmandoVotacao(true)}>
                   {acabando ? 'Abrir votação agora' : 'Abrir votação'}
@@ -295,7 +295,7 @@ export function EspiaoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
                 Precisa de {maioriaMinima} na mesma pessoa pra acusar.
               </span>
             </p>
-            <div className="flex items-stretch gap-2">
+            <div className="flex items-center gap-2">
               {/* `ESP-12` — só quem comanda fecha a votação antes da hora. */}
               {eu.ehHost && (
                 <div className="min-w-0 flex-1">
@@ -346,7 +346,7 @@ export function EspiaoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
       {menuDeHost && (
         <Modal
           folha
-          titulo="Quem comanda a mesa"
+          titulo="Ações do host"
           descricao="Só você vê estas ações."
           rotuloCancelar="Fechar"
           aoCancelar={() => setMenuDeHost(false)}
@@ -400,9 +400,9 @@ function BotaoDeMenu({ aoAbrir }: { aoAbrir(): void }) {
   return (
     <button
       type="button"
-      aria-label="Ações de quem comanda a mesa"
+      aria-label="Ações do host"
       onClick={aoAbrir}
-      className="flex min-h-12 w-12 flex-none cursor-pointer items-center justify-center rounded-botao border border-controle-linha text-[18px] leading-none text-texto"
+      className="flex h-13 w-13 flex-none cursor-pointer items-center justify-center rounded-botao border border-controle-linha text-[18px] leading-none text-texto"
     >
       <span aria-hidden="true">⋯</span>
     </button>

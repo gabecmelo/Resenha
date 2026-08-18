@@ -230,7 +230,7 @@ export function Jogo({ projecao, enviar, aoSair }: PropsDaTela) {
             })}
           </p>
 
-          <div className="flex items-stretch gap-2">
+          <div className="flex items-center gap-2">
             {!jaDescobri && (
               <div className="min-w-0 flex-1">
                 <Botao
@@ -268,9 +268,9 @@ export function Jogo({ projecao, enviar, aoSair }: PropsDaTela) {
             {eu.ehHost && (
               <button
                 type="button"
-                aria-label="Ações de quem comanda a mesa"
+                aria-label="Ações do host"
                 onClick={() => setMenuDeHost(true)}
-                className="flex min-h-12 w-12 flex-none cursor-pointer items-center justify-center rounded-botao border border-controle-linha text-[18px] leading-none text-texto"
+                className="flex h-13 w-13 flex-none cursor-pointer items-center justify-center rounded-botao border border-controle-linha text-[18px] leading-none text-texto"
               >
                 <span aria-hidden="true">⋯</span>
               </button>
@@ -282,7 +282,7 @@ export function Jogo({ projecao, enviar, aoSair }: PropsDaTela) {
       {menuDeHost && (
         <Modal
           folha
-          titulo="Quem comanda a mesa"
+          titulo="Ações do host"
           descricao="Só você vê estas ações."
           rotuloCancelar="Fechar"
           aoCancelar={() => setMenuDeHost(false)}
@@ -431,7 +431,7 @@ function orientacao({
       ? 'Sem relógio: a vez só passa quando você passar.'
       : 'Fale o palpite em voz alta antes de apertar Descobri!.'
   }
-  return 'Não é sua vez, mas dá pra declarar quando quiser — se achar que já sabe, fala.'
+  return 'Não é sua vez. Mas se for da regra da mesa, você pode declarar quando quiser.'
 }
 
 /** `JOGO-01` — as testas de todo mundo, e a sua no meio delas. */
@@ -615,10 +615,10 @@ function VoceEra({
       <span className="selo bg-acento-contraste text-acento">a mesa confirmou</span>
       <span className="font-mono text-rotulo text-acento-contraste/75 uppercase">você era</span>
       <span className="font-display text-display text-balance text-acento-contraste">{texto}</span>
-      <p className="text-apoio leading-relaxed text-acento-contraste/85">
+      {/* <p className="text-apoio leading-relaxed text-acento-contraste/85">
         Ficou a partida inteira na sua testa. Quem escreveu isso segue em segredo — e você continua
         na mesa, respondendo os outros.
-      </p>
+      </p> */}
       <Botao variante="secundario" onClick={aoVoltar} className="border-acento-contraste text-acento-contraste">
         Voltar pra mesa
       </Botao>
