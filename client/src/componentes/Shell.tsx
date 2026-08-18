@@ -77,7 +77,7 @@ export function Shell({ titulo = 'Resenha', codigo, faixa, aoSair, children }: P
         </div>
       )}
 
-      <main className="mx-auto w-full max-w-[1280px] flex-1 px-3 pt-4 pb-6 sm:px-4">
+      <main className="mx-auto w-full max-w-[1280px] flex-1 px-3 pb-6 sm:px-4">
         {children}
       </main>
 

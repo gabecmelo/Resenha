@@ -147,7 +147,7 @@ export function Inicio({
 
   return (
     <Shell>
-      <div className="mx-auto flex w-full max-w-[420px] flex-col gap-7 pt-3 lg:max-w-none lg:flex-row lg:items-start lg:justify-center lg:gap-16 lg:pt-12">
+      <div className="mx-auto flex w-full max-w-[420px] flex-col gap-7 pt-3 lg:max-w-none lg:flex-row lg:items-start lg:justify-center lg:gap-16 lg:pt-6">
         <Apresentacao />
 
         <div className="flex w-full flex-col gap-7 lg:max-w-[420px]">
