@@ -63,6 +63,13 @@ export const CATALOGO_DE_JOGOS: JogoCatalogo[] = [
     minJogadores: 3,
     emBreve: true,
   },
+  {
+    id: 'enigmas-macabros',
+    nome: 'Enigmas Macabros',
+    descricao: 'Uma cena impossível na mesa. Só sim, não e talvez pra desatar.',
+    minJogadores: 3,
+    emBreve: true,
+  },
 ]
 
 /** O nome de exibição do jogo, ou o próprio id quando ele não está no catálogo. */

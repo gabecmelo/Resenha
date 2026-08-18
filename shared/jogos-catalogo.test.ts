@@ -7,6 +7,7 @@ describe('CATALOGO_DE_JOGOS', () => {
       'quem-sou-eu',
       'espiao',
       'cartas-contra-a-turma',
+      'enigmas-macabros',
     ])
     for (const jogo of CATALOGO_DE_JOGOS) {
       expect(jogo.nome.length).toBeGreaterThan(0)
@@ -14,13 +15,16 @@ describe('CATALOGO_DE_JOGOS', () => {
     }
   })
 
-  // O catálogo anuncia mais do que o servidor aceita: `cartas-contra-a-turma`
-  // existe como promessa na tela, mas não está em `REGISTRO_DE_JOGOS`. Deixar
-  // ele escapar pro seletor criaria uma sala que o servidor recusa depois.
-  it('mantém o jogo "em breve" fora dos jogáveis', () => {
+  // O catálogo anuncia mais do que o servidor aceita: `cartas-contra-a-turma` e
+  // `enigmas-macabros` existem como promessa na tela, mas não estão em
+  // `REGISTRO_DE_JOGOS`. Deixar um deles escapar pro seletor criaria uma sala
+  // que o servidor recusa depois.
+  it('mantém os jogos "em breve" fora dos jogáveis', () => {
     const jogaveis = jogosJogaveis().map((jogo) => jogo.id)
     expect(jogaveis).toEqual(['quem-sou-eu', 'espiao'])
-    expect(jogaveis).not.toContain('cartas-contra-a-turma')
+    const emBreve = CATALOGO_DE_JOGOS.filter((jogo) => jogo.emBreve === true).map((jogo) => jogo.id)
+    expect(emBreve).toEqual(['cartas-contra-a-turma', 'enigmas-macabros'])
+    for (const id of emBreve) expect(jogaveis).not.toContain(id)
   })
 
   it('não repete nenhum id (`HUB-14` — registro é aditivo, uma linha por jogo)', () => {
