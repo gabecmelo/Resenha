@@ -1,5 +1,6 @@
 import type { JogoDaSala } from '../core/despacho'
 import { cartasContraATurma } from './cartas-contra-a-turma'
+import { enigmasSinistros } from './enigmas-sinistros'
 import { espiao } from './espiao'
 import { quemSouEu } from './quem-sou-eu'
 
@@ -16,4 +17,5 @@ export const REGISTRO_DE_JOGOS: Record<string, JogoDaSala<unknown>> = {
   'quem-sou-eu': quemSouEu as JogoDaSala<unknown>,
   espiao: espiao as JogoDaSala<unknown>,
   'cartas-contra-a-turma': cartasContraATurma as JogoDaSala<unknown>,
+  'enigmas-sinistros': enigmasSinistros as JogoDaSala<unknown>,
 }

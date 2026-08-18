@@ -173,6 +173,30 @@ export interface ConfigCartas {
   recargaDaBrancaRodadas: number
 }
 
+export interface ConfigEnigmas {
+  /**
+   * `ENIG-33` — como a mesa pergunta. `fila` carrega as perguntas escritas até
+   * o narrador e guarda o histórico; `voz` não carrega texto nenhum e deixa os
+   * três botões dele só marcando o ritmo da conversa que acontece na sala.
+   */
+  modoPergunta: 'fila' | 'voz'
+  /** `ENIG-24` — pontos que encerram a partida. `null` = só o host encerra. */
+  metaDePontos: number | null
+}
+
+export const CONFIG_ENIGMAS_PADRAO: ConfigEnigmas = {
+  modoPergunta: 'fila',
+  metaDePontos: 5,
+}
+
+/** `ENIG-24` — faixa da meta de pontos do Enigmas. */
+export const META_ENIGMAS_MIN = 2
+export const META_ENIGMAS_MAX = 15
+
+/** `ENIG-08` — limite de caracteres de uma pergunta escrita e de uma declaração. */
+export const LIMITE_PERGUNTA = 160
+export const LIMITE_DECLARACAO = 400
+
 export const CONFIG_CARTAS_PADRAO: ConfigCartas = {
   tempoEscolhaSeg: 90,
   metaDePontos: 5,
@@ -243,6 +267,7 @@ export interface Config {
   espiao: ConfigEspiao
   /** `AD-014` — idem, para o Cartas Contra a Turma. */
   cartas: ConfigCartas
+  enigmas: ConfigEnigmas
 }
 
 /** Padrões de uma sala recém-criada (`CFG-05`). */
@@ -255,6 +280,7 @@ export const CONFIG_PADRAO: Config = {
   modoDistribuicao: 'aleatoria',
   espiao: CONFIG_ESPIAO_PADRAO,
   cartas: CONFIG_CARTAS_PADRAO,
+  enigmas: CONFIG_ENIGMAS_PADRAO,
 }
 
 /**
@@ -426,6 +452,18 @@ export type Comando =
   | { t: 'revelarCarta'; indice: number }
   /** `CCT-40` — troca a mão inteira por outra, gastando um reroll. */
   | { t: 'trocarMao' }
+  /** `ENIG-08` — a mesa manda uma pergunta escrita pra fila do narrador. */
+  | { t: 'perguntarEnigma'; texto: string }
+  /** `ENIG-09` — o narrador responde. `perguntaId` é `null` no modo em voz alta. */
+  | { t: 'responderPergunta'; perguntaId: number | null; resposta: RespostaDoNarrador }
+  /** `ENIG-14` — alguém acha que desatou e conta a versão dele, só pro narrador. */
+  | { t: 'declararSolucao'; texto: string }
+  /** `ENIG-15` — o narrador diz se a declaração fecha o enigma. */
+  | { t: 'julgarDeclaracao'; acertou: boolean }
+  /** `ENIG-18` — o narrador entrega a solução e a mesa segue pro próximo. */
+  | { t: 'entregarSolucao' }
+  /** `ENIG-20` — a revelação sai da tela e o próximo enigma começa. */
+  | { t: 'proximoEnigma' }
 
 /** Servidor → cliente. */
 export type Mensagem =
@@ -594,6 +632,66 @@ export interface ProjecaoCartas {
   pacotesSelecionados?: { id: string; nome: string; emoji: string }[]
 }
 
+/** `ENIG-09` — as três respostas possíveis, e nada além delas. */
+export type RespostaDoNarrador = 'sim' | 'nao' | 'naoImporta'
+
+/** `ENIG-10` — uma pergunta já respondida, ou ainda na fila. */
+export interface PerguntaProjetada {
+  id: number
+  /** Vazio no modo em voz alta: lá a batida existe, o texto não. */
+  texto: string
+  autor: { id: JogadorId; apelido: string }
+  /** `null` enquanto o narrador não respondeu. */
+  resposta: RespostaDoNarrador | null
+}
+
+/** `ENIG-17` — uma tentativa já julgada, com o veredito à vista da mesa. */
+export interface TentativaProjetada {
+  autor: { id: JogadorId; apelido: string }
+  texto: string
+  acertou: boolean
+}
+
+/**
+ * `AD-014` — projeção própria do Enigmas Sinistros, aninhada em
+ * `Projecao.jogo.enigmas`. Como toda projeção, ela já vem decidida (`AD-008`):
+ * `solucao` só existe na tela de quem pode ler, e a declaração pendente só
+ * chega ao narrador.
+ */
+export interface ProjecaoEnigmas {
+  /** 1-based: qual enigma da partida está na mesa. */
+  rodada: number
+  fase: 'enigma' | 'revelacao'
+  /** A cena. Visível a todos, sempre. */
+  cena: string
+  /** `ENIG-05` — só na tela do narrador, e na de todos depois da revelação. */
+  solucao?: string
+  narrador: { id: JogadorId; apelido: string }
+  souNarrador: boolean
+  modoPergunta: 'fila' | 'voz'
+  /** `ENIG-10` — histórico e fila, na ordem em que foram feitas. */
+  perguntas: PerguntaProjetada[]
+  /** `ENIG-11` — quantas ainda esperam resposta. */
+  naFila: number
+  /** `ENIG-08` — eu já tenho uma pergunta esperando resposta. */
+  minhaPerguntaNaFila: boolean
+  /** `ENIG-14` — a declaração aguardando julgamento; só o narrador recebe o texto. */
+  declaracaoPendente?: { autor: { id: JogadorId; apelido: string }; texto?: string }
+  /** `ENIG-14` — fui eu que declarei e estou esperando o veredito. */
+  souEuQueDeclarei: boolean
+  /** `ENIG-17` — as tentativas erradas, à vista da mesa. */
+  tentativas: TentativaProjetada[]
+  /** `ENIG-16` — quem desatou este enigma. Presente só na `revelacao`. */
+  desatou?: { id: JogadorId; apelido: string }
+  /** `ENIG-24` — do maior pro menor. */
+  placar: { id: JogadorId; apelido: string; pontos: number }[]
+  metaDePontos: number | null
+  /** `ENIG-25`, `ENIG-26` — quem levou a partida. Presente só na fase `encerrada`. */
+  campeoes?: { id: JogadorId; apelido: string; pontos: number }[]
+  /** Mesmo padrão dos outros jogos — visível durante a partida. */
+  pacotesSelecionados?: { id: string; nome: string; emoji: string }[]
+}
+
 export interface Projecao {
   agoraServidor: number
   sala: {
@@ -653,6 +751,7 @@ export interface Projecao {
     espiao?: ProjecaoEspiao
     /** `AD-014` — presente só quando `sala.jogoId === 'cartas-contra-a-turma'`. */
     cartas?: ProjecaoCartas
+    enigmas?: ProjecaoEnigmas
   }
   /** `CHAT-04` */
   chat: MensagemChat[]

@@ -3,6 +3,7 @@ import type {
   Comando,
   Config,
   ConfigCartas,
+  ConfigEnigmas,
   ConfigEspiao,
   ContextoDeSala,
   Dificuldade,
@@ -19,6 +20,8 @@ import {
   TEMPO_TURNO_MIN_SEG,
   MAX_VOTACOES_TETO,
   META_MAX_PONTOS,
+  META_ENIGMAS_MAX,
+  META_ENIGMAS_MIN,
   META_MIN_PONTOS,
   RECARGA_BRANCA_MAX,
   RECARGA_BRANCA_MIN,
@@ -237,6 +240,13 @@ function configurar(
       recargaDaBrancaRodadas:
         parcial.cartas?.recargaDaBrancaRodadas ?? sala.config.cartas.recargaDaBrancaRodadas,
     },
+    enigmas: {
+      modoPergunta: parcial.enigmas?.modoPergunta ?? sala.config.enigmas.modoPergunta,
+      metaDePontos:
+        parcial.enigmas?.metaDePontos === undefined
+          ? sala.config.enigmas.metaDePontos
+          : parcial.enigmas.metaDePontos,
+    },
   }
   return { ok: true, valor: SEM_EFEITOS }
 }
@@ -273,6 +283,20 @@ function configValida(parcial: Partial<Config>): boolean {
   }
   if (parcial.espiao !== undefined && !configEspiaoValida(parcial.espiao)) return false
   if (parcial.cartas !== undefined && !configCartasValida(parcial.cartas)) return false
+  if (parcial.enigmas !== undefined && !configEnigmasValida(parcial.enigmas)) return false
+  return true
+}
+
+/** `ENIG-24`, `ENIG-33` — faixas do Enigmas Sinistros; `null` só vale na meta. */
+function configEnigmasValida(parcial: Partial<ConfigEnigmas>): boolean {
+  if (parcial.modoPergunta !== undefined && !['fila', 'voz'].includes(parcial.modoPergunta)) {
+    return false
+  }
+  const meta = parcial.metaDePontos
+  if (meta !== undefined && meta !== null) {
+    if (!Number.isInteger(meta)) return false
+    if (meta < META_ENIGMAS_MIN || meta > META_ENIGMAS_MAX) return false
+  }
   return true
 }
 

@@ -67,7 +67,6 @@ export const CATALOGO_DE_JOGOS: JogoCatalogo[] = [
     nome: 'Enigmas Sinistros',
     descricao: 'Uma cena impossível na mesa. Só sim, não e talvez pra desatar.',
     minJogadores: 3,
-    emBreve: true,
   },
 ]
 

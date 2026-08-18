@@ -15,15 +15,20 @@ describe('CATALOGO_DE_JOGOS', () => {
     }
   })
 
-  // O catálogo anuncia mais do que o servidor aceita: `cartas-contra-a-turma` e
-  // `enigmas-sinistros` existem como promessa na tela, mas não estão em
-  // `REGISTRO_DE_JOGOS`. Deixar um deles escapar pro seletor criaria uma sala
-  // que o servidor recusa depois.
+  // O catálogo pode anunciar mais do que o servidor aceita: um jogo marcado
+  // `emBreve` existe como promessa na tela e não está em `REGISTRO_DE_JOGOS`.
+  // Deixar um deles escapar pro seletor criaria uma sala que o servidor recusa
+  // depois — hoje todos são jogáveis, e é este teste que segura o próximo.
   it('mantém os jogos "em breve" fora dos jogáveis', () => {
     const jogaveis = jogosJogaveis().map((jogo) => jogo.id)
-    expect(jogaveis).toEqual(['quem-sou-eu', 'espiao', 'cartas-contra-a-turma'])
+    expect(jogaveis).toEqual([
+      'quem-sou-eu',
+      'espiao',
+      'cartas-contra-a-turma',
+      'enigmas-sinistros',
+    ])
     const emBreve = CATALOGO_DE_JOGOS.filter((jogo) => jogo.emBreve === true).map((jogo) => jogo.id)
-    expect(emBreve).toEqual(['enigmas-sinistros'])
+    expect(emBreve).toEqual([])
     for (const id of emBreve) expect(jogaveis).not.toContain(id)
   })
 

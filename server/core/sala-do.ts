@@ -368,7 +368,9 @@ export class SalaDeJogo {
           // (perguntas + respostas, sem dificuldade), mas o resumo do lobby é
           // o mesmo: id, nome, emoji, quantidade e o `jogoId` que filtra.
           const { CARTAS_TURMA } = await import('../../shared/cartas-turma-dados');
-          this.pacotesDisponiveis = [...PACOTES, ...LOCAIS, ...CARTAS_TURMA].map(p => ({
+          // `ENIG-30` — mesma história: cena + solução em vez de cartas, resumo igual.
+          const { ENIGMAS } = await import('../../shared/enigmas-dados');
+          this.pacotesDisponiveis = [...PACOTES, ...LOCAIS, ...CARTAS_TURMA, ...ENIGMAS].map(p => ({
             id: p.id,
             jogoId: p.jogoId,
             nome: p.nome,
