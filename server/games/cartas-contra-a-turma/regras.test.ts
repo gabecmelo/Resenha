@@ -349,7 +349,9 @@ describe('CCT-11…CCT-14 — julgamento, ponto e próxima rodada', () => {
   })
 
   it('CCT-14: o juiz roda por todo mundo antes de repetir', () => {
-    let { estado, contexto } = partida()
+    const inicial = partida()
+    const contexto = inicial.contexto
+    let estado = inicial.estado
     const vistos: JogadorId[] = []
     for (let i = 0; i < 3; i += 1) {
       vistos.push(juizDa(estado))
@@ -365,7 +367,9 @@ describe('CCT-11…CCT-14 — julgamento, ponto e próxima rodada', () => {
   })
 
   it('CCT-15: a pergunta usada não volta enquanto houver monte', () => {
-    let { estado, contexto } = partida()
+    const inicial = partida()
+    const contexto = inicial.contexto
+    let estado = inicial.estado
     const vistas = new Set<string>([estado.pergunta])
     for (let i = 0; i < 5; i += 1) {
       const fechado = todosJogam(estado, contexto)

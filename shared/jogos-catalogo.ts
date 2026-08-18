@@ -61,7 +61,6 @@ export const CATALOGO_DE_JOGOS: JogoCatalogo[] = [
     nome: 'Cartas Contra a Turma',
     descricao: 'Uma frase no meio da mesa e a pior resposta possível ganha.',
     minJogadores: 3,
-    emBreve: true,
   },
   {
     id: 'enigmas-sinistros',

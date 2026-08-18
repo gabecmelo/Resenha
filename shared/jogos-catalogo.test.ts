@@ -21,9 +21,9 @@ describe('CATALOGO_DE_JOGOS', () => {
   // que o servidor recusa depois.
   it('mantém os jogos "em breve" fora dos jogáveis', () => {
     const jogaveis = jogosJogaveis().map((jogo) => jogo.id)
-    expect(jogaveis).toEqual(['quem-sou-eu', 'espiao'])
+    expect(jogaveis).toEqual(['quem-sou-eu', 'espiao', 'cartas-contra-a-turma'])
     const emBreve = CATALOGO_DE_JOGOS.filter((jogo) => jogo.emBreve === true).map((jogo) => jogo.id)
-    expect(emBreve).toEqual(['cartas-contra-a-turma', 'enigmas-sinistros'])
+    expect(emBreve).toEqual(['enigmas-sinistros'])
     for (const id of emBreve) expect(jogaveis).not.toContain(id)
   })
 
