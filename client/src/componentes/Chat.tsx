@@ -31,9 +31,9 @@ export function Chat({ mensagens, aoEnviar }: PropsDoChat) {
     <div className="flex min-w-0 flex-col gap-3.5">
       {mensagens.length === 0 ? (
         <div className="flex min-h-24 flex-col items-center justify-center gap-1 p-3 text-center">
-          <span className="text-[15px] font-medium text-texto-2">Ninguém escreveu nada</span>
+          <span className="text-[15px] font-medium text-texto-2">Ninguém falou nada aqui</span>
           <span className="text-miudo text-texto-3">
-            O jogo é falado. Use o chat só se precisar.
+            A resenha é em voz alta. Isto aqui é só apoio.
           </span>
         </div>
       ) : (
@@ -77,11 +77,11 @@ function Historico({ mensagens }: { mensagens: MensagemChat[] }) {
           if (mensagem.tipo === 'sistema') {
             return (
               <li key={indice} className="flex items-center gap-2.5">
-                <span className="h-px flex-1 bg-linha-suave" />
-                <span className="text-center font-mono text-[11px] tracking-[0.08em] text-texto-3 uppercase">
+                <span className="flex-1 border-t border-dashed border-linha" />
+                <span className="text-center font-mono text-compacto-apoio tracking-[0.1em] text-texto-3 uppercase">
                   {mensagem.texto}
                 </span>
-                <span className="h-px flex-1 bg-linha-suave" />
+                <span className="flex-1 border-t border-dashed border-linha" />
               </li>
             )
           }
@@ -126,12 +126,12 @@ function Escrever({ aoEnviar }: { aoEnviar(texto: string): void }) {
         placeholder="Escrever no chat…"
         aria-label="Escrever no chat"
         onChange={(evento) => setTexto(evento.target.value)}
-        className="min-h-11 w-full min-w-0 rounded-controle border border-controle-linha bg-superficie px-3.5 text-[15px] text-texto placeholder:text-texto-apagado focus:border-acento focus:outline-none"
+        className="min-h-11 w-full min-w-0 rounded-chip border border-linha bg-superficie px-3.5 text-[15px] text-texto caret-acento placeholder:text-texto-apagado focus:border-controle-linha focus:outline-none"
       />
       <button
         type="submit"
         aria-label="Enviar mensagem"
-        className="flex h-11 w-11 flex-none cursor-pointer items-center justify-center rounded-controle bg-acento text-[18px] text-acento-contraste"
+        className="flex h-11 w-11 flex-none cursor-pointer items-center justify-center rounded-chip bg-acento text-[18px] text-acento-contraste shadow-chip transition-transform motion-safe:active:translate-x-[2px] motion-safe:active:translate-y-[2px] motion-safe:active:shadow-none"
       >
         ↑
       </button>

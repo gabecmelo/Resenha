@@ -17,7 +17,7 @@ export interface PropsDoCampo {
   mono?: boolean
   /** `SALA-02` — quem chega por link já cai com o cursor no apelido. */
   autoFoco?: boolean
-  aoTeclarEnter?(): void
+  aoTeclarEnter?: (() => void) | undefined
 }
 
 /**

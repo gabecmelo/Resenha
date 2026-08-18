@@ -67,6 +67,8 @@ export function Inicio({
 
   const visivel = erro !== null && erro !== dispensado ? erro : null
   const dePorta = visivel !== null && ERROS_DE_PORTA.includes(visivel.codigo) ? visivel : null
+  // `HUB-01` — quem chega por link de convite não escolhe nada: o jogo é do host.
+  const veioPorConvite = codigoInicial !== ''
 
   const voltarAoFormulario = () => {
     setDispensado(erro)
@@ -79,7 +81,7 @@ export function Inicio({
     aoEntrar(normalizarCodigo(codigo), apelido)
   }
 
-  const motivoDeCriar = criando ? 'Abrindo a sala…' : motivoParaCriar(apelido, limite)
+  const motivoDeCriar = motivoParaCriar(apelido, limite)
 
   const criarSala = () => {
     // `AJU-35` — o limite escolhido vai no pedido; quem recusa é o servidor.
@@ -102,83 +104,119 @@ export function Inicio({
       .finally(() => setCriando(false))
   }
 
+  if (dePorta !== null) {
+    return (
+      <Shell>
+        <div className="mx-auto w-full max-w-[420px] pt-4">
+          <PortaFechada
+            erro={dePorta}
+            codigo={codigo}
+            apelido={apelido}
+            motivoDeCriar={motivoDeCriar}
+            criando={criando}
+            aoCriar={criarSala}
+            aoVoltar={voltarAoFormulario}
+          />
+        </div>
+      </Shell>
+    )
+  }
+
   return (
     <Shell>
-      <div className="mx-auto flex w-full max-w-[420px] flex-col gap-9 pt-4 lg:max-w-none lg:flex-row lg:items-start lg:justify-center lg:gap-20 lg:pt-14">
-        <Apresentacao
-          jogoId={jogoId}
-          aoEscolherJogo={setJogoId}
-          podeEscolherJogo={codigoInicial === ''}
-        />
+      <div className="mx-auto flex w-full max-w-[420px] flex-col gap-7 pt-3 lg:max-w-none lg:flex-row lg:items-start lg:justify-center lg:gap-16 lg:pt-12">
+        <Apresentacao />
 
-        <div className="flex w-full flex-col gap-6 lg:max-w-[420px]">
-          {dePorta !== null ? (
-            <PortaFechada
-              erro={dePorta}
-              codigo={codigo}
-              apelido={apelido}
-              motivoDeCriar={motivoDeCriar}
-              aoCriar={criarSala}
-              aoVoltar={voltarAoFormulario}
-            />
+        <div className="flex w-full flex-col gap-7 lg:max-w-[420px]">
+          {veioPorConvite ? (
+            <Convite codigo={codigoInicial} />
           ) : (
+            <section className="flex flex-col gap-2.5">
+              <h2 className="font-mono text-rotulo text-texto-3 uppercase">o que vamos jogar</h2>
+              <SeletorDeJogos jogoIdSelecionado={jogoId} aoSelecionar={setJogoId} />
+            </section>
+          )}
+
+          <div className="flex flex-col gap-3.5">
+            <CampoDeTexto
+              rotulo="Como te chamam?"
+              valor={apelido}
+              aoMudar={setApelido}
+              placeholder="Seu apelido na mesa"
+              dica={`De 2 a ${MAX_APELIDO} caracteres.`}
+              limite={MAX_APELIDO}
+              autoFoco
+              erro={erroDoApelido(visivel)}
+              aoTeclarEnter={veioPorConvite ? tentarEntrar : undefined}
+            />
+
+            {!veioPorConvite && <LimiteDaSala valor={limite} aoMudar={setLimite} />}
+
+            <Botao
+              larguraTotal
+              carregando={veioPorConvite ? conectando : criando}
+              onClick={veioPorConvite ? tentarEntrar : criarSala}
+              motivo={veioPorConvite ? motivoParaEntrar(apelido, codigo) : motivoDeCriar}
+            >
+              {veioPorConvite
+                ? conectando
+                  ? 'Entrando…'
+                  : 'Entrar na sala'
+                : criando
+                  ? 'Abrindo…'
+                  : 'Criar uma sala'}
+            </Botao>
+
+            {falhaAoCriar && (
+              <p className="flex gap-2 text-apoio text-acento">
+                <span aria-hidden="true">▲</span>
+                <span>Não deu para abrir a sala agora. Tente de novo.</span>
+              </p>
+            )}
+          </div>
+
+          {!veioPorConvite && (
             <>
-              {codigoInicial !== '' && <Convite codigo={codigoInicial} />}
+              <Separador />
 
-              <CampoDeTexto
-                rotulo="Seu apelido"
-                valor={apelido}
-                aoMudar={setApelido}
-                placeholder="Como te chamam?"
-                dica={`De 2 a ${MAX_APELIDO} caracteres.`}
-                limite={MAX_APELIDO}
-                autoFoco
-                erro={erroDoApelido(visivel)}
-                aoTeclarEnter={tentarEntrar}
-              />
-
-              {codigoInicial === '' && (
-                <>
-                  <LimiteDaSala valor={limite} aoMudar={setLimite} />
-                  <Botao larguraTotal onClick={criarSala} motivo={motivoDeCriar}>
-                    Criar uma sala
-                  </Botao>
-                  {falhaAoCriar && (
-                    <p className="text-apoio text-risco">
-                      Não deu para abrir a sala agora. Tente de novo.
-                    </p>
-                  )}
-                  <Separador />
-                </>
-              )}
-
-              <div className="flex flex-col gap-4">
-                {codigoInicial === '' && (
-                  <CampoDeTexto
-                    rotulo="Entrar com um código"
-                    valor={codigo}
-                    aoMudar={(valor) => setCodigo(normalizarCodigo(valor))}
-                    placeholder="·····"
-                    dica="5 letras, do jeito que te ditaram."
-                    limite={TAMANHO_CODIGO}
-                    mono
-                    aoTeclarEnter={tentarEntrar}
-                  />
-                )}
-
-                <Botao
-                  larguraTotal
-                  variante={codigoInicial === '' ? 'secundario' : 'primario'}
-                  onClick={tentarEntrar}
-                  motivo={
-                    conectando ? 'Conectando com a sala.' : motivoParaEntrar(apelido, codigo)
-                  }
+              <div className="flex flex-col gap-2">
+                <label
+                  htmlFor="codigo-da-sala"
+                  className="text-[15px] font-semibold text-texto"
                 >
-                  {conectando ? 'Entrando…' : 'Entrar'}
-                </Botao>
-
-                {visivel !== null && dePorta === null && erroDoApelido(visivel) === undefined && (
-                  <p className="text-apoio text-risco">{visivel.mensagem}</p>
+                  Já tem um código?
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    id="codigo-da-sala"
+                    type="text"
+                    value={codigo}
+                    placeholder="·····"
+                    maxLength={TAMANHO_CODIGO}
+                    onChange={(evento) => setCodigo(normalizarCodigo(evento.target.value))}
+                    onKeyDown={(evento) => {
+                      if (evento.key === 'Enter') tentarEntrar()
+                    }}
+                    className="min-h-[52px] w-full min-w-0 rounded-chip border border-linha bg-superficie px-3.5 font-mono text-[22px] tracking-[0.28em] text-texto caret-acento uppercase placeholder:text-texto-apagado focus:border-controle-linha focus:outline-none"
+                  />
+                  <Botao
+                    variante="secundario"
+                    carregando={conectando}
+                    onClick={tentarEntrar}
+                    motivo={motivoParaEntrar(apelido, codigo)}
+                    motivoOculto
+                  >
+                    Entrar
+                  </Botao>
+                </div>
+                <p className="text-apoio text-texto-3">
+                  5 letras. Sem I e sem O, pra ninguém confundir com 1 e 0.
+                </p>
+                {visivel !== null && erroDoApelido(visivel) === undefined && (
+                  <p className="flex gap-2 text-apoio text-acento">
+                    <span aria-hidden="true">▲</span>
+                    <span>{visivel.mensagem}</span>
+                  </p>
                 )}
               </div>
             </>
@@ -192,39 +230,49 @@ export function Inicio({
 /**
  * `AJU-35`, `AJU-36`, `AJU-38` — quantas pessoas cabem na sala que se vai criar.
  *
- * Abre preenchido com o padrão, então quem não liga para isso continua criando a
- * sala em duas interações: escrever o apelido e apertar o botão. A faixa vem do
- * contrato (AD-011) e o campo trava no tamanho; quem recusa de fato é o servidor.
+ * Passo a passo em vez de campo livre: no celular ninguém quer abrir o teclado
+ * numérico para trocar 10 por 12. A faixa vem do contrato (AD-011) e quem
+ * recusa de fato continua sendo o servidor.
  */
 function LimiteDaSala({ valor, aoMudar }: { valor: string; aoMudar(valor: string): void }) {
-  const serve = limiteDigitado(valor) !== null
+  const atual = limiteDigitado(valor) ?? MAX_JOGADORES
+  const mexer = (passo: number) => {
+    const proximo = Math.min(MAX_JOGADORES, Math.max(MIN_JOGADORES, atual + passo))
+    aoMudar(String(proximo))
+  }
+
+  const botao =
+    'flex h-[52px] w-[52px] flex-none cursor-pointer items-center justify-center rounded-chip border border-controle-linha bg-superficie text-[22px] text-texto disabled:cursor-not-allowed disabled:border-linha disabled:text-texto-apagado'
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <label htmlFor="limite-da-sala" className="text-apoio font-medium text-texto">
-        Quantas pessoas cabem
-      </label>
-      <div className="flex items-center gap-3">
-        <input
-          id="limite-da-sala"
-          type="text"
-          inputMode="numeric"
-          value={valor}
-          maxLength={String(MAX_JOGADORES).length}
-          aria-invalid={!serve}
-          aria-describedby="limite-da-sala-apoio"
-          onChange={(evento) => aoMudar(evento.target.value)}
-          className={`h-12 w-20 rounded-controle border bg-superficie px-3.5 text-corpo focus:outline-none ${
-            serve ? 'border-controle-linha text-texto focus:border-acento' : 'border-risco text-texto'
-          }`}
-        />
-        <span
-          id="limite-da-sala-apoio"
-          className={`text-[12px] ${serve ? 'text-texto-3' : 'text-risco'}`}
+    <div className="flex flex-col gap-2">
+      <span className="text-[15px] font-semibold text-texto">Quantas pessoas cabem</span>
+      <div className="flex items-center gap-2.5">
+        <button
+          type="button"
+          aria-label="Uma pessoa a menos"
+          disabled={atual <= MIN_JOGADORES}
+          onClick={() => mexer(-1)}
+          className={botao}
         >
-          De {MIN_JOGADORES} a {MAX_JOGADORES} pessoas.
-        </span>
+          −
+        </button>
+        <output className="flex h-[52px] flex-1 items-center justify-center rounded-chip border border-linha bg-superficie font-mono text-[20px] font-medium text-texto tabular-nums">
+          {atual}
+        </output>
+        <button
+          type="button"
+          aria-label="Uma pessoa a mais"
+          disabled={atual >= MAX_JOGADORES}
+          onClick={() => mexer(1)}
+          className={botao}
+        >
+          +
+        </button>
       </div>
+      <p className="text-apoio text-texto-3">
+        de {MIN_JOGADORES} a {MAX_JOGADORES} · dá pra mudar depois
+      </p>
     </div>
   )
 }
@@ -236,38 +284,15 @@ function erroDoApelido(erro: ErroDeSala | null): string | undefined {
   return undefined
 }
 
-/** `HUB-01` — o jogo é uma escolha de verdade, não um texto fixo. */
-/**
- * `podeEscolherJogo` é falso para quem chegou por link de convite: o jogo é
- * do host, quem entra não escolhe nada. Mostrar o seletor ali daria a impressão
- * de uma escolha que o "Entrar" descarta em silêncio.
- */
-function Apresentacao({
-  jogoId,
-  aoEscolherJogo,
-  podeEscolherJogo,
-}: {
-  jogoId: string
-  aoEscolherJogo(jogoId: string): void
-  podeEscolherJogo: boolean
-}) {
+function Apresentacao() {
   return (
-    <div className="flex flex-col gap-3 lg:max-w-[420px] lg:pt-1">
-      <h1 className="text-titulo text-balance text-texto lg:text-display">
-        Party games para jogar com os amigos
+    <div className="flex flex-col gap-1.5 lg:max-w-[420px] lg:pt-1">
+      <h1 className="font-display text-display text-balance text-texto">
+        Junta a galera e abre a mesa.
       </h1>
-      <p className="text-corpo text-texto-2">Sem cadastro. Escolha um apelido e entre.</p>
-      {podeEscolherJogo && (
-        <div className="mt-3 hidden flex-col gap-1.5 border-t border-linha pt-5 lg:flex">
-          <span className="font-mono text-[11px] tracking-[0.12em] text-texto-3 uppercase">
-            escolha o jogo
-          </span>
-          <SeletorDeJogos jogoIdSelecionado={jogoId} aoSelecionar={aoEscolherJogo} />
-          <p className="text-apoio text-texto-2">
-            {MIN_JOGADORES} a {MAX_JOGADORES} pessoas.
-          </p>
-        </div>
-      )}
+      <p className="text-corpo text-texto-3">
+        Jogos de resenha no navegador. A tela é o tabuleiro — a graça acontece na mesa.
+      </p>
     </div>
   )
 }
@@ -275,11 +300,11 @@ function Apresentacao({
 /** `SALA-02` — chegou por link: o código já está resolvido, falta o apelido. */
 function Convite({ codigo }: { codigo: string }) {
   return (
-    <div className="flex flex-col items-start gap-2 rounded-painel border border-linha bg-superficie px-4 py-4">
-      <span className="font-mono text-[11px] tracking-[0.12em] text-texto-3 uppercase">
-        você foi chamado para a sala
+    <div className="flex flex-col items-start gap-2 rounded-papel border-2 border-controle-linha bg-superficie p-4 shadow-botao">
+      <span className="font-mono text-rotulo text-texto-3 uppercase">
+        te chamaram para a sala
       </span>
-      <span className="font-mono text-titulo tracking-[0.16em] text-texto">{codigo}</span>
+      <span className="font-display text-codigo text-texto">{codigo}</span>
     </div>
   )
 }
@@ -288,7 +313,7 @@ function Separador() {
   return (
     <span className="flex items-center gap-3">
       <span className="h-px flex-1 bg-linha" />
-      <span className="text-miudo text-texto-3">ou</span>
+      <span className="font-mono text-rotulo text-texto-3 uppercase">ou</span>
       <span className="h-px flex-1 bg-linha" />
     </span>
   )
@@ -300,6 +325,7 @@ function PortaFechada({
   codigo,
   apelido,
   motivoDeCriar,
+  criando,
   aoCriar,
   aoVoltar,
 }: {
@@ -307,6 +333,7 @@ function PortaFechada({
   codigo: string
   apelido: string
   motivoDeCriar: string | undefined
+  criando: boolean
   aoCriar(): void
   aoVoltar(): void
 }) {
@@ -316,16 +343,19 @@ function PortaFechada({
   }
 
   return (
-    <div className="flex flex-col gap-5 rounded-bloco border border-linha bg-superficie p-5">
-      <div className="flex flex-col gap-2">
-        <span className="font-mono text-[11px] tracking-[0.12em] text-texto-3 uppercase">
-          {codigo === '' ? 'sala' : codigo}
-        </span>
-        <h2 className="text-secao text-balance text-texto">{titulo}</h2>
-        <p className="text-[15px] leading-relaxed text-texto-2">{explicacao}</p>
+    <div className="flex flex-col gap-5 rounded-papel border-2 border-controle-linha bg-superficie p-5 shadow-papel">
+      <div className="flex flex-col items-start gap-2.5">
+        <span className="selo bg-acento text-acento-contraste">porta fechada</span>
+        {codigo !== '' && (
+          <span className="font-mono text-dado tracking-[0.16em] text-texto-3 uppercase">
+            {codigo}
+          </span>
+        )}
+        <h2 className="font-display text-titulo text-balance text-texto">{titulo}</h2>
+        <p className="text-corpo text-texto-2">{explicacao}</p>
       </div>
       <div className="flex flex-col gap-2.5">
-        <Botao larguraTotal onClick={aoCriar} motivo={motivoDeCriar}>
+        <Botao larguraTotal carregando={criando} onClick={aoCriar} motivo={motivoDeCriar}>
           {apelido.trim() === '' ? 'Criar uma sala' : `Criar uma sala como ${apelido.trim()}`}
         </Botao>
         <Botao larguraTotal variante="secundario" onClick={aoVoltar}>

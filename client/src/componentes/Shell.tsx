@@ -37,8 +37,22 @@ export function Shell({ titulo = 'Resenha', codigo, faixa, aoSair, children }: P
     <div className="flex min-h-dvh flex-col bg-fundo">
       <header className="sticky top-0 z-30 border-b border-linha bg-superficie">
         <div className="mx-auto flex h-13 w-full max-w-[1280px] items-center gap-1.5 pr-1.5 pl-3 sm:h-14 sm:gap-2 sm:pr-2 sm:pl-4">
-          <span aria-hidden="true" className="h-2.5 w-2.5 flex-none rounded-pilula bg-acento" />
-          <span className="flex-none truncate text-apoio font-semibold text-texto">{titulo}</span>
+          {/*
+            Fora de uma sala a marca fala sozinha, em caixa baixa; dentro dela o
+            disco acende e o nome do jogo assume — é o contexto que importa ali.
+          */}
+          {codigo === undefined ? (
+            <span className="flex-none font-display text-[17px] tracking-[-0.01em] text-texto">
+              resenha
+            </span>
+          ) : (
+            <>
+              <span aria-hidden="true" className="h-2.5 w-2.5 flex-none rounded-pilula bg-acento" />
+              <span className="flex-none truncate text-apoio font-semibold text-texto">
+                {titulo}
+              </span>
+            </>
+          )}
 
           {codigo !== undefined && <CopiarConvite codigo={codigo} />}
 

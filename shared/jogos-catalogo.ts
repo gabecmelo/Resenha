@@ -13,6 +13,17 @@ export interface JogoCatalogo {
   descricao: string
   /** `AD-014` — mínimo de jogadores ativos exigido por este jogo, substitui o antigo `MIN_JOGADORES` único. */
   minJogadores: number
+  /**
+   * Anunciado mas ainda não jogável: aparece no seletor pontilhado, sem
+   * seleção. Quem recusa de verdade continua sendo o servidor, que valida o
+   * `jogoId` contra `REGISTRO_DE_JOGOS` — este campo é só a promessa na tela.
+   */
+  emBreve?: boolean
+}
+
+/** Os jogos que dá para escolher agora — o "em breve" fica de fora. */
+export function jogosJogaveis(): JogoCatalogo[] {
+  return CATALOGO_DE_JOGOS.filter((jogo) => jogo.emBreve !== true)
 }
 
 /** `HUB-04` — jogo assumido quando a criação da sala não escolhe nenhum. */
@@ -36,14 +47,21 @@ export const CATALOGO_DE_JOGOS: JogoCatalogo[] = [
   {
     id: 'quem-sou-eu',
     nome: 'Quem Sou Eu?',
-    descricao: 'Cada um recebe uma carta que todos veem menos ele.',
+    descricao: 'Você não sabe sua carta. Pergunte, deduza, chute.',
     minJogadores: 2,
   },
   {
     id: 'espiao',
     nome: 'Espião',
-    descricao: 'Um local secreto é sorteado; só o espião não sabe qual é.',
+    descricao: 'Todos sabem o local. Menos um. Descubra quem.',
     minJogadores: 3,
+  },
+  {
+    id: 'cartas-contra-a-turma',
+    nome: 'Cartas Contra a Turma',
+    descricao: 'Uma frase no meio da mesa e a pior resposta possível ganha.',
+    minJogadores: 3,
+    emBreve: true,
   },
 ]
 
