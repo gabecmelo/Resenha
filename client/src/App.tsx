@@ -5,6 +5,8 @@ import { criarSessao, reentradaAutomatica } from './estado/sessao'
 import { CartasEncerrada } from './telas/CartasEncerrada'
 import { CartasJogo } from './telas/CartasJogo'
 import { Encerrada } from './telas/Encerrada'
+import { EnigmasEncerrada } from './telas/EnigmasEncerrada'
+import { EnigmasJogo } from './telas/EnigmasJogo'
 import { EspiaoAguardando } from './telas/EspiaoAguardando'
 import { EspiaoEncerrada } from './telas/EspiaoEncerrada'
 import { EspiaoJogo } from './telas/EspiaoJogo'
@@ -155,6 +157,9 @@ function Sala({
       if (projecao.sala.jogoId === 'cartas-contra-a-turma') {
         return <CartasJogo projecao={projecao} enviar={enviar} aoSair={deixarSala} />
       }
+      if (projecao.sala.jogoId === 'enigmas-sinistros') {
+        return <EnigmasJogo projecao={projecao} enviar={enviar} aoSair={deixarSala} />
+      }
       if (projecao.sala.jogoId === 'espiao') {
         return projecao.jogo?.espiao?.rodadaIniciada ? (
           <EspiaoJogo projecao={projecao} enviar={enviar} aoSair={deixarSala} />
@@ -166,6 +171,9 @@ function Sala({
     case 'encerrada':
       if (projecao.sala.jogoId === 'cartas-contra-a-turma') {
         return <CartasEncerrada projecao={projecao} enviar={enviar} aoSair={deixarSala} />
+      }
+      if (projecao.sala.jogoId === 'enigmas-sinistros') {
+        return <EnigmasEncerrada projecao={projecao} enviar={enviar} aoSair={deixarSala} />
       }
       if (projecao.sala.jogoId === 'espiao') {
         return <EspiaoEncerrada projecao={projecao} enviar={enviar} aoSair={deixarSala} />

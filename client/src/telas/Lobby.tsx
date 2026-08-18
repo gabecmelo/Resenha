@@ -104,6 +104,13 @@ export function Lobby({ projecao, enviar, aoSair }: PropsDaTela) {
                     souHost={eu.ehHost}
                     enviar={enviar}
                   />
+                ) : sala.jogoId === 'enigmas-sinistros' ? (
+                  <RegrasEnigmas
+                    config={sala.config}
+                    pacotesDisponiveis={sala.pacotesDisponiveis}
+                    souHost={eu.ehHost}
+                    enviar={enviar}
+                  />
                 ) : sala.jogoId === 'espiao' ? (
                   <RegrasEspiao
                     config={sala.config}
@@ -150,6 +157,10 @@ function pendenciasParaIniciar(
   // `modoPacote`, que é vocabulário de "Quem Sou Eu?".
   if (jogoId === 'cartas-contra-a-turma' && config.pacoteIds.length === 0) {
     lista.push('Escolha ao menos um pacote de cartas.')
+  }
+  // `ENIG-32` — mesma história do Cartas: o jogo não existe sem enigma.
+  if (jogoId === 'enigmas-sinistros' && config.pacoteIds.length === 0) {
+    lista.push('Escolha ao menos um pacote de enigmas.')
   }
   if (config.modoPacote === 'pacote' && config.pacoteIds.length === 0) {
     lista.push('Escolha ao menos um pacote.')
@@ -967,6 +978,112 @@ function RegrasCartas({
     </div>
   )
 }
+
+/** `ENIG-24`, `ENIG-33` — as regras do Enigmas Sinistros. */
+function RegrasEnigmas({
+  config,
+  pacotesDisponiveis,
+  souHost,
+  enviar,
+}: {
+  config: Config
+  pacotesDisponiveis: PacoteResumo[] | undefined
+  souHost: boolean
+  enviar: PropsDaTela['enviar']
+}) {
+  const [folha, setFolha] = useState<string | null>(null)
+  const [modalPacotesAberto, setModalPacotesAberto] = useState(false)
+  const [pacoteIdsRascunho, setPacoteIdsRascunho] = useState<string[]>(config.pacoteIds)
+
+  const pacotesSelecionados =
+    pacotesDisponiveis?.filter((p) => config.pacoteIds.includes(p.id)) ?? []
+
+  const abrir = (nome: string) => (souHost ? () => setFolha(nome) : undefined)
+  const mudarEnigmas = (parcial: Partial<Config['enigmas']>) =>
+    enviar({ t: 'configurar', config: { enigmas: { ...config.enigmas, ...parcial } } })
+
+  return (
+    <div className="flex flex-col">
+      <LinhaDeRegra
+        rotulo="Pacotes de enigmas"
+        dica="O tom da mesa mora aqui: casos estranhos pra jogar na sala, sangue frio pra madrugada."
+        valor={resumoDePacotes(pacotesSelecionados)}
+        aoAbrir={
+          souHost
+            ? () => {
+                setPacoteIdsRascunho(config.pacoteIds)
+                setModalPacotesAberto(true)
+              }
+            : undefined
+        }
+      />
+      <LinhaDeRegra
+        rotulo="Como perguntar"
+        dica="Na fila, a pergunta é escrita e fica no histórico. Em voz alta, o app só registra as respostas do narrador."
+        valor={rotuloDe(OPCOES_MODO_PERGUNTA, config.enigmas.modoPergunta)}
+        aoAbrir={abrir('modoPergunta')}
+      />
+      <LinhaDeRegra
+        rotulo="Meta de pontos"
+        dica="Quem desatar mais enigmas leva. Sem meta, a partida só acaba quando o host encerra."
+        valor={rotuloDe(PRESETS_DE_META_ENIGMAS, config.enigmas.metaDePontos)}
+        aoAbrir={abrir('metaEnigmas')}
+      />
+
+      {folha === 'modoPergunta' && (
+        <FolhaDeEscolha
+          titulo="Como perguntar"
+          descricao="Nos dois modos o narrador só responde sim, não ou não importa — o que muda é se a pergunta passa pelo app."
+          opcoes={OPCOES_MODO_PERGUNTA}
+          atual={config.enigmas.modoPergunta}
+          aoEscolher={(modoPergunta) => mudarEnigmas({ modoPergunta })}
+          aoFechar={() => setFolha(null)}
+        />
+      )}
+
+      {folha === 'metaEnigmas' && (
+        <FolhaDeEscolha
+          titulo="Meta de pontos"
+          descricao="Cada enigma desatado vale 1 ponto pra quem contou a história certa."
+          opcoes={PRESETS_DE_META_ENIGMAS}
+          atual={config.enigmas.metaDePontos}
+          aoEscolher={(metaDePontos) => mudarEnigmas({ metaDePontos })}
+          aoFechar={() => setFolha(null)}
+        />
+      )}
+
+      {modalPacotesAberto && (
+        <GavetaDePacotes
+          titulo="Pacotes de enigmas"
+          descricao="Pode escolher mais de um — os enigmas se somam. O tom vem escrito na descrição."
+          unidade="enigmas"
+          disponiveis={pacotesDisponiveis}
+          rascunho={pacoteIdsRascunho}
+          aoAlternar={setPacoteIdsRascunho}
+          aoConfirmar={() => {
+            enviar({ t: 'configurar', config: { pacoteIds: pacoteIdsRascunho } })
+            setModalPacotesAberto(false)
+          }}
+          aoFechar={() => setModalPacotesAberto(false)}
+        />
+      )}
+    </div>
+  )
+}
+
+/** `ENIG-33` — os dois jeitos de a mesa perguntar. */
+const OPCOES_MODO_PERGUNTA: ReadonlyArray<{ valor: 'fila' | 'voz'; rotulo: string }> = [
+  { valor: 'fila', rotulo: 'Fila no app' },
+  { valor: 'voz', rotulo: 'Só em voz alta' },
+]
+
+const PRESETS_DE_META_ENIGMAS: ReadonlyArray<{ valor: number | null; rotulo: string }> = [
+  { valor: null, rotulo: 'Sem meta' },
+  { valor: 2, rotulo: '2 enigmas' },
+  { valor: 3, rotulo: '3 enigmas' },
+  { valor: 5, rotulo: '5 enigmas' },
+  { valor: 8, rotulo: '8 enigmas' },
+]
 
 function RegrasEspiao({
   config,
