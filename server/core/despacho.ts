@@ -2,6 +2,7 @@ import type {
   Ambiente,
   Comando,
   Config,
+  ConfigCartas,
   ConfigEspiao,
   ContextoDeSala,
   Dificuldade,
@@ -16,6 +17,10 @@ import {
   CONFIG_PADRAO,
   TEMPO_TURNO_MAX_SEG,
   TEMPO_TURNO_MIN_SEG,
+  META_MAX_PONTOS,
+  META_MIN_PONTOS,
+  TEMPO_ESCOLHA_MAX_SEG,
+  TEMPO_ESCOLHA_MIN_SEG,
   TEMPO_VOTACAO_MAX_SEG,
   TEMPO_VOTACAO_MIN_SEG,
 } from '../../shared/protocolo'
@@ -210,6 +215,16 @@ function configurar(
           : parcial.espiao.tempoRodadaSeg,
       tempoVotacaoSeg: parcial.espiao?.tempoVotacaoSeg ?? sala.config.espiao.tempoVotacaoSeg,
     },
+    cartas: {
+      tempoEscolhaSeg:
+        parcial.cartas?.tempoEscolhaSeg === undefined
+          ? sala.config.cartas.tempoEscolhaSeg
+          : parcial.cartas.tempoEscolhaSeg,
+      metaDePontos:
+        parcial.cartas?.metaDePontos === undefined
+          ? sala.config.cartas.metaDePontos
+          : parcial.cartas.metaDePontos,
+    },
   }
   return { ok: true, valor: SEM_EFEITOS }
 }
@@ -245,6 +260,22 @@ function configValida(parcial: Partial<Config>): boolean {
     if (parcial.dificuldades.some((d) => !DIFICULDADES_VALIDAS.includes(d))) return false
   }
   if (parcial.espiao !== undefined && !configEspiaoValida(parcial.espiao)) return false
+  if (parcial.cartas !== undefined && !configCartasValida(parcial.cartas)) return false
+  return true
+}
+
+/** `CCT-01` — faixas do Cartas Contra a Turma; `null` é opção válida nos dois campos. */
+function configCartasValida(parcial: Partial<ConfigCartas>): boolean {
+  const escolha = parcial.tempoEscolhaSeg
+  if (escolha !== undefined && escolha !== null) {
+    if (!Number.isInteger(escolha)) return false
+    if (escolha < TEMPO_ESCOLHA_MIN_SEG || escolha > TEMPO_ESCOLHA_MAX_SEG) return false
+  }
+  const meta = parcial.metaDePontos
+  if (meta !== undefined && meta !== null) {
+    if (!Number.isInteger(meta)) return false
+    if (meta < META_MIN_PONTOS || meta > META_MAX_PONTOS) return false
+  }
   return true
 }
 

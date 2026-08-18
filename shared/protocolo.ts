@@ -148,6 +148,57 @@ export const CONFIG_ESPIAO_PADRAO: ConfigEspiao = {
   tempoVotacaoSeg: 60,
 }
 
+/**
+ * `AD-014` — configuração própria do Cartas Contra a Turma, aninhada em
+ * `Config.cartas`. Os pacotes vêm do `pacoteIds` compartilhado.
+ */
+export interface ConfigCartas {
+  /** `CCT-01` — segundos pra escolher a carta da rodada. `null` = sem tempo. */
+  tempoEscolhaSeg: number | null
+  /**
+   * `CCT-28`, `CCT-30` — pontos que encerram a partida. `null` = sem meta: a
+   * partida só acaba quando o host encerra.
+   */
+  metaDePontos: number | null
+}
+
+export const CONFIG_CARTAS_PADRAO: ConfigCartas = {
+  tempoEscolhaSeg: 90,
+  metaDePontos: 5,
+}
+
+/**
+ * `CCT-01` — faixa do tempo de escolha. Abaixo de 30s não dá pra ler a mão
+ * inteira; acima de 5min a rodada deixa de ser uma rodada.
+ */
+export const TEMPO_ESCOLHA_MIN_SEG = 30
+export const TEMPO_ESCOLHA_MAX_SEG = 5 * 60
+
+/** `CCT-28` — faixa da meta de pontos. */
+export const META_MIN_PONTOS = 3
+export const META_MAX_PONTOS = 15
+
+/** `CCT-03`, `CCT-14` — cartas na mão de cada jogador, reposta a cada rodada. */
+export const TAMANHO_DA_MAO = 7
+
+/** `CCT-24` — rodadas até a carta em branco voltar depois de gasta. */
+export const RECARGA_DA_BRANCA = 5
+
+/** `CCT-22` — teto de uma carta escrita à mão. */
+export const LIMITE_CARTA_BRANCA = 120
+
+/**
+ * `CCT-10` — abaixo disso não há o que julgar: a rodada é descartada e a
+ * próxima começa com outro juiz.
+ */
+export const MIN_RESPOSTAS_NA_PILHA = 2
+
+/**
+ * `CCT-12` — quanto tempo a carta vencedora fica na tela antes de a proxima
+ * rodada começar. Mesma ideia da janela de resultado do Espião.
+ */
+export const JANELA_DE_REVELACAO_MS = 10_000
+
 export interface Config {
   /** `CFG-01` */
   ordemTurnos: 'sorteada' | 'entrada'
@@ -163,6 +214,8 @@ export interface Config {
   modoDistribuicao: ModoDistribuicao
   /** `AD-014` — sempre presente, independente de qual jogo a sala roda no momento. */
   espiao: ConfigEspiao
+  /** `AD-014` — idem, para o Cartas Contra a Turma. */
+  cartas: ConfigCartas
 }
 
 /** Padrões de uma sala recém-criada (`CFG-05`). */
@@ -174,6 +227,7 @@ export const CONFIG_PADRAO: Config = {
   dificuldades: ['facil', 'medio', 'dificil'],
   modoDistribuicao: 'aleatoria',
   espiao: CONFIG_ESPIAO_PADRAO,
+  cartas: CONFIG_CARTAS_PADRAO,
 }
 
 /**
@@ -322,6 +376,10 @@ export type Comando =
   | { t: 'retomar' }
   | { t: 'votar'; alvoId: JogadorId | null }
   | { t: 'encerrarVotacao' }
+  /** `CCT-06`, `CCT-20` — joga uma carta da mão, ou a carta em branco escrita na hora. */
+  | { t: 'jogarCarta'; texto: string; daBranca: boolean }
+  /** `CCT-11` — o juiz aponta a vencedora pelo índice na pilha embaralhada. */
+  | { t: 'escolherVencedora'; indice: number }
 
 /** Servidor → cliente. */
 export type Mensagem =
@@ -401,6 +459,52 @@ export interface ResultadoDaVotacao {
   prazoFim: number | null
 }
 
+/**
+ * `AD-014` — projeção própria do Cartas Contra a Turma, aninhada em
+ * `Projecao.jogo.cartas`. Como toda projeção, ela já vem decidida: a tela
+ * nunca recalcula regra (`AD-008`). Em particular, `pilha` só existe depois
+ * que a fase de escolha fecha, e `vencedora` só existe depois que o juiz
+ * escolheu — o anonimato é uma propriedade do que trafega, não do que a tela
+ * resolve esconder.
+ */
+export interface ProjecaoCartas {
+  /** 1-based. */
+  rodada: number
+  fase: 'escolha' | 'julgamento' | 'revelacao'
+  /** A frase da rodada, com `_____` na lacuna. Visivel a todos. */
+  pergunta: string
+  juiz: { id: JogadorId; apelido: string }
+  souJuiz: boolean
+  /** `CCT-04` — só vai pro dono dela, e nunca pro juiz. */
+  mao?: string[]
+  /** `CCT-06` — o que eu já joguei nesta rodada. */
+  minhaJogada?: string
+  /**
+   * `CCT-19`, `CCT-25` — `0` significa disponível agora; `n > 0` é em quantas
+   * rodadas ela volta.
+   */
+  brancaVoltaEm: number
+  /** `CCT-07` — quantos já jogaram, nunca o que jogaram. */
+  quantosJogaram: number
+  totalEsperado: number
+  faltam: { id: JogadorId; apelido: string }[]
+  /** Instante absoluto em que a fase de escolha fecha sozinha. */
+  prazoEscolha: number | null
+  /** `CCT-08` — embaralhada e sem autor. Presente em `julgamento` e `revelacao`. */
+  pilha?: string[]
+  /** `CCT-12`, `CCT-13` — presente só na `revelacao`. */
+  vencedora?: { indice: number; texto: string; autor: { id: JogadorId; apelido: string } }
+  /** Instante em que a revelação sai da tela e a próxima rodada começa. */
+  prazoRevelacao: number | null
+  /** `CCT-26` — do maior pro menor. */
+  placar: { id: JogadorId; apelido: string; pontos: number }[]
+  metaDePontos: number | null
+  /** `CCT-29`, `CCT-30` — quem levou a partida. Presente só na fase `encerrada`. */
+  campeoes?: { id: JogadorId; apelido: string; pontos: number }[]
+  /** Mesmo padrão dos outros jogos — visível durante a partida. */
+  pacotesSelecionados?: { id: string; nome: string; emoji: string }[]
+}
+
 export interface Projecao {
   agoraServidor: number
   sala: {
@@ -458,6 +562,8 @@ export interface Projecao {
     declaracaoPendente?: { jogadorId: JogadorId }
     /** `AD-014` — presente só quando `sala.jogoId === 'espiao'`. */
     espiao?: ProjecaoEspiao
+    /** `AD-014` — presente só quando `sala.jogoId === 'cartas-contra-a-turma'`. */
+    cartas?: ProjecaoCartas
   }
   /** `CHAT-04` */
   chat: MensagemChat[]

@@ -358,7 +358,11 @@ export class SalaDeJogo {
           // Fallback para ambiente local de dev onde o miniflare pode não ter lido o SQLite do script
           const { PACOTES } = await import('../../shared/pacotes-dados');
           const { LOCAIS } = await import('../../shared/locais-dados');
-          this.pacotesDisponiveis = [...PACOTES, ...LOCAIS].map(p => ({
+          // `CCT-31` — os pacotes de Cartas Contra a Turma têm outro formato
+          // (perguntas + respostas, sem dificuldade), mas o resumo do lobby é
+          // o mesmo: id, nome, emoji, quantidade e o `jogoId` que filtra.
+          const { CARTAS_TURMA } = await import('../../shared/cartas-turma-dados');
+          this.pacotesDisponiveis = [...PACOTES, ...LOCAIS, ...CARTAS_TURMA].map(p => ({
             id: p.id,
             jogoId: p.jogoId,
             nome: p.nome,
