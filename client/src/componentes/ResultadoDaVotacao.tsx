@@ -1,4 +1,9 @@
-import type { JogadorId, Projecao, ProjecaoEspiao } from '../../../shared/protocolo'
+import type {
+  JogadorId,
+  Projecao,
+  ProjecaoEspiao,
+  ResultadoDaVotacao as Veredito,
+} from '../../../shared/protocolo'
 import { MarcadorDeJogador } from './MarcadorDeJogador'
 
 function nomeDe(jogadores: Projecao['jogadores'], id: JogadorId): string {
@@ -12,6 +17,13 @@ function nomeDe(jogadores: Projecao['jogadores'], id: JogadorId): string {
  * faltou, e se a mesa acertou. Os votos aparecem inteiros mesmo quando a
  * votação correu oculta — o sigilo protegia a decisão, não o que ela decidiu.
  */
+const SELO: Record<Veredito['desfecho'], string> = {
+  chuteDoEspiao: 'pegaram o espião',
+  mesaPerdeu: 'expulsaram um inocente',
+  rodadaVolta: 'ninguém saiu',
+  tempoEsgotado: 'o tempo acabou',
+}
+
 export function ResultadoDaVotacao({
   resultado,
   jogadores,
@@ -22,6 +34,13 @@ export function ResultadoDaVotacao({
   euId: JogadorId
 }) {
   const votos = Object.entries(resultado.votos) as [JogadorId, JogadorId | 'pular'][]
+  /**
+   * `ESP-41`…`ESP-50` — o desfecho vem decidido do servidor; a tela só escolhe
+   * as palavras. Verde é reservado ao momento em que a mesa fez o que tinha
+   * que fazer: pegou o espião.
+   */
+  const destacado = resultado.desfecho === 'chuteDoEspiao'
+
   const naoVotaram = jogadores.filter(
     (jogador) => jogador.situacao === 'ativo' && resultado.votos[jogador.id] === undefined,
   )
@@ -30,42 +49,43 @@ export function ResultadoDaVotacao({
     <section className="flex flex-col gap-4">
       <div
         className={`flex flex-col gap-2.5 rounded-papel p-5 sm:p-6 ${
-          resultado.aMesaAcertou ? 'bg-acento' : 'border-2 border-controle-linha bg-superficie'
+          destacado ? 'bg-acento' : 'border-2 border-controle-linha bg-superficie'
         }`}
       >
         <span
           className={`selo self-start ${
-            resultado.aMesaAcertou ? 'bg-pronto text-pronto-contraste' : 'bg-aviso text-aviso-contraste'
+            destacado ? 'bg-pronto text-pronto-contraste' : 'bg-aviso text-aviso-contraste'
           }`}
         >
-          {resultado.aMesaAcertou ? 'a mesa acertou' : 'a mesa errou'}
+          {SELO[resultado.desfecho]}
         </span>
         <span
           className={`font-display text-display text-balance ${
-            resultado.aMesaAcertou ? 'text-acento-contraste' : 'text-texto'
+            destacado ? 'text-acento-contraste' : 'text-texto'
           }`}
         >
           {resultado.acusado === undefined
-            ? 'Ninguém teve maioria.'
-            : `A mesa acusou ${resultado.acusado.apelido}.`}
+            ? 'Ninguém foi expulso.'
+            : `A mesa expulsou ${resultado.acusado.apelido}.`}
         </span>
         <p
           className={`text-apoio leading-relaxed ${
-            resultado.aMesaAcertou ? 'text-acento-contraste/85' : 'text-texto-2'
+            destacado ? 'text-acento-contraste/85' : 'text-texto-2'
           }`}
         >
           {resultado.acusado === undefined ? (
-            <>
-              Empate, “pular” majoritário ou votos de menos: precisava de{' '}
-              {resultado.maioriaMinima} de {resultado.totalAtivos} na mesma pessoa.
-            </>
+            resultado.desfecho === 'tempoEsgotado' ? (
+              <>O tempo acabou e a votação final não decidiu nada. Os espiões venceram.</>
+            ) : (
+              <>Empate no topo, ou “pular” na frente. A rodada volta de onde parou.</>
+            )
           ) : (
             <>
-              {resultado.votosNoAcusado} de {resultado.totalAtivos} votos — precisava de{' '}
-              {resultado.maioriaMinima}.{' '}
+              {resultado.votosNoAcusado} de {resultado.totalAtivos} votos — o mais votado sai,
+              não precisa de maioria absoluta.{' '}
               {resultado.aMesaAcertou
-                ? 'E era mesmo um espião.'
-                : 'E não era o espião.'}
+                ? 'E era mesmo um espião: ele ainda tem uma chance de dizer o local.'
+                : 'E não era espião — os espiões venceram.'}
             </>
           )}
         </p>

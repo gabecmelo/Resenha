@@ -61,19 +61,19 @@ export function EspiaoEncerrada({ projecao, enviar, aoSair }: PropsDaTela) {
           selo={
             apurando
               ? 'apurando'
-              : veredito === undefined
-                ? 'rodada encerrada'
-                : veredito.aMesaAcertou
-                  ? 'a mesa acertou'
-                  : 'a mesa errou'
+              : espiao.vencedor === 'mesa'
+                ? 'a mesa venceu'
+                : espiao.vencedor === 'espioes'
+                  ? espioesNaMesa.length === 1
+                    ? 'o espião venceu'
+                    : 'os espiões venceram'
+                  : 'partida encerrada'
           }
-          tom={apurando ? 'tinta' : veredito?.aMesaAcertou === true ? 'pronto' : 'tinta'}
+          tom={apurando ? 'tinta' : espiao.vencedor === 'mesa' ? 'pronto' : 'tinta'}
         >
           {apurando
             ? 'A votação fechou. Contando os votos…'
-            : euEraEspiao
-              ? 'Você era o espião — agora a mesa sabe.'
-              : 'O local e os espiões caíram.'}
+            : motivoDaVitoria(espiao, euEraEspiao)}
         </FaixaDeFase>
       }
       aoSair={aoSair}
@@ -128,6 +128,25 @@ export function EspiaoEncerrada({ projecao, enviar, aoSair }: PropsDaTela) {
               ))}
             </ul>
           </section>
+
+          {espiao.chuteFeito !== undefined && !apurando && (
+            <section className="flex flex-col gap-2 rounded-papel border-2 border-controle-linha bg-superficie p-4">
+              <p className="text-rotulo text-texto-3 uppercase">a última cartada</p>
+              <p className="text-corpo leading-snug text-texto">
+                {espiao.chuteFeito.local === null ? (
+                  <>
+                    {espiao.chuteFeito.espiao.apelido} foi pego e não disse nada a tempo.
+                  </>
+                ) : (
+                  <>
+                    {espiao.chuteFeito.espiao.apelido} chutou{' '}
+                    <strong className="font-semibold">“{espiao.chuteFeito.local}”</strong> —{' '}
+                    {espiao.chuteFeito.acertou ? 'e acertou.' : 'e errou.'}
+                  </>
+                )}
+              </p>
+            </section>
+          )}
 
           {veredito !== undefined && !apurando && (
             <ResultadoDaVotacao resultado={veredito} jogadores={jogadores} euId={eu.id} />
@@ -186,6 +205,36 @@ export function EspiaoEncerrada({ projecao, enviar, aoSair }: PropsDaTela) {
       </BarraDeAcao>
     </Shell>
   )
+}
+
+/**
+ * `ESP-49` — por que a partida acabou assim. A frase é a única coisa que a mesa
+ * lê antes de discutir, então ela diz o **motivo**, não só o placar.
+ */
+function motivoDaVitoria(
+  espiao: NonNullable<PropsDaTela['projecao']['jogo']>['espiao'],
+  euEraEspiao: boolean,
+): string {
+  if (espiao === undefined) return 'O local e os espiões caíram.'
+
+  const chute = espiao.chuteFeito
+  if (chute !== undefined) {
+    if (chute.acertou) return 'Pego, mas acertou o local na última cartada. Os espiões venceram.'
+    if (chute.local === null) return 'Pego, e não disse o local a tempo. A mesa venceu.'
+    return 'Pego, e errou o local na última cartada. A mesa venceu.'
+  }
+
+  const veredito = espiao.resultadoVotacao
+  if (veredito?.desfecho === 'mesaPerdeu') {
+    return `A mesa expulsou ${veredito.acusado?.apelido ?? 'alguém'}, que não era espião. Os espiões venceram.`
+  }
+  if (veredito?.desfecho === 'tempoEsgotado') {
+    return 'O tempo acabou e a votação final não expulsou ninguém. Os espiões venceram.'
+  }
+
+  return euEraEspiao
+    ? 'Você era o espião — agora a mesa sabe.'
+    : 'A partida foi encerrada. O local e os espiões caíram.'
 }
 
 function EntramNaProxima({ jogadores }: { jogadores: PropsDaTela['projecao']['jogadores'] }) {

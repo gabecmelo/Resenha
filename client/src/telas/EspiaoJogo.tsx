@@ -5,6 +5,7 @@ import {
   BarraDeAcao,
   BlocoDeNotas,
   Botao,
+  CampoDeTexto,
   Chat,
   FaixaDeFase,
   MarcadorDeJogador,
@@ -103,7 +104,8 @@ export function EspiaoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
   if (espiao === undefined) return null
 
   const outrosEspioes = espiao.espioes?.filter((espiaoDaLista) => espiaoDaLista.id !== eu.id) ?? []
-  const maioriaMinima = Math.floor(ativos.length / 2) + 1
+  const chute = espiao.chuteDoEspiao
+  const semVotacoes = espiao.votacoesRestantes === 0
 
   return (
     <Shell
@@ -114,7 +116,9 @@ export function EspiaoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
           selo={
             pausadaPor !== undefined
               ? 'pausado'
-              : resultado !== undefined
+              : chute !== undefined
+                ? 'a última cartada'
+                : resultado !== undefined
                 ? apurando
                   ? 'apurando'
                   : 'resultado'
@@ -127,7 +131,9 @@ export function EspiaoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
           tom={
             pausadaPor !== undefined
               ? 'tinta'
-              : resultado !== undefined || votacao !== undefined || acabando
+              : chute !== undefined
+                ? 'mostarda'
+                : resultado !== undefined || votacao !== undefined || acabando
                 ? 'mostarda'
                 : 'esmalte'
           }
@@ -149,7 +155,11 @@ export function EspiaoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
         >
           {pausadaPor !== undefined
             ? `${pausadaPor.apelido} pausou a rodada. Ninguém joga até voltar.`
-            : resultado !== undefined
+            : chute !== undefined
+              ? chute.souEuQueChuto
+                ? 'Você foi pego. Diga o local e a partida é sua.'
+                : `${chute.espiao.apelido} era espião — e está dizendo qual é o local.`
+              : resultado !== undefined
               ? apurando
                 ? 'A votação fechou. Contando os votos…'
                 : resultado.aMesaAcertou
@@ -180,7 +190,15 @@ export function EspiaoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
             apurando ? (
               <Apurando rotulo="votação encerrada" texto="Contando os votos…" />
             ) : (
-              <ResultadoDaVotacao resultado={resultado} jogadores={jogadores} euId={eu.id} />
+              <>
+                <ResultadoDaVotacao resultado={resultado} jogadores={jogadores} euId={eu.id} />
+                {chute !== undefined && (
+                  <ChuteDoEspiao
+                    chute={chute}
+                    aoChutar={(local) => enviar({ t: 'chutarLocal', local })}
+                  />
+                )}
+              </>
             )
           ) : votacao === undefined ? (
             <DicaDePergunta
@@ -194,7 +212,6 @@ export function EspiaoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
               votacao={votacao}
               ativos={ativos}
               euId={eu.id}
-              maioriaMinima={maioriaMinima}
               pausada={pausadaPor !== undefined}
               comBusca={ativos.length > MESA_GRANDE}
               enviar={enviar}
@@ -232,6 +249,21 @@ export function EspiaoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
               </Botao>
             )}
           </>
+        ) : chute !== undefined ? (
+          <p className="text-apoio leading-snug text-texto-2">
+            {chute.souEuQueChuto ? (
+              <>
+                <strong className="font-semibold text-texto">Acertou, você ganha a partida.</strong>{' '}
+                Errar ou deixar o tempo passar entrega a vitória à mesa.
+              </>
+            ) : (
+              <>
+                <strong className="font-semibold text-texto">Ninguém mexe agora.</strong>{' '}
+                {chute.espiao.apelido} tem uma chance de dizer o local — se acertar, os espiões
+                levam a partida mesmo tendo sido pego.
+              </>
+            )}
+          </p>
         ) : resultado !== undefined ? (
           <p className="text-apoio leading-snug text-texto-2">
             {apurando ? (
@@ -252,7 +284,17 @@ export function EspiaoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
           <>
             <div className="flex items-center gap-2">
               <div className="min-w-0 flex-1">
-                <Botao larguraTotal onClick={() => setConfirmandoVotacao(true)}>
+                {/* `ESP-46` — esgotado, o botão fica: o que muda é o motivo à vista. */}
+                <Botao
+                  larguraTotal
+                  motivo={
+                    semVotacoes
+                      ? 'A mesa já usou todas as votações. Agora só o relógio abre a final.'
+                      : undefined
+                  }
+                  motivoOculto
+                  onClick={() => setConfirmandoVotacao(true)}
+                >
                   {acabando ? 'Abrir votação agora' : 'Abrir votação'}
                 </Botao>
               </div>
@@ -260,9 +302,18 @@ export function EspiaoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
               {eu.ehHost && <BotaoDeMenu aoAbrir={() => setMenuDeHost(true)} />}
             </div>
             <p className="text-apoio leading-snug text-texto-3">
-              {acabando
-                ? 'No último minuto abrir agora é o esperado — o relógio abre sozinho no zero.'
-                : 'Isso puxa a mesa toda pra tela — qualquer um pode abrir, inclusive o espião.'}
+              {semVotacoes
+                ? 'A mesa gastou todas as votações. No zero do relógio abre a final, e ela decide a partida.'
+                : acabando
+                  ? 'No último minuto abrir agora é o esperado — o relógio abre sozinho no zero.'
+                  : 'Isso puxa a mesa toda pra tela — qualquer um pode abrir, inclusive o espião.'}
+              {espiao.votacoesRestantes !== null && !semVotacoes && (
+                <>
+                  {' '}
+                  Sobram {espiao.votacoesRestantes}{' '}
+                  {espiao.votacoesRestantes === 1 ? 'votação' : 'votações'}.
+                </>
+              )}
             </p>
           </>
         ) : (
@@ -274,7 +325,7 @@ export function EspiaoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
                   ? 'Você escolheu não acusar ninguém.'
                   : `Seu voto está em ${nomeDe(ativos, votacao.meuVoto)}. Trocar é permitido.`}{' '}
               <span className="text-texto-3">
-                Precisa de {maioriaMinima} na mesma pessoa pra acusar.
+                Sai quem tiver mais votos que qualquer outro.
               </span>
             </p>
             <div className="flex items-center gap-2">
@@ -313,13 +364,27 @@ export function EspiaoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
             <li className="flex gap-2 text-apoio leading-snug text-texto-2">
               <span aria-hidden="true">·</span>
               <span>
-                precisa de <strong className="font-semibold text-texto">maioria absoluta</strong> pra
-                acusar: {maioriaMinima} de {ativos.length}
+                sai quem tiver{' '}
+                <strong className="font-semibold text-texto">mais votos que qualquer outro</strong> —
+                um voto já decide se ninguém mais receber nenhum
               </span>
             </li>
             <li className="flex gap-2 text-apoio leading-snug text-texto-2">
               <span aria-hidden="true">·</span>
-              <span>quem não votar conta contra a acusação</span>
+              <span>
+                se sair um inocente, <strong className="font-semibold text-texto">a mesa perde na
+                hora</strong>
+              </span>
+            </li>
+            <li className="flex gap-2 text-apoio leading-snug text-texto-2">
+              <span aria-hidden="true">·</span>
+              <span>
+                {espiao.votacoesRestantes === null
+                  ? 'a mesa pode abrir quantas votações quiser'
+                  : `depois desta sobram ${espiao.votacoesRestantes - 1} ${
+                      espiao.votacoesRestantes - 1 === 1 ? 'votação' : 'votações'
+                    }`}
+              </span>
             </li>
           </ul>
         </Modal>
@@ -378,6 +443,69 @@ export function EspiaoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
 }
 
 /** `VIS-04` — o mesmo ⋯ nas duas barras; só quem é host o recebe. */
+/**
+ * `ESP-44`, `ESP-45` — a última cartada de quem foi pego.
+ *
+ * A lista de locais só existe na tela de quem chuta: pro resto da mesa ela
+ * seria o mapa de tudo que ainda podia ter saído. Quem assiste vê o relógio e
+ * o nome, nada mais — que é exatamente o que se vê numa mesa de verdade.
+ */
+function ChuteDoEspiao({
+  chute,
+  aoChutar,
+}: {
+  chute: NonNullable<ProjecaoEspiao['chuteDoEspiao']>
+  aoChutar(local: string): void
+}) {
+  const [busca, setBusca] = useState('')
+
+  if (!chute.souEuQueChuto) {
+    return (
+      <section className="rounded-papel border border-dashed border-linha p-4">
+        <p className="text-rotulo text-texto-3 uppercase">a última cartada</p>
+        <p className="mt-2 text-apoio leading-snug text-texto-2">
+          {chute.espiao.apelido} está escolhendo o local. Se acertar, os espiões vencem mesmo tendo
+          sido pegos.
+        </p>
+      </section>
+    )
+  }
+
+  const opcoes = (chute.opcoes ?? []).filter((local) =>
+    local.toLowerCase().includes(busca.trim().toLowerCase()),
+  )
+
+  return (
+    <section className="flex flex-col gap-3 rounded-papel border-2 border-controle-linha bg-superficie p-4">
+      <div>
+        <p className="text-rotulo text-texto-3 uppercase">onde a mesa estava?</p>
+        <p className="mt-1 text-apoio leading-snug text-texto-2">
+          Uma escolha só. Acertou, a partida é sua.
+        </p>
+      </div>
+      {(chute.opcoes ?? []).length > 12 && (
+        <CampoDeTexto rotulo="procurar" valor={busca} aoMudar={setBusca} autoFoco />
+      )}
+      <ul className="grid gap-2 sm:grid-cols-2">
+        {opcoes.map((local) => (
+          <li key={local}>
+            <button
+              type="button"
+              onClick={() => aoChutar(local)}
+              className="w-full cursor-pointer rounded-botao border border-controle-linha bg-superficie px-3 py-2.5 text-left text-apoio text-texto shadow-[var(--sombra-botao)] transition-transform hover:-translate-y-0.5 active:translate-x-[3px] active:translate-y-[3px] active:shadow-none"
+            >
+              {local}
+            </button>
+          </li>
+        ))}
+      </ul>
+      {opcoes.length === 0 && (
+        <p className="text-apoio text-texto-3">Nenhum local com esse nome.</p>
+      )}
+    </section>
+  )
+}
+
 function BotaoDeMenu({ aoAbrir }: { aoAbrir(): void }) {
   return (
     <button
@@ -527,7 +655,6 @@ function Votacao({
   votacao,
   ativos,
   euId,
-  maioriaMinima,
   pausada,
   comBusca,
   enviar,
@@ -535,7 +662,6 @@ function Votacao({
   votacao: NonNullable<ProjecaoEspiao['votacaoAberta']>
   ativos: Projecao['jogadores']
   euId: JogadorId
-  maioriaMinima: number
   pausada: boolean
   comBusca: boolean
   enviar: PropsDaTela['enviar']
@@ -666,8 +792,9 @@ function Votacao({
       </button>
 
       <p className="text-apoio leading-snug text-texto-3">
-        Maioria absoluta da mesa: {maioriaMinima} votos na mesma pessoa. Quem não votar conta contra
-        — empate ou “pular” majoritário não acusa ninguém e a rodada volta a correr.
+        Sai quem tiver <strong className="font-semibold text-texto">mais votos que qualquer
+        outro</strong> — um voto basta se ninguém mais receber nenhum. Só empate no topo ou “pular”
+        na frente devolvem a rodada, e ela volta de onde parou.
       </p>
     </section>
   )

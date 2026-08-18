@@ -794,6 +794,13 @@ const PRESETS_DE_TEMPO_VOTACAO: ReadonlyArray<{ valor: number; rotulo: string }>
   { valor: 120, rotulo: '2min' },
 ]
 
+const OPCOES_MAX_VOTACOES: ReadonlyArray<{ valor: number | null; rotulo: string }> = [
+  { valor: 1, rotulo: '1 votação' },
+  { valor: 2, rotulo: '2 votações' },
+  { valor: 3, rotulo: '3 votações' },
+  { valor: null, rotulo: 'Sem limite' },
+]
+
 const PRESETS_DE_TEMPO_RODADA: ReadonlyArray<{ valor: number | null; rotulo: string }> = [
   { valor: null, rotulo: 'Sem limite' },
   { valor: 180, rotulo: '3min' },
@@ -979,6 +986,12 @@ function RegrasEspiao({
         aoAbrir={abrir('tempoRodada')}
       />
       <LinhaDeRegra
+        rotulo="Votações da mesa"
+        dica="Quantas vezes a mesa pode abrir votação por conta própria. A votação final, que o relógio abre no zero, não conta."
+        valor={rotuloDe(OPCOES_MAX_VOTACOES, config.espiao.maxVotacoes)}
+        aoAbrir={abrir('maxVotacoes')}
+      />
+      <LinhaDeRegra
         rotulo="Tempo de votação"
         dica="Depois que a votação abre, ninguém mais pergunta: é só decidir."
         valor={rotuloDe(PRESETS_DE_TEMPO_VOTACAO, config.espiao.tempoVotacaoSeg)}
@@ -1023,6 +1036,17 @@ function RegrasEspiao({
           atual={config.espiao.tempoRodadaSeg}
           presets={PRESETS_DE_TEMPO_RODADA}
           aoEscolher={(tempoRodadaSeg) => mudarEspiao({ tempoRodadaSeg })}
+          aoFechar={() => setFolha(null)}
+        />
+      )}
+
+      {folha === 'maxVotacoes' && (
+        <FolhaDeEscolha
+          titulo="Votações da mesa"
+          descricao="Quando acabam, só o relógio abre a votação final — e ela decide a partida."
+          opcoes={OPCOES_MAX_VOTACOES}
+          atual={config.espiao.maxVotacoes}
+          aoEscolher={(maxVotacoes) => mudarEspiao({ maxVotacoes })}
           aoFechar={() => setFolha(null)}
         />
       )}
