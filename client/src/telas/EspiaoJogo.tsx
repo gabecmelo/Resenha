@@ -338,9 +338,23 @@ function PapelDoJogador({
 }) {
   return (
     <section className="flex flex-col gap-3 rounded-papel border-2 border-controle-linha bg-superficie p-4 shadow-botao">
-      <span className="font-mono text-rotulo text-texto-3 uppercase">
-        seu papel nessa rodada
-      </span>
+      {/*
+        O alternador mora no fim da linha do rótulo: no celular o polegar já
+        está do lado direito, e no desktop tanto faz.
+      */}
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="font-mono text-rotulo text-texto-3 uppercase">
+          seu papel nessa rodada
+        </span>
+        <button
+          type="button"
+          aria-expanded={aberto}
+          onClick={aoAlternar}
+          className="min-h-11 flex-none cursor-pointer font-mono text-rotulo text-acento uppercase"
+        >
+          {aberto ? 'esconder ▴' : 'mostrar ▾'}
+        </button>
+      </div>
 
       {aberto ? (
         <>
@@ -394,14 +408,6 @@ function PapelDoJogador({
         </span>
       )}
 
-      <button
-        type="button"
-        aria-expanded={aberto}
-        onClick={aoAlternar}
-        className="min-h-11 cursor-pointer self-start font-mono text-rotulo text-acento uppercase"
-      >
-        {aberto ? 'esconder papel ▴' : 'mostrar papel ▾'}
-      </button>
     </section>
   )
 }
