@@ -613,14 +613,10 @@ function Regras({
             rotulo="Pacote"
             dica="O tema de cartas selecionado para todos os jogadores."
             valor={resumoDePacotes(pacotesSelecionados)}
-            aoAbrir={
-              souHost
-                ? () => {
-                    setPacoteIdsRascunho(config.pacoteIds)
-                    setModalPacotesAberto(true)
-                  }
-                : undefined
-            }
+            aoAbrir={() => {
+                setPacoteIdsRascunho(config.pacoteIds)
+                setModalPacotesAberto(true)
+              }}
           />
           <LinhaDeRegra
             rotulo="Dificuldade"
@@ -754,7 +750,11 @@ function Regras({
           descricao="Pode escolher mais de um — as cartas se somam."
           unidade="cartas"
           disponiveis={pacotesDisponiveis}
-          rascunho={pacoteIdsRascunho}
+          // Em leitura o que vale é a config em vigor, não o rascunho: com o
+          // rascunho, o host trocando de pacote com a gaveta de alguém aberta
+          // deixaria a marca de "na partida" mentindo até fechar e reabrir.
+          rascunho={souHost ? pacoteIdsRascunho : config.pacoteIds}
+          somenteLeitura={!souHost}
           aoAlternar={setPacoteIdsRascunho}
           aoConfirmar={() => {
             enviar({ t: 'configurar', config: { pacoteIds: pacoteIdsRascunho } })
@@ -888,14 +888,10 @@ function RegrasCartas({
         rotulo="Pacotes de cartas"
         dica="O tom da mesa mora aqui: leve pra jogar com a família, pesado pra madrugada."
         valor={resumoDePacotes(pacotesSelecionados)}
-        aoAbrir={
-          souHost
-            ? () => {
-                setPacoteIdsRascunho(config.pacoteIds)
-                setModalPacotesAberto(true)
-              }
-            : undefined
-        }
+        aoAbrir={() => {
+            setPacoteIdsRascunho(config.pacoteIds)
+            setModalPacotesAberto(true)
+          }}
       />
       <LinhaDeRegra
         rotulo="Tempo de escolha"
@@ -972,7 +968,11 @@ function RegrasCartas({
           descricao="Pode escolher mais de um — as cartas se somam. O tom vem escrito na descrição."
           unidade="cartas"
           disponiveis={pacotesDisponiveis}
-          rascunho={pacoteIdsRascunho}
+          // Em leitura o que vale é a config em vigor, não o rascunho: com o
+          // rascunho, o host trocando de pacote com a gaveta de alguém aberta
+          // deixaria a marca de "na partida" mentindo até fechar e reabrir.
+          rascunho={souHost ? pacoteIdsRascunho : config.pacoteIds}
+          somenteLeitura={!souHost}
           aoAlternar={setPacoteIdsRascunho}
           aoConfirmar={() => {
             enviar({ t: 'configurar', config: { pacoteIds: pacoteIdsRascunho } })
@@ -1014,14 +1014,10 @@ function RegrasEnigmas({
         rotulo="Pacotes de enigmas"
         dica="O tom da mesa mora aqui: casos estranhos pra jogar na sala, sangue frio pra madrugada."
         valor={resumoDePacotes(pacotesSelecionados)}
-        aoAbrir={
-          souHost
-            ? () => {
-                setPacoteIdsRascunho(config.pacoteIds)
-                setModalPacotesAberto(true)
-              }
-            : undefined
-        }
+        aoAbrir={() => {
+            setPacoteIdsRascunho(config.pacoteIds)
+            setModalPacotesAberto(true)
+          }}
       />
       <LinhaDeRegra
         rotulo="Como perguntar"
@@ -1064,7 +1060,11 @@ function RegrasEnigmas({
           descricao="Pode escolher mais de um — os enigmas se somam. O tom vem escrito na descrição."
           unidade="enigmas"
           disponiveis={pacotesDisponiveis}
-          rascunho={pacoteIdsRascunho}
+          // Em leitura o que vale é a config em vigor, não o rascunho: com o
+          // rascunho, o host trocando de pacote com a gaveta de alguém aberta
+          // deixaria a marca de "na partida" mentindo até fechar e reabrir.
+          rascunho={souHost ? pacoteIdsRascunho : config.pacoteIds}
+          somenteLeitura={!souHost}
           aoAlternar={setPacoteIdsRascunho}
           aoConfirmar={() => {
             enviar({ t: 'configurar', config: { pacoteIds: pacoteIdsRascunho } })
@@ -1128,14 +1128,10 @@ function RegrasEspiao({
         rotulo="Pacote de locais"
         dica="De onde saem os locais sorteados pra mesa."
         valor={resumoDePacotes(pacotesSelecionados)}
-        aoAbrir={
-          souHost
-            ? () => {
-                setPacoteIdsRascunho(config.pacoteIds)
-                setModalLocaisAberto(true)
-              }
-            : undefined
-        }
+        aoAbrir={() => {
+            setPacoteIdsRascunho(config.pacoteIds)
+            setModalLocaisAberto(true)
+          }}
       />
       <LinhaDeRegra
         rotulo="Nº de espiões"
@@ -1244,7 +1240,11 @@ function RegrasEspiao({
           descricao="Pode escolher mais de um — os locais se somam."
           unidade="locais"
           disponiveis={pacotesDisponiveis}
-          rascunho={pacoteIdsRascunho}
+          // Em leitura o que vale é a config em vigor, não o rascunho: com o
+          // rascunho, o host trocando de pacote com a gaveta de alguém aberta
+          // deixaria a marca de "na partida" mentindo até fechar e reabrir.
+          rascunho={souHost ? pacoteIdsRascunho : config.pacoteIds}
+          somenteLeitura={!souHost}
           aoAlternar={setPacoteIdsRascunho}
           aoConfirmar={() => {
             enviar({
@@ -1278,6 +1278,7 @@ function GavetaDePacotes({
   unidade,
   disponiveis,
   rascunho,
+  somenteLeitura = false,
   aoAlternar,
   aoConfirmar,
   aoFechar,
@@ -1287,10 +1288,63 @@ function GavetaDePacotes({
   unidade: string
   disponiveis: PacoteResumo[] | undefined
   rascunho: string[]
+  /** Quem não é host abre a mesma gaveta pra ler o cardápio, sem mexer nele. */
+  somenteLeitura?: boolean
   aoAlternar(proximo: string[]): void
   aoConfirmar(): void
   aoFechar(): void
 }) {
+  const miolo = (pacote: PacoteResumo) => (
+    <>
+      <span className="flex items-center gap-2">
+        <span aria-hidden="true" className="text-[20px]">
+          {pacote.emoji}
+        </span>
+        <span className="font-semibold text-texto">{pacote.nome}</span>
+      </span>
+      <span className="text-apoio text-texto-3">{pacote.descricao}</span>
+      <span className="font-mono text-compacto-apoio tracking-[0.1em] text-texto-3 uppercase">
+        {pacote.quantidade} {unidade}
+      </span>
+    </>
+  )
+
+  /*
+   * Só leitura não é o mesmo card desativado: um botão que não faz nada mente
+   * sobre o que é. Vira lista, e o que está em jogo se anuncia por escrito, não
+   * só pela borda — quem não enxerga a cor precisa da informação também.
+   */
+  if (somenteLeitura) {
+    return (
+      <Modal
+        folha
+        titulo={titulo}
+        descricao="Quem escolhe é o host. Isto é o cardápio da sala."
+        largura="larga"
+        rotuloCancelar="Fechar"
+        aoCancelar={aoFechar}
+      >
+        <ul className="pacote-grid">
+          {disponiveis?.map((pacote) => {
+            const emJogo = rascunho.includes(pacote.id)
+            return (
+              <li
+                key={pacote.id}
+                data-marcado={emJogo}
+                className="pacote-card pacote-card--lendo"
+              >
+                {emJogo && (
+                  <span className="selo bg-acento-suave text-acento-forte">na partida</span>
+                )}
+                {miolo(pacote)}
+              </li>
+            )
+          })}
+        </ul>
+      </Modal>
+    )
+  }
+
   return (
     <Modal
       folha
@@ -1316,16 +1370,7 @@ function GavetaDePacotes({
               }
               className="pacote-card"
             >
-              <span className="flex items-center gap-2">
-                <span aria-hidden="true" className="text-[20px]">
-                  {pacote.emoji}
-                </span>
-                <span className="font-semibold text-texto">{pacote.nome}</span>
-              </span>
-              <span className="text-apoio text-texto-3">{pacote.descricao}</span>
-              <span className="font-mono text-compacto-apoio tracking-[0.1em] text-texto-3 uppercase">
-                {pacote.quantidade} {unidade}
-              </span>
+              {miolo(pacote)}
             </button>
           )
         })}
