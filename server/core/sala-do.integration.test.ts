@@ -145,18 +145,18 @@ async function partida(
 
   if (tempoTurnoSeg !== null) {
     mandar(ana, { t: 'configurar', config: { tempoTurnoSeg } })
-    await assentar()
+    await esperarProjecao(ana, (p) => p.sala.config.tempoTurnoSeg === tempoTurnoSeg)
   }
 
   mandar(ana, { t: 'iniciar' })
-  await assentar()
+  await esperarProjecao(ana, (p) => p.sala.fase === 'escrita')
   for (const jogador of [ana, bruno, carla]) {
     mandar(jogador, { t: 'escreverCarta', texto: 'Chapolin' })
     mandar(jogador, { t: 'marcarPronto', pronto: true })
-    await assentar()
   }
+  await esperarProjecao(ana, (p) => p.jogadores.every((j) => j.pronto))
   mandar(ana, { t: 'comecar' })
-  await assentar()
+  await esperarProjecao(ana, (p) => p.sala.fase === 'jogo')
 
   return { stub, ana, bruno, carla }
 }
