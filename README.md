@@ -1,8 +1,8 @@
 # Resenha
 
-**Um hub de party games**, atualmente destacando o jogo **Quem Sou Eu?**.
+**Um hub de party games**: Quem Sou Eu?, Espião, Cartas Contra a Turma e Enigmas Sinistros.
 
-🌐 **Jogue agora em:** [resenha.resenhaa.workers.dev](https://resenha.resenhaa.workers.dev/)
+🌐 **Jogue agora em:** [resenha.dev.br](https://resenha.dev.br/)
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
