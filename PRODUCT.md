@@ -38,7 +38,7 @@ Jogo de festa sem fricção: sem app nativo, sem cadastro, sem paywall. Cola de 
 - **Limite técnico**: 20 jogadores por sala.
 - **Mínimo para jogar**: 2 jogadores.
 - **Pacotes de cartas**: temas pré-definidos (filmes, anime, futebol, etc.) armazenados no Cloudflare KV. Pacotes personalizados planejados mas ainda indisponíveis.
-- **Deploy**: manual via `npm run deploy` (build + wrangler deploy), sem CI/CD.
+- **Deploy**: a `main` publica sozinha pelo GitHub Actions; qualquer branch vai ao beta (`beta.resenha.dev.br`) por acionamento manual. Runbook em `DEPLOY.md`.
 
 ## Brand Commitments
 
