@@ -51,8 +51,18 @@ async function abrir(stub: DurableObjectStub, token?: string): Promise<Cliente> 
   return { ws, recebidas }
 }
 
-async function assentar(): Promise<void> {
-  for (let i = 0; i < 30; i += 1) await new Promise((pronto) => setTimeout(pronto, 1))
+/**
+ * Sem argumento, é uma janela fixa: usada por quem afirma que **nada** deveria
+ * chegar. Com `pronto`, espera até a condição valer — porque uma janela fixa
+ * calibrada na máquina de quem escreve estoura num runner de CI carregado, e o
+ * teste morre por tempo, não por comportamento.
+ */
+async function assentar(pronto?: () => boolean): Promise<void> {
+  const tentativas = pronto === undefined ? 30 : 400
+  for (let i = 0; i < tentativas; i += 1) {
+    if (pronto?.() === true) return
+    await new Promise((resolver) => setTimeout(resolver, 1))
+  }
 }
 
 function mandar(cliente: Cliente, comando: Comando): void {
@@ -62,7 +72,13 @@ function mandar(cliente: Cliente, comando: Comando): void {
 async function entrar(stub: DurableObjectStub, apelido: string): Promise<Jogador> {
   const cliente = await abrir(stub)
   mandar(cliente, { t: 'entrar', apelido })
-  await assentar()
+  // `entrou` e a primeira projeção são duas difusões separadas. Esperar só pela
+  // primeira já deixou um teste ler a projeção antes de ela chegar.
+  await assentar(
+    () =>
+      cliente.recebidas.some((m) => m.t === 'entrou') &&
+      cliente.recebidas.some((m) => m.t === 'projecao'),
+  )
 
   const entrou = cliente.recebidas.find((m) => m.t === 'entrou')
   if (entrou === undefined) {
