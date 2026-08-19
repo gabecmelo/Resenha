@@ -74,8 +74,14 @@ export function Lobby({ projecao, enviar, aoSair }: PropsDaTela) {
             minimoDoJogo={minimoDoJogo}
             enviar={enviar}
           />
-          {/* No desktop a barra dissolve aqui, ao pé da coluna da esquerda. */}
-          <div className="hidden lg:block">{acao}</div>
+          {/*
+            No desktop a barra mora aqui, ao pé da coluna da esquerda.
+            `lg:contents` em vez de `lg:block` porque a barra é `sticky`: uma
+            caixa que a envolve com a altura exata dela não deixa folga nenhuma
+            pra deslizar, e o `sticky` vira enfeite. Sem caixa, quem manda é a
+            coluna inteira, e aí ela gruda no rodapé quando a janela é baixa.
+          */}
+          <div className="hidden lg:contents">{acao}</div>
         </div>
 
         <div className="flex flex-col overflow-hidden rounded-papel border border-linha bg-superficie">

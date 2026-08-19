@@ -155,15 +155,21 @@ function CopiarConvite({ codigo }: { codigo: string }) {
 }
 
 /**
- * A barra de ação fixa (`Kit de Partida` — moldura). No celular ela mora no
- * rodapé, sempre alcançável pelo polegar; do `lg` para cima ela dissolve no fim
- * da coluna, porque no desktop a ação já está à vista.
+ * A barra de ação fixa (`Kit de Partida` — moldura). Mora no pé da coluna e
+ * gruda no rodapé quando a página não cabe na janela.
+ *
+ * Ela era `lg:static`, partindo de que no desktop a ação já estaria à vista.
+ * Não estava: com a barra do navegador comendo altura, a janela fica baixa e o
+ * botão principal nasce abaixo da dobra — era preciso rolar pra achar o começo
+ * da partida. `sticky` resolve os dois casos sem condicional, porque ele só
+ * age quando o elemento sairia da tela: em janela alta o desenho é idêntico ao
+ * de antes, em janela baixa a barra encosta no rodapé.
  *
  * Uma ação primária por vez — o resto é secundário ou pílula.
  */
 export function BarraDeAcao({ children }: { children: ReactNode }) {
   return (
-    <div className="sticky bottom-0 z-20 mt-4 -mx-3 flex flex-col gap-2.5 border-t-2 border-controle-linha bg-superficie px-3 pt-3 pb-[max(12px,env(safe-area-inset-bottom))] sm:-mx-4 sm:px-4 lg:static lg:mt-6 lg:mx-0 lg:rounded-papel lg:border lg:border-linha lg:p-4">
+    <div className="sticky bottom-0 z-20 mt-4 -mx-3 flex flex-col gap-2.5 border-t-2 border-controle-linha bg-superficie px-3 pt-3 pb-[max(12px,env(safe-area-inset-bottom))] sm:-mx-4 sm:px-4 lg:mt-6 lg:mx-0 lg:rounded-papel lg:border lg:border-linha lg:p-4">
       {children}
     </div>
   )
