@@ -12,19 +12,40 @@
 // e o único lugar onde "beta" existe é aqui.
 
 import { spawnSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 
 const beta = process.argv.includes('--beta')
 const seco = process.argv.includes('--dry-run')
 
-const ambiente = { ...process.env }
-if (beta) ambiente.CLOUDFLARE_ENV = 'beta'
+// `CLOUDFLARE_ENV` vale **só** para o build. O `wrangler deploy` lê a mesma
+// variável como se fosse `--env`, e o config em `dist/` já sai resolvido com o
+// nome final — deixar a variável de pé no segundo comando faz o wrangler
+// concatenar o sufixo de novo e publicar um `resenha-beta-beta`.
+const doBuild = { ...process.env }
+if (beta) doBuild.CLOUDFLARE_ENV = 'beta'
 
-function rodar(comando, args) {
-  const r = spawnSync(comando, args, { stdio: 'inherit', env: ambiente, shell: true })
+const doDeploy = { ...process.env }
+delete doDeploy.CLOUDFLARE_ENV
+
+function rodar(comando, args, env) {
+  const r = spawnSync(comando, args, { stdio: 'inherit', env, shell: true })
   if (r.status !== 0) process.exit(r.status ?? 1)
 }
 
-console.log(beta ? '→ beta (resenha-beta)' : '→ produção (resenha)')
+rodar('npx', ['vite', 'build'], doBuild)
 
-rodar('npx', ['vite', 'build'])
-rodar('npx', ['wrangler', 'deploy', '-c', 'dist/resenha/wrangler.json', ...(seco ? ['--dry-run'] : [])])
+// O nome sai do config resolvido, não de uma suposição deste script: se algum
+// dia os dois divergirem, o erro aparece aqui e não num Worker órfão.
+const config = JSON.parse(readFileSync('dist/resenha/wrangler.json', 'utf8'))
+const esperado = beta ? 'resenha-beta' : 'resenha'
+if (config.name !== esperado) {
+  console.error(`abortado: o build resolveu "${config.name}", e o esperado era "${esperado}"`)
+  process.exit(1)
+}
+console.log(`→ ${config.name}`)
+
+rodar(
+  'npx',
+  ['wrangler', 'deploy', '-c', 'dist/resenha/wrangler.json', ...(seco ? ['--dry-run'] : [])],
+  doDeploy,
+)
