@@ -27,14 +27,34 @@ export const PRESETS_DE_TEMPO: readonly OpcaoDeTempo[] = [
 /**
  * `AJU-19`, `AJU-20` — os segundos que o host digitou, ou `null` quando o que
  * está escrito não serve: vazio, com letra, quebrado ou fora da faixa.
+ *
+ * Aceita as duas escritas do mesmo tempo: `90` e `1:30`. Quem pensa "um minuto
+ * e meio" não deveria ter que fazer a conta na cabeça pra digitar. Em `m:ss` os
+ * segundos vão até 59 — `1:90` é erro de digitação, não noventa segundos, e
+ * aceitar isso calado devolveria um tempo que ninguém pediu.
  */
 export function tempoDigitado(texto: string): number | null {
   const limpo = texto.trim()
-  if (!/^\d+$/.test(limpo)) return null
 
-  const segundos = Number(limpo)
+  const comDoisPontos = /^(\d{1,3}):([0-5]\d)$/.exec(limpo)
+  const segundos = comDoisPontos
+    ? Number(comDoisPontos[1]) * 60 + Number(comDoisPontos[2])
+    : /^\d+$/.test(limpo)
+      ? Number(limpo)
+      : null
+
+  if (segundos === null) return null
   if (segundos < TEMPO_TURNO_MIN_SEG || segundos > TEMPO_TURNO_MAX_SEG) return null
   return segundos
+}
+
+/**
+ * Como esse tempo se escreve no campo, pra reabrir a gaveta e encontrar o que
+ * se digitou: `m:ss` de um minuto pra cima, o número cru abaixo disso.
+ */
+export function paraCampoDeTempo(segundos: number): string {
+  if (segundos < 60) return String(segundos)
+  return `${Math.floor(segundos / 60)}:${String(segundos % 60).padStart(2, '0')}`
 }
 
 /** `AJU-19` — o tempo em vigor não é nenhum dos presets. */

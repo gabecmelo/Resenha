@@ -23,7 +23,7 @@ import {
   Shell,
 } from '../componentes'
 import { linkDeConvite, motivoParaIniciar } from '../estado/entrada'
-import { PRESETS_DE_TEMPO, rotuloDoTempo, tempoDigitado } from '../estado/turno'
+import { PRESETS_DE_TEMPO, paraCampoDeTempo, rotuloDoTempo, tempoDigitado } from '../estado/turno'
 import type { PropsDaTela } from './tela'
 
 /**
@@ -1350,7 +1350,7 @@ function FolhaDeTempo({
   aoFechar(): void
 }) {
   const personalizado = atual !== null && !presets.some((p) => p.valor === atual)
-  const [texto, setTexto] = useState(personalizado ? String(atual) : '')
+  const [texto, setTexto] = useState(personalizado ? paraCampoDeTempo(atual) : '')
   const segundos = tempoDigitado(texto)
 
   return (
@@ -1365,16 +1365,21 @@ function FolhaDeTempo({
     >
       <div className="mt-4 flex flex-col gap-2 border-t border-dashed border-linha pt-4">
         <label htmlFor="tempo-personalizado" className="text-corpo font-semibold text-texto">
-          Outro tempo, em segundos
+          Outro tempo
         </label>
+        <span className="text-apoio text-texto-3">
+          Em segundos (<span className="font-mono">90</span>) ou em minutos (
+          <span className="font-mono">1:30</span>).
+        </span>
         <div className="flex items-start gap-2">
           <input
             id="tempo-personalizado"
             type="text"
-            inputMode="numeric"
+            // `numeric` esconderia os dois pontos no teclado do celular.
+            inputMode="text"
             value={texto}
-            maxLength={String(TEMPO_TURNO_MAX_SEG).length}
-            placeholder="240"
+            maxLength={6}
+            placeholder="1:30"
             aria-invalid={texto !== '' && segundos === null}
             onChange={(evento) => setTexto(evento.target.value)}
             className={`h-12 w-24 rounded-chip border-2 bg-superficie px-3 text-corpo text-texto caret-acento placeholder:text-texto-apagado focus:outline-none ${
