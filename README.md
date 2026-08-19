@@ -11,6 +11,10 @@
 Contribuições são bem-vindas! Comece lendo o **[SETUP.md](SETUP.md)** para saber como preparar o ambiente (clonar, instalar, rodar). 
 Se encontrou um problema ou tem uma ideia, sinta-se à vontade para abrir uma issue.
 
+## Deploy
+
+A `main` vai pro ar sozinha. Qualquer branch pode ir pro ambiente de beta na mão, pelo GitHub Actions. O runbook completo — secrets, domínios, KV — está em **[DEPLOY.md](DEPLOY.md)**.
+
 ## Licença
 
 O Resenha é software livre licenciado sob a **[GNU General Public License v3.0 ou posterior](LICENSE)**. Você é livre para usar, estudar, compartilhar e modificar — mas qualquer versão distribuída (incluindo modificações) deve permanecer aberta sob a GPL. Não pode ser transformado em produto fechado e proprietário.
