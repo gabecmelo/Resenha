@@ -38,4 +38,10 @@ export default tseslint.config(
     files: ['server/**/*.ts'],
     languageOptions: { globals: globals.worker },
   },
+  {
+    // Ferramentas de linha de comando: rodam no Node, não no Worker nem no
+    // navegador, e usam `process`/`console` de propósito.
+    files: ['scripts/**/*.{js,mjs,ts}', '*.config.{js,mjs,ts}'],
+    languageOptions: { globals: globals.node },
+  },
 )

@@ -19,13 +19,19 @@ const resumos: PacoteResumo[] = TODOS.map(p => ({
 
 const isRemote = process.argv.includes('--remote');
 
+// `--beta` grava no KV do staging (`resenha-beta`), que é um namespace
+// separado do de produção. Sem a flag, `--remote` escreve na produção — é o
+// comportamento antigo, mantido de propósito pra não mudar o que já era usado.
+const isBeta = process.argv.includes('--beta');
+const alvo = isBeta ? ' --env beta' : '';
+
 function putKv(key: string, value: unknown) {
   const tmpFile = `temp_${key.replace(':', '_')}.json`;
   writeFileSync(tmpFile, JSON.stringify(value));
   try {
     console.log(`Gravando ${key}...`);
     if (isRemote) {
-      execSync(`npx wrangler kv key put "${key}" --binding=PACOTES_KV --path="${tmpFile}"`, { stdio: 'inherit' });
+      execSync(`npx wrangler kv key put "${key}" --binding=PACOTES_KV${alvo} --path="${tmpFile}"`, { stdio: 'inherit' });
     } else {
       execSync(`npx wrangler kv key put "${key}" --binding=PACOTES_KV --path="${tmpFile}" --local --persist-to="client/.wrangler/state/v3"`, { stdio: 'inherit' });
     }
@@ -34,7 +40,8 @@ function putKv(key: string, value: unknown) {
   }
 }
 
-console.log('Iniciando seed dos pacotes no KV...');
+const onde = isRemote ? (isBeta ? 'beta (resenha-beta)' : 'produção (resenha)') : 'local';
+console.log(`Iniciando seed dos pacotes no KV — ${onde}...`);
 putKv('pacotes:indice', resumos);
 
 for (const pacote of TODOS) {
