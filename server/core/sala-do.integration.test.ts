@@ -100,6 +100,21 @@ function ultimaProjecao(cliente: Cliente): Projecao {
   return ultima
 }
 
+/**
+ * Espera até a **última** projeção que `cliente` recebeu satisfazer `condicao`.
+ *
+ * É o que separa "o servidor ainda não fez" de "a mensagem ainda não chegou".
+ * Um alarme ou um fechamento de socket difundem depois de a chamada voltar, e a
+ * janela fixa de `assentar()` já deixou o teste ler a projeção anterior num
+ * runner carregado.
+ */
+function esperarProjecao(cliente: Cliente, condicao: (p: Projecao) => boolean): Promise<void> {
+  return assentar(() => {
+    const ultima = projecoes(cliente).at(-1)
+    return ultima !== undefined && condicao(ultima)
+  })
+}
+
 function erros(cliente: Cliente): Extract<Mensagem, { t: 'erro' }>[] {
   return cliente.recebidas.filter((m): m is Extract<Mensagem, { t: 'erro' }> => m.t === 'erro')
 }
@@ -207,7 +222,9 @@ describe('desconexão e reconexão', () => {
     const bruno = await entrar(stub, 'Bruno')
 
     bruno.ws.close()
-    await assentar()
+    await esperarProjecao(ana, (p) =>
+      p.jogadores.some((j) => j.id === bruno.jogadorId && !j.conectado),
+    )
 
     const ficha = ultimaProjecao(ana).jogadores.find((j) => j.id === bruno.jogadorId)
     expect(ficha).toMatchObject({ apelido: 'Bruno', conectado: false })
@@ -222,7 +239,7 @@ describe('desconexão e reconexão', () => {
     await assentar()
     const volta = await abrir(stub, ana.token)
     mandar(volta, { t: 'ola', token: ana.token })
-    await assentar()
+    await esperarProjecao(volta, (p) => p.eu.id === ana.jogadorId)
 
     const depois = ultimaProjecao(volta)
     expect(depois.eu.id).toBe(ana.jogadorId)
@@ -245,7 +262,7 @@ describe('desconexão e reconexão', () => {
     await assentar()
     const volta = await abrir(stub, ana.token)
     mandar(volta, { t: 'ola', token: ana.token })
-    await assentar()
+    await esperarProjecao(volta, (p) => p.eu.id === ana.jogadorId)
 
     expect(ultimaProjecao(volta).eu).toMatchObject({
       alvo: alvoAntes,
@@ -264,7 +281,7 @@ describe('desconexão e reconexão', () => {
     await assentar()
     const volta = await abrir(stub, daVez.token)
     mandar(volta, { t: 'ola', token: daVez.token })
-    await assentar()
+    await esperarProjecao(volta, (p) => p.eu.id === daVez.jogadorId)
 
     expect(ultimaProjecao(volta).jogo?.vezDe).toBe(vezAntes)
     expect(ultimaProjecao(volta).jogo?.ordem).toEqual(ultimaProjecao(ana).jogo?.ordem)
@@ -313,7 +330,7 @@ describe('migração automática de host (`HOST-04`)', () => {
     ana.ws.close()
     await vencerPrazo(stub, 'migracaoHost')
     await runDurableObjectAlarm(stub)
-    await assentar()
+    await esperarProjecao(bruno, (p) => p.eu.ehHost)
 
     expect(ultimaProjecao(bruno).chat.map((m) => m.texto)).toContain(
       'Bruno agora comanda a sala.',
@@ -347,7 +364,7 @@ describe('migração automática de host (`HOST-04`)', () => {
     await assentar()
     const volta = await abrir(stub, ana.token)
     mandar(volta, { t: 'ola', token: ana.token })
-    await assentar()
+    await esperarProjecao(volta, (p) => p.eu.id === ana.jogadorId)
 
     expect(ultimaProjecao(volta).eu.ehHost).toBe(false)
     expect(ultimaProjecao(volta).sala.hostId).toBe(bruno.jogadorId)
