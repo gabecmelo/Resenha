@@ -25,6 +25,10 @@ Localmente, o mesmo deploy é:
 npm run deploy:beta
 ```
 
+Todo build de beta carrega um selo "beta" no canto da tela, pra ninguém abrir a mesa com os amigos achando que está na produção. Quem liga isso é a variável `CLOUDFLARE_ENV` no momento do build — em produção a constante vira `false` literal e o bundler apaga o componente.
+
+> **Nunca passe `--env beta` na mão pro `wrangler deploy`.** O config em `dist/` já sai resolvido com `name: resenha-beta`; a flag de novo faz o wrangler concatenar o sufixo e criar um `resenha-beta-beta`, um Worker que este repositório não conhece e que nenhum deploy seguinte vai atualizar.
+
 ## Subir a produção
 
 Sozinho, no merge pra `main`. Se precisar republicar sem commit novo: Actions → **Deploy produção** → **Run workflow**.

@@ -233,6 +233,21 @@
     transform: rotate(-2deg);
   }
 
+  /*
+   * O selo do staging. Mesma torta dos outros, no canto de baixo e abaixo do
+   * `z-50` do modal — ele avisa, não atrapalha. `pointer-events: none` porque
+   * não é controle, e `env(safe-area-inset-bottom)` pra não cair embaixo da
+   * barra do iPhone.
+   */
+  .selo-beta {
+    @apply pointer-events-none fixed left-3 z-40 select-none rounded-chip border border-dashed px-2 py-1 font-mono text-rotulo uppercase;
+    bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+    border-color: var(--acento-linha);
+    background-color: var(--acento-suave);
+    color: var(--acento-forte);
+    transform: rotate(-2deg);
+  }
+
   /* Linha de valor: pontilhada, do jeito de um talão. */
   .linha-valor {
     @apply border-t border-dashed border-linha;
