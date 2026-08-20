@@ -2,7 +2,7 @@
 
 ## Problem Statement
 
-O Resenha é um hub de party games. "Quem Sou Eu?", "Espião" e "Cartas Contra a Turma" já estão jogáveis e entram pelo registro (`AD-013`). O quarto e último jogo do roadmap é o Enigmas Sinistros: uma cena absurda no meio da mesa, um narrador que conhece a solução e responde só "sim", "não" ou "não importa", e a mesa deduzindo até alguém desatar o nó. É um jogo de conversa — o aplicativo é o tabuleiro que guarda a solução, o histórico e o placar, nunca o árbitro do raciocínio.
+O Resenha é um hub de party games. "Quem Sou Eu?", "Espião" e "Cartas Contra a Turma" já estão jogáveis e entram pelo registro (`AD-013`). O quarto e último jogo do roadmap é o Enigmas Sinistros: uma cena absurda no meio da mesa, um narrador que conhece a solução e responde só "sim", "não" ou "indiferente", e a mesa deduzindo até alguém desatar o nó. É um jogo de conversa — o aplicativo é o tabuleiro que guarda a solução, o histórico e o placar, nunca o árbitro do raciocínio.
 
 ## Goals
 
@@ -27,7 +27,7 @@ O Resenha é um hub de party games. "Quem Sou Eu?", "Espião" e "Cartas Contra a
 
 | Assumption / decision | Chosen default | Rationale | Confirmed? |
 | --- | --- | --- | --- |
-| Como a mesa pergunta | Duas modalidades, escolhidas pelo host: **fila** (perguntas escritas que o narrador responde uma a uma) e **voz** (a mesa pergunta em voz alta, o narrador só bate sim/não/não importa). | Literal do dono: "Fila de perguntas e só em voz alta (ou seja, o host escolhe se vai usar o chat também ou apenas em voz)". | y |
+| Como a mesa pergunta | Duas modalidades, escolhidas pelo host: **fila** (perguntas escritas que o narrador responde uma a uma) e **voz** (a mesa pergunta em voz alta, o narrador só bate sim/não/indiferente). | Literal do dono: "Fila de perguntas e só em voz alta (ou seja, o host escolhe se vai usar o chat também ou apenas em voz)". | y |
 | Como o enigma acaba | Alguém declara a solução por escrito, **só o narrador lê**, e o narrador julga. | Decisão do dono ("Alguém declara e o narrador julga"). A mesa lendo a tentativa antes do veredito entregaria o raciocínio de graça. | y |
 | Pontuação | 1 ponto pra quem desata. Placar visível, narrador rotativo, meta de pontos configurável encerra a partida. | Decisão do dono ("Ponto pra quem desata"). Cabe em `AD-015`: quem julga é uma pessoa, o sistema só conta. | y |
 | Tempo | Nenhum. Nem de pergunta, nem de enigma. | Decisão do dono ("Sem tempo, o narrador conduz"). | y |
@@ -72,8 +72,8 @@ O Resenha é um hub de party games. "Quem Sou Eu?", "Espião" e "Cartas Contra a
 **Acceptance Criteria**:
 
 1. WHEN o modo é fila E um jogador não-narrador manda uma pergunta escrita THEN o sistema SHALL colocá-la na fila do narrador; SHALL recusar pergunta vazia, só com espaços ou acima de 160 caracteres; e SHALL recusar uma segunda pergunta do mesmo jogador enquanto a primeira não for respondida
-2. WHEN o narrador responde uma pergunta THEN o sistema SHALL aceitar somente "sim", "não" ou "não importa", SHALL recusar resposta de qualquer outro jogador e SHALL recusar responder duas vezes a mesma pergunta
-3. WHEN qualquer pergunta é feita ou respondida THEN o sistema SHALL mostrar pra mesa inteira o histórico na ordem em que aconteceu, com autor, texto e o veredito junto
+2. WHEN o narrador responde uma pergunta THEN o sistema SHALL aceitar somente "sim", "não" ou "indiferente", SHALL recusar resposta de qualquer outro jogador e SHALL recusar responder duas vezes a mesma pergunta
+3. WHEN qualquer pergunta é feita ou respondida THEN o sistema SHALL mostrar pra mesa inteira o histórico na ordem em que aconteceu, com autor, texto e o veredito junto; cada linha SHALL trazer o número da pergunta na ordem em que foi feita neste enigma, estável mesmo quando a lista é filtrada; e o histórico SHALL caber num bloco de altura fixa que rola dentro de si, com filtro por resposta, para que um enigma longo não empurre placar e ações pra fora da tela
 4. WHEN há perguntas esperando resposta THEN o sistema SHALL mostrar quantas estão na fila e SHALL indicar a cada jogador se a pergunta parada é a dele
 5. WHEN um enigma está em andamento THEN o sistema SHALL manter o chat da sala disponível, como nos outros jogos
 6. WHEN um jogador reconecta ou abre a sala com o enigma em andamento THEN o sistema SHALL entregar o estado corrente completo — cena, histórico, tentativas e placar — sem a solução se ele não for o narrador
@@ -148,10 +148,10 @@ O Resenha é um hub de party games. "Quem Sou Eu?", "Espião" e "Cartas Contra a
 1. WHEN o host abre a seleção de pacotes no lobby THEN o sistema SHALL mostrar ao menos um pacote de tom leve e um de tom pesado, com a descrição deixando o tom explícito
 2. WHEN mais de um pacote é selecionado THEN o sistema SHALL juntar os enigmas num baralho só, sem repetir cena
 3. WHEN um novo pacote é adicionado a `shared/enigmas-dados.ts` THEN o sistema SHALL passar a oferecê-lo no lobby sem nenhuma outra mudança de código; cada pacote sozinho SHALL bastar pra uma partida inteira; e o sistema SHALL recusar começar sem nenhum pacote selecionado
-4. WHEN o modo é "em voz alta" THEN o sistema SHALL esconder o campo de pergunta escrita, SHALL recusar perguntas escritas, e SHALL registrar no histórico a batida do narrador — a resposta dada em voz alta, sem texto de pergunta
+4. WHEN o modo é "em voz alta" THEN o sistema SHALL esconder o campo de pergunta escrita da mesa, SHALL recusar perguntas escritas, e SHALL registrar no histórico a batida do narrador; o narrador SHALL poder anotar em campo opcional de que era a pergunta, e deixá-lo em branco SHALL registrar a batida assim mesmo, valendo pelo número e pela resposta
 5. WHEN uma cena vai à mesa THEN o sistema SHALL mostrar junto dela o nível do enigma — `facil`, `medio` ou `dificil`, a mesma escala das cartas de pacote dos outros jogos —, visível a todos e não só ao narrador; e todo pacote SHALL ter ao menos um enigma fácil e mais de um nível, pra que a primeira rodada de uma mesa nova não queime o jogo
 
-**Independent Test**: Abrir uma sala em modo voz e conferir que o campo de pergunta não existe e que os três botões do narrador escrevem a batida no histórico da mesa. Conferir também que a carta na mesa mostra o nível junto da cena.
+**Independent Test**: Abrir uma sala em modo voz e conferir que o campo de pergunta não existe e que os três botões do narrador escrevem a batida no histórico da mesa. Conferir também que a carta na mesa mostra o nível junto da cena e que a anotação do narrador, quando escrita, aparece na linha do histórico.
 
 ---
 
@@ -198,7 +198,7 @@ O Resenha é um hub de party games. "Quem Sou Eu?", "Espião" e "Cartas Contra a
 
 **Status values:** Pending → In Design → In Tasks → Implementing → Verified
 
-**Coverage:** 34 total, 34 implementados — servidor coberto por 49 testes (regras e projeção) e o conteúdo por 11; o fluxo completo foi jogado numa mesa de 3 nos dois modos de pergunta, incluindo declaração certa, declaração errada, entrega da solução, rotação de narrador e encerramento.
+**Coverage:** 34 total, 34 implementados — servidor coberto por 51 testes (regras e projeção), o conteúdo por 11 e o histórico da tela por 7; o fluxo completo foi jogado numa mesa de 3 nos dois modos de pergunta, incluindo declaração certa, declaração errada, entrega da solução, rotação de narrador e encerramento.
 
 ---
 

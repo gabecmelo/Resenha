@@ -18,6 +18,8 @@ import {
   Shell,
   TiraDePacotes,
 } from '../componentes'
+import type { FiltroDoHistorico } from '../estado/historico-de-enigmas'
+import { contarPorAba, linhasDoHistorico } from '../estado/historico-de-enigmas'
 import { tocarAcertou, tocarClique, tocarSuaVez, tocarVezOutro } from '../sons'
 import { nomeDoJogo } from '../../../shared/jogos-catalogo'
 import type { PropsDaTela } from './tela'
@@ -47,6 +49,7 @@ export function EnigmasJogo({ projecao, enviar, aoSair }: PropsDaTela) {
   const [declarando, setDeclarando] = useState(false)
   const [rascunhoDeclaracao, setRascunhoDeclaracao] = useState('')
   const [rascunhoPergunta, setRascunhoPergunta] = useState('')
+  const [anotacaoDeVoz, setAnotacaoDeVoz] = useState('')
 
   // Enigma novo na tela é o instante em que todo mundo olha pro celular.
   const rodada = enigmas?.rodada ?? 0
@@ -114,7 +117,7 @@ export function EnigmasJogo({ projecao, enviar, aoSair }: PropsDaTela) {
                 ? `${pendente.autor.apelido} declarou. Só você lê o que veio.`
                 : `${pendente.autor.apelido} acha que desatou. ${enigmas.narrador.apelido} está lendo.`
               : enigmas.souNarrador
-                ? 'Você narra este. Só sim, não e não importa.'
+                ? 'Você narra este. Só sim, não e indiferente.'
                 : `${enigmas.narrador.apelido} está com a solução na mão.`}
         </FaixaDeFase>
       }
@@ -136,9 +139,23 @@ export function EnigmasJogo({ projecao, enviar, aoSair }: PropsDaTela) {
           {enigmas.souNarrador ? (
             <MesaDoNarrador
               enigmas={enigmas}
-              aoResponder={(perguntaId, resposta) =>
+              anotacao={anotacaoDeVoz}
+              aoMudarAnotacao={setAnotacaoDeVoz}
+              aoResponder={(perguntaId, resposta) => {
+                // Em voz alta o texto é do narrador e some junto com a batida;
+                // na fila ele já veio de quem perguntou.
+                if (perguntaId === null) {
+                  enviar({
+                    t: 'responderPergunta',
+                    perguntaId: null,
+                    resposta,
+                    texto: anotacaoDeVoz.trim(),
+                  })
+                  setAnotacaoDeVoz('')
+                  return
+                }
                 enviar({ t: 'responderPergunta', perguntaId, resposta })
-              }
+              }}
               aoJulgar={(acertou) => enviar({ t: 'julgarDeclaracao', acertou })}
             />
           ) : (
@@ -150,7 +167,7 @@ export function EnigmasJogo({ projecao, enviar, aoSair }: PropsDaTela) {
             />
           )}
 
-          <Historico enigmas={enigmas} />
+          <Historico key={enigmas.rodada} enigmas={enigmas} />
 
           <Placar enigmas={enigmas} euId={eu.id} jogadores={jogadores} />
 
@@ -398,10 +415,14 @@ function Solucao({ enigmas }: { enigmas: ProjecaoEnigmas }) {
 /** `ENIG-09`, `ENIG-15` — a mesa do narrador: responder e julgar. */
 function MesaDoNarrador({
   enigmas,
+  anotacao,
+  aoMudarAnotacao,
   aoResponder,
   aoJulgar,
 }: {
   enigmas: ProjecaoEnigmas
+  anotacao: string
+  aoMudarAnotacao(texto: string): void
   aoResponder(perguntaId: number | null, resposta: RespostaDoNarrador): void
   aoJulgar(acertou: boolean): void
 }) {
@@ -439,16 +460,27 @@ function MesaDoNarrador({
 
   const naFila = enigmas.perguntas.filter((p) => p.resposta === null)
 
-  // `ENIG-33` — em voz alta não há fila: os três botões marcam a batida.
+  /*
+    `ENIG-33` — em voz alta não há fila: os três botões marcam a batida.
+
+    O campo acima deles é opcional de propósito. A conversa é rápida e parar
+    pra digitar mata o modo; mas uma batida sozinha ("3 — SIM") só mostra o
+    ritmo, e é o texto que impede a mesa de perguntar a mesma coisa de novo.
+    Quem narra decide, pergunta a pergunta, se vale anotar.
+  */
   if (enigmas.modoPergunta === 'voz') {
     return (
       <section className="flex flex-col gap-3">
         <p className="text-rotulo text-texto-3 uppercase">responda em voz alta</p>
+        <CampoDeTexto
+          rotulo="do que era a pergunta — opcional"
+          valor={anotacao}
+          aoMudar={aoMudarAnotacao}
+          limite={LIMITE_PERGUNTA}
+          placeholder="ele conhecia a vítima?"
+          dica="Em branco, a linha entra só com o número e a resposta."
+        />
         <TresBotoes aoResponder={(resposta) => aoResponder(null, resposta)} />
-        <p className="text-apoio leading-snug text-texto-3">
-          A mesa pergunta falando. Cada toque aqui entra no histórico pra todo mundo ver o ritmo do
-          enigma.
-        </p>
       </section>
     )
   }
@@ -485,7 +517,7 @@ function MesaDoNarrador({
   )
 }
 
-/** `ENIG-09` — sim, não e não importa. Não existe uma quarta resposta. */
+/** `ENIG-09` — sim, não e indiferente. Não existe uma quarta resposta. */
 function TresBotoes({ aoResponder }: { aoResponder(resposta: RespostaDoNarrador): void }) {
   return (
     <div className="grid grid-cols-3 gap-2">
@@ -496,7 +528,7 @@ function TresBotoes({ aoResponder }: { aoResponder(resposta: RespostaDoNarrador)
         Não
       </Botao>
       <Botao larguraTotal variante="secundario" onClick={() => aoResponder('naoImporta')}>
-        Não importa
+        Indiferente
       </Botao>
     </div>
   )
@@ -547,7 +579,7 @@ function MesaDeQuemPergunta({
         aoMudar={aoMudarRascunho}
         limite={LIMITE_PERGUNTA}
         placeholder="algo que se responda com sim ou não"
-        dica={`${enigmas.narrador.apelido} só pode responder sim, não ou não importa.`}
+        dica={`${enigmas.narrador.apelido} só pode responder sim, não ou indiferente.`}
       />
       <Botao
         larguraTotal
@@ -561,55 +593,140 @@ function MesaDeQuemPergunta({
   )
 }
 
+const FILTROS: { valor: FiltroDoHistorico; rotulo: string }[] = [
+  { valor: 'tudo', rotulo: 'tudo' },
+  { valor: 'sim', rotulo: 'sim' },
+  { valor: 'nao', rotulo: 'não' },
+  { valor: 'naoImporta', rotulo: 'indiferente' },
+]
+
 /**
  * `ENIG-10`, `ENIG-17` — o que já foi perguntado e o que já foi tentado, na
  * ordem. É o que impede a mesa de repetir a mesma pergunta três vezes.
+ *
+ * Duas decisões de desenho, as duas por causa de enigma comprido:
+ *
+ * **O número.** Uma lista de respostas soltas não mostra raciocínio — a mesa lê
+ * seis linhas e não sabe qual veio de qual. O número é a ordem em que a
+ * pergunta foi feita **neste enigma**, e não a posição na lista à vista: assim
+ * ele não muda quando alguém troca de aba, e na fila os buracos são honestos
+ * (a 4 ainda está esperando resposta).
+ *
+ * **As abas e a rolagem.** Sem elas a tela ia crescendo pra baixo até empurrar
+ * o placar e a barra de ação pra fora da vista. Aqui a lista tem teto e rola
+ * dentro de si, e as abas viram a pergunta "o que já deu sim?" numa olhada em
+ * vez de uma varredura.
  */
 function Historico({ enigmas }: { enigmas: ProjecaoEnigmas }) {
-  const respondidas = enigmas.perguntas.filter((p) => p.resposta !== null)
-  if (respondidas.length === 0 && enigmas.tentativas.length === 0) return null
+  const [filtro, setFiltro] = useState<FiltroDoHistorico>('tudo')
+  const lista = useRef<HTMLUListElement>(null)
+
+  const contagem = contarPorAba(enigmas.perguntas)
+  const visiveis = linhasDoHistorico(enigmas.perguntas, filtro)
+
+  // A batida nova entra no fim, que é justamente o que a rolagem esconde.
+  const quantasAVista = visiveis.length
+  useEffect(() => {
+    const caixa = lista.current
+    if (caixa !== null) caixa.scrollTop = caixa.scrollHeight
+  }, [quantasAVista])
+
+  if (contagem.tudo === 0 && enigmas.tentativas.length === 0) return null
 
   return (
     <section className="flex flex-col gap-3">
-      <p className="text-rotulo text-texto-3 uppercase">o que já se sabe</p>
-      <ul className="flex flex-col gap-2">
-        {respondidas.map((pergunta) => (
-          <li
-            key={pergunta.id}
-            className="flex items-baseline gap-2 rounded-papel border border-linha bg-superficie px-3.5 py-2.5"
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-2">
+        <p className="text-rotulo text-texto-3 uppercase">o que já se sabe</p>
+        {contagem.tudo > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {FILTROS.map((aba) => {
+              const quantas = contagem[aba.valor]
+              const ativa = filtro === aba.valor
+              return (
+                <button
+                  key={aba.valor}
+                  type="button"
+                  aria-pressed={ativa}
+                  onClick={() => {
+                    setFiltro(aba.valor)
+                    tocarClique()
+                  }}
+                  className={`rounded-chip px-2 py-0.5 font-mono text-compacto-apoio tracking-[0.08em] uppercase ${
+                    ativa
+                      ? 'bg-acento text-acento-contraste'
+                      : 'border border-linha text-texto-3 hover:text-texto'
+                  }`}
+                >
+                  {aba.rotulo} {quantas}
+                </button>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
+      {contagem.tudo > 0 &&
+        (visiveis.length === 0 ? (
+          <p className="rounded-papel border border-dashed border-linha px-3.5 py-2.5 text-apoio leading-snug text-texto-3">
+            Nada respondido assim neste enigma ainda.
+          </p>
+        ) : (
+          <ul
+            ref={lista}
+            className="flex max-h-[19rem] flex-col gap-2 overflow-y-auto overscroll-contain pr-1"
           >
-            <span className="min-w-0 flex-1 text-apoio leading-snug text-texto">
-              {pergunta.texto === '' ? (
-                <span className="text-texto-3">pergunta feita em voz alta</span>
-              ) : (
-                <>
-                  {pergunta.texto}{' '}
-                  <span className="text-texto-3">— {pergunta.autor.apelido}</span>
-                </>
-              )}
-            </span>
-            <span aria-hidden="true" className="flex-none border-b border-dotted border-linha w-6" />
-            <strong
-              className={`flex-none font-semibold text-apoio ${
-                pergunta.resposta === 'sim' ? 'text-pronto' : 'text-texto-2'
-              }`}
+            {visiveis.map(({ pergunta, numero }) => (
+              <li
+                key={pergunta.id}
+                className="flex items-baseline gap-2.5 rounded-papel border border-linha bg-superficie px-3.5 py-2.5"
+              >
+                <span className="w-5 flex-none text-right font-mono text-compacto-apoio text-texto-3 tabular-nums">
+                  {numero}
+                </span>
+                <span className="min-w-0 flex-1 text-apoio leading-snug text-texto">
+                  {pergunta.texto === '' ? (
+                    <span className="text-texto-3">perguntada em voz alta</span>
+                  ) : (
+                    <>
+                      {pergunta.texto}
+                      {enigmas.modoPergunta === 'fila' && (
+                        <span className="text-texto-3"> — {pergunta.autor.apelido}</span>
+                      )}
+                    </>
+                  )}
+                </span>
+                <span
+                  aria-hidden="true"
+                  className="w-6 flex-none border-b border-dotted border-linha"
+                />
+                <strong
+                  className={`flex-none text-apoio font-semibold ${
+                    pergunta.resposta === 'sim' ? 'text-pronto' : 'text-texto-2'
+                  }`}
+                >
+                  {rotuloDaResposta(pergunta.resposta)}
+                </strong>
+              </li>
+            ))}
+          </ul>
+        ))}
+
+      {/* Fora das abas: tentativa não é pergunta, e são poucas por enigma. */}
+      {enigmas.tentativas.length > 0 && (
+        <ul className="flex flex-col gap-2">
+          {enigmas.tentativas.map((tentativa, indice) => (
+            <li
+              key={`tentativa-${indice}`}
+              className="rounded-papel border border-dashed border-linha px-3.5 py-2.5"
             >
-              {rotuloDaResposta(pergunta.resposta)}
-            </strong>
-          </li>
-        ))}
-        {enigmas.tentativas.map((tentativa, indice) => (
-          <li
-            key={`tentativa-${indice}`}
-            className="rounded-papel border border-dashed border-linha px-3.5 py-2.5"
-          >
-            <p className="text-rotulo text-texto-3 uppercase">
-              {tentativa.autor.apelido} tentou — {tentativa.acertou ? 'era essa' : 'não era essa'}
-            </p>
-            <p className="mt-1 text-apoio leading-snug text-texto-2">{tentativa.texto}</p>
-          </li>
-        ))}
-      </ul>
+              <p className="text-rotulo text-texto-3 uppercase">
+                {tentativa.autor.apelido} tentou — {tentativa.acertou ? 'era essa' : 'não era essa'}
+              </p>
+              <p className="mt-1 text-apoio leading-snug text-texto-2">{tentativa.texto}</p>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   )
 }
@@ -617,7 +734,7 @@ function Historico({ enigmas }: { enigmas: ProjecaoEnigmas }) {
 function rotuloDaResposta(resposta: RespostaDoNarrador | null): string {
   if (resposta === 'sim') return 'SIM'
   if (resposta === 'nao') return 'NÃO'
-  if (resposta === 'naoImporta') return 'NÃO IMPORTA'
+  if (resposta === 'naoImporta') return 'INDIFERENTE'
   return '—'
 }
 

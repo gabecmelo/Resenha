@@ -454,8 +454,18 @@ export type Comando =
   | { t: 'trocarMao' }
   /** `ENIG-08` — a mesa manda uma pergunta escrita pra fila do narrador. */
   | { t: 'perguntarEnigma'; texto: string }
-  /** `ENIG-09` — o narrador responde. `perguntaId` é `null` no modo em voz alta. */
-  | { t: 'responderPergunta'; perguntaId: number | null; resposta: RespostaDoNarrador }
+  /**
+   * `ENIG-09` — o narrador responde. `perguntaId` é `null` no modo em voz alta,
+   * onde a pergunta não passou pelo servidor; ali o narrador pode anotar de que
+   * era a pergunta em `texto`, e deixar em branco quando não quiser parar pra
+   * escrever.
+   */
+  | {
+      t: 'responderPergunta'
+      perguntaId: number | null
+      resposta: RespostaDoNarrador
+      texto?: string
+    }
   /** `ENIG-14` — alguém acha que desatou e conta a versão dele, só pro narrador. */
   | { t: 'declararSolucao'; texto: string }
   /** `ENIG-15` — o narrador diz se a declaração fecha o enigma. */
@@ -638,7 +648,11 @@ export type RespostaDoNarrador = 'sim' | 'nao' | 'naoImporta'
 /** `ENIG-10` — uma pergunta já respondida, ou ainda na fila. */
 export interface PerguntaProjetada {
   id: number
-  /** Vazio no modo em voz alta: lá a batida existe, o texto não. */
+  /**
+   * Vazio quando o narrador respondeu em voz alta sem anotar de que era a
+   * pergunta. A linha continua valendo: o número e a resposta já mostram o
+   * ritmo do enigma.
+   */
   texto: string
   autor: { id: JogadorId; apelido: string }
   /** `null` enquanto o narrador não respondeu. */

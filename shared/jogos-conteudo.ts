@@ -257,13 +257,13 @@ export const CONTEUDO_DOS_JOGOS: ConteudoDoJogo[] = [
     titulo: 'Enigmas Sinistros online — histórias para desvendar com sim e não',
     h1: 'Enigmas Sinistros online',
     resumo:
-      'Uma cena impossível é posta na mesa. Quem narra sabe o que aconteceu; o resto só pode perguntar coisas que se respondam com sim, não ou talvez.',
+      'Uma cena impossível é posta na mesa. Quem narra sabe o que aconteceu; o resto só pode perguntar coisas que se respondam com sim, não ou indiferente.',
     descricao:
       'Jogue Enigmas Sinistros online e de graça no navegador: histórias macabras que a mesa desvenda fazendo perguntas de sim ou não. Sem app e sem cadastro, a partir de 2 pessoas.',
     jogadores: 'A partir de 2, melhor com 3 ou mais',
     duracao: 'De 5 a 15 minutos por enigma',
     abertura:
-      'Enigmas Sinistros é o jogo das histórias impossíveis: uma cena estranha é anunciada — alguém morto numa sala trancada, um detalhe que não fecha — e a mesa precisa reconstruir o que aconteceu. A única ferramenta é a pergunta fechada, e a única resposta possível é sim, não ou talvez.',
+      'Enigmas Sinistros é o jogo das histórias impossíveis: uma cena estranha é anunciada — alguém morto numa sala trancada, um detalhe que não fecha — e a mesa precisa reconstruir o que aconteceu. A única ferramenta é a pergunta fechada, e a única resposta possível é sim, não ou indiferente.',
     contexto:
       'É um jogo de raciocínio lateral: quase nunca a resposta está no caminho óbvio, e a virada costuma vir de uma pergunta que parecia boba. Por isso ele rende tanto em grupo — o palpite errado de uma pessoa é o que faz outra enxergar o que estava faltando.',
     passos: [
@@ -280,7 +280,7 @@ export const CONTEUDO_DOS_JOGOS: ConteudoDoJogo[] = [
       {
         titulo: 'Perguntem de sim ou não',
         texto:
-          'A mesa faz perguntas fechadas e quem narra responde apenas sim, não ou talvez. "Talvez" existe para as perguntas que não têm resposta limpa — e costuma ser a resposta mais reveladora das três.',
+          'A mesa faz perguntas fechadas e quem narra responde apenas sim, não ou indiferente. "Indiferente" existe para as perguntas que não mexem na história — e saber que um caminho não leva a lugar nenhum costuma valer tanto quanto um sim.',
       },
       {
         titulo: 'Tente desatar',

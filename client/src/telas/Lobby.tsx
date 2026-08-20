@@ -1064,7 +1064,7 @@ function RegrasEnigmas({
       {folha === 'modoPergunta' && (
         <FolhaDeEscolha
           titulo="Como perguntar"
-          descricao="Nos dois modos o narrador só responde sim, não ou não importa — o que muda é se a pergunta passa pelo app."
+          descricao="Nos dois modos o narrador só responde sim, não ou indiferente — o que muda é se a pergunta passa pelo app."
           opcoes={OPCOES_MODO_PERGUNTA}
           atual={config.enigmas.modoPergunta}
           aoEscolher={(modoPergunta) => mudarEnigmas({ modoPergunta })}
