@@ -124,6 +124,13 @@ export function Lobby({ projecao, enviar, aoSair }: PropsDaTela) {
                     souHost={eu.ehHost}
                     enviar={enviar}
                   />
+                ) : sala.jogoId === 'dedo-na-cara' ? (
+                  <RegrasDedo
+                    config={sala.config}
+                    pacotesDisponiveis={sala.pacotesDisponiveis}
+                    souHost={eu.ehHost}
+                    enviar={enviar}
+                  />
                 ) : sala.jogoId === 'espiao' ? (
                   <RegrasEspiao
                     config={sala.config}
@@ -174,6 +181,10 @@ function pendenciasParaIniciar(
   // `ENIG-32` — mesma história do Cartas: o jogo não existe sem enigma.
   if (jogoId === 'enigmas-sinistros' && config.pacoteIds.length === 0) {
     lista.push('Escolha ao menos um pacote de enigmas.')
+  }
+  // `DEDO-21` — sem carta não há pergunta pra mesa apontar.
+  if (jogoId === 'dedo-na-cara' && config.pacoteIds.length === 0) {
+    lista.push('Escolha ao menos um pacote de cartas.')
   }
   if (config.modoPacote === 'pacote' && config.pacoteIds.length === 0) {
     lista.push('Escolha ao menos um pacote.')
@@ -1143,6 +1154,132 @@ const PRESETS_DE_META_ENIGMAS: ReadonlyArray<{ valor: number | null; rotulo: str
   { valor: 3, rotulo: '3 enigmas' },
   { valor: 5, rotulo: '5 enigmas' },
   { valor: 8, rotulo: '8 enigmas' },
+]
+
+/** `DEDO-06`, `DEDO-09`, `DEDO-17` — as regras do Dedo na Cara. */
+function RegrasDedo({
+  config,
+  pacotesDisponiveis,
+  souHost,
+  enviar,
+}: {
+  config: Config
+  pacotesDisponiveis: PacoteResumo[] | undefined
+  souHost: boolean
+  enviar: PropsDaTela['enviar']
+}) {
+  const [folha, setFolha] = useState<string | null>(null)
+  const [modalPacotesAberto, setModalPacotesAberto] = useState(false)
+  const [pacoteIdsRascunho, setPacoteIdsRascunho] = useState<string[]>(config.pacoteIds)
+
+  const pacotesSelecionados =
+    pacotesDisponiveis?.filter((p) => config.pacoteIds.includes(p.id)) ?? []
+
+  const abrir = (nome: string) => (souHost ? () => setFolha(nome) : undefined)
+  const mudarDedo = (parcial: Partial<Config['dedo']>) =>
+    enviar({ t: 'configurar', config: { dedo: { ...config.dedo, ...parcial } } })
+
+  return (
+    <div className="flex flex-col">
+      <LinhaDeRegra
+        rotulo="Pacotes de cartas"
+        dica="O tom da mesa mora aqui: o rolê pra jogar com qualquer um, os outros dois pra quem já se conhece."
+        valor={resumoDePacotes(pacotesSelecionados)}
+        aoAbrir={() => {
+          setPacoteIdsRascunho(config.pacoteIds)
+          setModalPacotesAberto(true)
+        }}
+      />
+      <LinhaDeRegra
+        rotulo="Os dedos"
+        dica="Escondidos, ninguém vê pra quem o outro apontou até fechar. À vista, dá pra mudar de ideia junto — e é outro jogo."
+        valor={rotuloDe(OPCOES_DE_VOTACAO, config.dedo.votacao)}
+        aoAbrir={abrir('votacaoDedo')}
+      />
+      <LinhaDeRegra
+        rotulo="Apontar pra si mesmo"
+        dica="No jogo original não pode. Liberar faz a mesa assumir a carta na cara dura, o que às vezes é mais engraçado."
+        valor={rotuloDe(OPCOES_DE_AUTO_VOTO, config.dedo.autoVoto)}
+        aoAbrir={abrir('autoVotoDedo')}
+      />
+      <LinhaDeRegra
+        rotulo="Meta de pontos"
+        dica="Cada carta levada vale 1. Sem meta, a partida só acaba quando o host encerra."
+        valor={rotuloDe(PRESETS_DE_META_DEDO, config.dedo.metaDePontos)}
+        aoAbrir={abrir('metaDedo')}
+      />
+
+      {folha === 'votacaoDedo' && (
+        <FolhaDeEscolha
+          titulo="Os dedos"
+          descricao="Na apuração todos os dedos abrem de qualquer jeito — o que muda é o que se vê antes disso."
+          opcoes={OPCOES_DE_VOTACAO}
+          atual={config.dedo.votacao}
+          aoEscolher={(votacao) => mudarDedo({ votacao })}
+          aoFechar={() => setFolha(null)}
+        />
+      )}
+
+      {folha === 'autoVotoDedo' && (
+        <FolhaDeEscolha
+          titulo="Apontar pra si mesmo"
+          descricao="Vale pra mesa inteira, não só pra quem pediu."
+          opcoes={OPCOES_DE_AUTO_VOTO}
+          atual={config.dedo.autoVoto}
+          aoEscolher={(autoVoto) => mudarDedo({ autoVoto })}
+          aoFechar={() => setFolha(null)}
+        />
+      )}
+
+      {folha === 'metaDedo' && (
+        <FolhaDeEscolha
+          titulo="Meta de pontos"
+          descricao="Quem levar mais cartas na cara ganha. A partida acaba na carta em que a meta cair."
+          opcoes={PRESETS_DE_META_DEDO}
+          atual={config.dedo.metaDePontos}
+          aoEscolher={(metaDePontos) => mudarDedo({ metaDePontos })}
+          aoFechar={() => setFolha(null)}
+        />
+      )}
+
+      {modalPacotesAberto && (
+        <GavetaDePacotes
+          titulo="Pacotes de cartas"
+          descricao="Pode escolher mais de um — as cartas se somam. O tom vem escrito na descrição."
+          unidade="cartas"
+          disponiveis={pacotesDisponiveis}
+          rascunho={souHost ? pacoteIdsRascunho : config.pacoteIds}
+          somenteLeitura={!souHost}
+          aoAlternar={setPacoteIdsRascunho}
+          aoConfirmar={() => {
+            enviar({ t: 'configurar', config: { pacoteIds: pacoteIdsRascunho } })
+            setModalPacotesAberto(false)
+          }}
+          aoFechar={() => setModalPacotesAberto(false)}
+        />
+      )}
+    </div>
+  )
+}
+
+/** `DEDO-09` — o sigilo protege a decisão, nunca o resultado. */
+const OPCOES_DE_VOTACAO: ReadonlyArray<{ valor: 'secreta' | 'aberta'; rotulo: string }> = [
+  { valor: 'secreta', rotulo: 'Escondidos até fechar' },
+  { valor: 'aberta', rotulo: 'À vista o tempo todo' },
+]
+
+/** `DEDO-06` — o padrão é o do jogo original: dedo é pros outros. */
+const OPCOES_DE_AUTO_VOTO: ReadonlyArray<{ valor: boolean; rotulo: string }> = [
+  { valor: false, rotulo: 'Não pode' },
+  { valor: true, rotulo: 'Pode assumir' },
+]
+
+const PRESETS_DE_META_DEDO: ReadonlyArray<{ valor: number | null; rotulo: string }> = [
+  { valor: null, rotulo: 'Sem meta' },
+  { valor: 3, rotulo: '3 cartas' },
+  { valor: 5, rotulo: '5 cartas' },
+  { valor: 8, rotulo: '8 cartas' },
+  { valor: 12, rotulo: '12 cartas' },
 ]
 
 function RegrasEspiao({

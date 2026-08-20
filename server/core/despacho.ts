@@ -3,6 +3,7 @@ import type {
   Comando,
   Config,
   ConfigCartas,
+  ConfigDedo,
   ConfigEnigmas,
   ConfigEspiao,
   ContextoDeSala,
@@ -21,6 +22,8 @@ import {
   MAX_VOTACOES_TETO,
   META_MAX_PONTOS,
   META_ENIGMAS_MAX,
+  META_DEDO_MAX,
+  META_DEDO_MIN,
   META_ENIGMAS_MIN,
   META_MIN_PONTOS,
   RECARGA_BRANCA_MAX,
@@ -247,6 +250,14 @@ function configurar(
           ? sala.config.enigmas.metaDePontos
           : parcial.enigmas.metaDePontos,
     },
+    dedo: {
+      votacao: parcial.dedo?.votacao ?? sala.config.dedo.votacao,
+      autoVoto: parcial.dedo?.autoVoto ?? sala.config.dedo.autoVoto,
+      metaDePontos:
+        parcial.dedo?.metaDePontos === undefined
+          ? sala.config.dedo.metaDePontos
+          : parcial.dedo.metaDePontos,
+    },
   }
   return { ok: true, valor: SEM_EFEITOS }
 }
@@ -284,6 +295,21 @@ function configValida(parcial: Partial<Config>): boolean {
   if (parcial.espiao !== undefined && !configEspiaoValida(parcial.espiao)) return false
   if (parcial.cartas !== undefined && !configCartasValida(parcial.cartas)) return false
   if (parcial.enigmas !== undefined && !configEnigmasValida(parcial.enigmas)) return false
+  if (parcial.dedo !== undefined && !configDedoValida(parcial.dedo)) return false
+  return true
+}
+
+/** `DEDO-06`, `DEDO-09`, `DEDO-17` — faixas do Dedo na Cara; `null` só vale na meta. */
+function configDedoValida(parcial: Partial<ConfigDedo>): boolean {
+  if (parcial.votacao !== undefined && !['secreta', 'aberta'].includes(parcial.votacao)) {
+    return false
+  }
+  if (parcial.autoVoto !== undefined && typeof parcial.autoVoto !== 'boolean') return false
+  const meta = parcial.metaDePontos
+  if (meta !== undefined && meta !== null) {
+    if (!Number.isInteger(meta)) return false
+    if (meta < META_DEDO_MIN || meta > META_DEDO_MAX) return false
+  }
   return true
 }
 
