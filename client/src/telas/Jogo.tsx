@@ -1,25 +1,34 @@
 import { type RefObject, useEffect, useRef, useState } from 'react'
 import type { JogadorId, Projecao } from '../../../shared/protocolo'
 import {
+  Apurando,
+  BarraDeAcao,
   BlocoDeNotas,
   Botao,
   Carta,
   Chat,
-  IndicadorDeVez,
+  FaixaDeFase,
   MarcadorDeJogador,
   Modal,
+  PainelRecolhivel,
+  RelogioDaFaixa,
   Shell,
-  BadgePacote,
+  TiraDePacotes,
 } from '../componentes'
-import { tocarSuaVez, tocarVezOutro, tocarAcertou } from '../sons'
+import { estaAcabando, formatarTempo } from '../estado/relogio'
+import { useRestante } from '../estado/contagem'
+import { useBatidaDeSuspense } from '../estado/suspense'
+import { tocarSuaVez, tocarVezOutro, tocarAcertou, tocarTempoAcabando, tocarTickContagem } from '../sons'
+import { nomeDoJogo } from '../../../shared/jogos-catalogo'
 import type { PropsDaTela } from './tela'
 
 /**
  * O tabuleiro (`JOGO-01`, `JOGO-03`…`JOGO-11`, `DESC-01`…`DESC-07`).
  *
- * A mesa é a tela: a lista de cartas ocupa tudo e o resto é barra. A sua carta
- * fica no lugar de sempre, entre as outras, selada — o produto inteiro existe
- * para desenhar exatamente isso.
+ * A mesa é a tela: as testas de todo mundo em papel, e a sua virada no meio
+ * delas. A carta selada tem **a mesma altura, a mesma borda e a mesma sombra**
+ * das outras — é um lugar guardado, não um buraco, e a tela diz isso em
+ * palavras.
  *
  * Nada aqui decide de quem é a vez, quem confirma ou quem pode agir: tudo isso
  * chega pronto na projeção (AD-008). O que a tela calcula por conta própria é só
@@ -48,6 +57,7 @@ export function Jogo({ projecao, enviar, aoSair }: PropsDaTela) {
 
   const minhaLinha = useRef<HTMLLIElement>(null)
   const [confirmandoEncerrar, setConfirmandoEncerrar] = useState(false)
+  const [menuDeHost, setMenuDeHost] = useState(false)
 
   // `DESC-05` — a negativa não vira estado na projeção: o servidor descarta a
   // declaração e segue. O que a tela sabe é a transição entre duas projeções —
@@ -57,12 +67,20 @@ export function Jogo({ projecao, enviar, aoSair }: PropsDaTela) {
   const [negada, setNegada] = useState(false)
   if (declaracaoAtual !== declaracaoAnterior) {
     setDeclaracaoAnterior(declaracaoAtual)
-    setNegada(
-      declaracaoAtual === null &&
-        declaracaoAnterior === eu.id &&
-      !minhaFicha?.descobriu,
-    )
+    setNegada(declaracaoAtual === null && declaracaoAnterior === eu.id && !minhaFicha?.descobriu)
   }
+
+  // `DESC-04` — a revelação é um momento, não um bloco permanente: depois de
+  // ler, a pessoa volta pra mesa e continua respondendo os outros.
+  const [reveladaFechada, setReveladaFechada] = useState(false)
+
+  // A carta não vira no mesmo instante em que a outra pessoa aperta "acertou":
+  // a batida é o que transforma o clique dela num momento da mesa.
+  const minhaCartaCaiu = eu.minhaCarta !== undefined
+  const revelandoMinhaCarta = useBatidaDeSuspense(minhaCartaCaiu)
+
+  const restante = useRestante(jogo?.prazoTurno ?? null, sala.config.tempoTurnoSeg)
+  const acabando = ehMinhaVez && estaAcabando(restante)
 
   const vezAnteriorRef = useRef<string | null>(null)
   useEffect(() => {
@@ -78,115 +96,229 @@ export function Jogo({ projecao, enviar, aoSair }: PropsDaTela) {
     }
   }, [jogo?.vezDe, eu.id])
 
-  const descobriramLenAnteriorRef = useRef<number>(jogadores.filter(j => j.descobriu).length)
+  const descobriramLenAnteriorRef = useRef<number>(jogadores.filter((j) => j.descobriu).length)
   useEffect(() => {
     if (!jogo) return
     const anterior = descobriramLenAnteriorRef.current
-    const atual = jogadores.filter(j => j.descobriu).length
+    const atual = jogadores.filter((j) => j.descobriu).length
     if (atual > anterior) {
       tocarAcertou()
     }
     descobriramLenAnteriorRef.current = atual
   }, [jogadores])
 
+  // `JOGO-07` — o aviso sonoro do fim do turno é só de quem está na vez.
+  const segundos = restante === null ? null : Math.ceil(restante / 1000)
+  const ultimoSegundoTocado = useRef<number | null>(null)
+  useEffect(() => {
+    if (!ehMinhaVez || segundos === null) {
+      ultimoSegundoTocado.current = null
+      return
+    }
+    if (segundos === 10 && ultimoSegundoTocado.current !== 10) {
+      tocarTempoAcabando()
+      ultimoSegundoTocado.current = 10
+    } else if (segundos <= 5 && segundos > 0 && ultimoSegundoTocado.current !== segundos) {
+      tocarTickContagem()
+      ultimoSegundoTocado.current = segundos
+    }
+  }, [ehMinhaVez, segundos])
+
   const souDeclarante = declaracaoAtual === eu.id
+  const jaDescobri = minhaFicha?.descobriu === true
 
   return (
     <Shell
       codigo={sala.codigo}
-      legenda={`Partida em andamento · ${ativos.length} na mesa`}
+      titulo={nomeDoJogo(sala.jogoId)}
+      faixa={
+        <FaixaDeFase
+          {...faixaDaVez({
+            espectador: eu.situacao !== 'ativo',
+            souDeclarante,
+            souConfirmador: eu.souConfirmador && declarante !== undefined,
+            apelidoDeclarante: declarante?.apelido,
+            ehMinhaVez,
+            acabando,
+            daVez,
+          })}
+          relogio={
+            eu.situacao === 'ativo' ? (
+              <RelogioDaFaixa
+                texto={restante === null ? null : formatarTempo(restante)}
+                acabando={acabando}
+              />
+            ) : undefined
+          }
+        />
+      }
       aoSair={aoSair}
     >
-      <div className="flex flex-col gap-6">
-        {sala.pacotesSelecionados && sala.pacotesSelecionados.length > 0 && (
-          <div className="flex flex-wrap justify-center gap-2 sm:justify-start">
-            {sala.pacotesSelecionados.map((pacote) => (
-              <BadgePacote key={pacote.id} pacote={pacote} />
-            ))}
-          </div>
-        )}
+      <div className="flex flex-col gap-5 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,330px)] lg:items-start lg:gap-6">
+        <div className="flex flex-col gap-5">
+          <TiraDePacotes pacotes={sala.pacotesSelecionados} />
 
-        {eu.situacao === 'ativo' ? (
-          <IndicadorDeVez
-            ehSuaVez={ehMinhaVez}
-            apelido={daVez?.apelido}
-            cor={daVez?.cor}
-            conectado={daVez?.conectado ?? true}
-            prazoTurno={jogo?.prazoTurno ?? null}
-            duracaoSeg={sala.config.tempoTurnoSeg}
+          {eu.situacao !== 'ativo' && <Espectador />}
+
+          {/* `DESC-04` — a partir da confirmação a carta existe no payload dele. */}
+          {minhaCartaCaiu && revelandoMinhaCarta && (
+            <Apurando rotulo="a mesa confirmou" texto="Virando a sua carta…" />
+          )}
+
+          {eu.minhaCarta !== undefined && !revelandoMinhaCarta && !reveladaFechada && (
+            <VoceEra
+              texto={eu.minhaCarta}
+              faltam={ativos.filter((jogador) => !jogador.descobriu).length}
+              aoVoltar={() => setReveladaFechada(true)}
+            />
+          )}
+
+          {negada && <DeclaracaoNegada aoVoltar={() => setNegada(false)} />}
+
+          {declarante !== undefined && eu.souConfirmador && !souDeclarante && (
+            <DecisaoDoConfirmador
+              declarante={declarante}
+              aoResponder={(aceita) => enviar({ t: 'responderDeclaracao', aceita })}
+            />
+          )}
+
+          {souDeclarante && <AguardandoConfirmacao />}
+
+          <Mesa
+            jogadores={ativos}
+            euId={eu.id}
+            hostId={sala.hostId}
+            vezDe={jogo?.vezDe ?? null}
+            compacta={compacta}
+            declaracaoAtual={declaracaoAtual}
+            // A mesa esmaece enquanto uma declaração está aberta: é uma por vez,
+            // e a atenção pertence a ela.
+            esmaecida={declarante !== undefined && !eu.souConfirmador && !souDeclarante}
+            refDaMinha={minhaLinha}
+            aoIrParaMinha={() =>
+              minhaLinha.current?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+            }
           />
-        ) : (
-          <p className="-mx-4 -mt-5 border-b border-linha bg-superficie-2 px-4 py-3.5 font-mono text-[11px] tracking-[0.12em] text-texto-3 uppercase sm:mx-0 sm:mt-0 sm:rounded-painel sm:border-b-0">
-            partida em andamento
-          </p>
-        )}
 
-        <div className="grid grid-cols-1 gap-7 lg:grid-cols-[minmax(0,1fr)_minmax(0,320px)] lg:items-start lg:gap-8">
-          <section className="flex flex-col gap-5">
-            {eu.situacao !== 'ativo' && <Espectador />}
-
-            {declarante !== undefined &&
-              (souDeclarante ? (
-                <AguardandoConfirmacao />
-              ) : eu.souConfirmador ? (
-                <DecisaoDoConfirmador
-                  declarante={declarante}
-                  aoResponder={(aceita) => enviar({ t: 'responderDeclaracao', aceita })}
-                />
-              ) : (
-                <AnuncioDeDeclaracao apelido={declarante.apelido} />
-              ))}
-
-            {negada && <DeclaracaoNegada />}
-
-            {/* `DESC-04` — a partir da confirmação a carta existe no payload dele. */}
-            {eu.minhaCarta !== undefined && <VoceEra texto={eu.minhaCarta} />}
-
-            <Mesa
-              jogadores={ativos}
-              euId={eu.id}
-              hostId={sala.hostId}
-              vezDe={jogo?.vezDe ?? null}
-              compacta={compacta}
-              declaracaoAtual={declaracaoAtual}
-              refDaMinha={minhaLinha}
-              aoIrParaMinha={() =>
-                minhaLinha.current?.scrollIntoView({ block: 'center', behavior: 'smooth' })
-              }
-            />
-
-            {eu.situacao === 'ativo' && (
-              <Acoes
-                jaDescobriu={minhaFicha?.descobriu === true}
-                souDeclarante={souDeclarante}
-                apelidoDeQuemDeclarou={souDeclarante ? undefined : declarante?.apelido}
-                ehMinhaVez={ehMinhaVez}
-                semRelogio={sala.config.tempoTurnoSeg === null}
-                sozinhoNoRodizio={sozinhoNoRodizio}
-                souHost={eu.ehHost}
-                apelidoDaVez={daVez?.apelido}
-                enviar={enviar}
-                aoEncerrar={() => setConfirmandoEncerrar(true)}
-              />
-            )}
-          </section>
-
-          <section className="flex flex-col gap-5">
-            {/* `NOTA-01`, `NOTA-02` — só o dono vê; a projeção nunca traz as de outro. */}
+          <div className="flex flex-col gap-3 lg:hidden">
             <BlocoDeNotas texto={eu.notas} aoMudar={(texto) => enviar({ t: 'notas', texto })} />
-            <ChatDaMesa
-              mensagens={projecao.chat}
-              aoEnviar={(texto) => enviar({ t: 'chat', texto })}
-            />
-          </section>
+            <PainelRecolhivel rotulo="resenha" contagem={projecao.chat.length}>
+              <Chat mensagens={projecao.chat} aoEnviar={(texto) => enviar({ t: 'chat', texto })} />
+            </PainelRecolhivel>
+          </div>
+        </div>
+
+        <div className="hidden flex-col gap-3 lg:flex">
+          {/* `NOTA-01`, `NOTA-02` — só o dono vê; a projeção nunca traz as de outro. */}
+          <BlocoDeNotas texto={eu.notas} aoMudar={(texto) => enviar({ t: 'notas', texto })} />
+          <PainelRecolhivel rotulo="resenha" contagem={projecao.chat.length}>
+            <Chat mensagens={projecao.chat} aoEnviar={(texto) => enviar({ t: 'chat', texto })} />
+          </PainelRecolhivel>
         </div>
       </div>
+
+      {eu.situacao === 'ativo' && (
+        <BarraDeAcao>
+          <p className="text-apoio leading-snug text-texto-3">
+            {orientacao({
+              jaDescobri,
+              souDeclarante,
+              apelidoDeclarante: souDeclarante ? undefined : declarante?.apelido,
+              ehMinhaVez,
+              semRelogio: sala.config.tempoTurnoSeg === null,
+              sozinhoNoRodizio,
+            })}
+          </p>
+
+          <div className="flex items-center gap-2">
+            {!jaDescobri && (
+              <div className="min-w-0 flex-1">
+                <Botao
+                  larguraTotal
+                  onClick={() => enviar({ t: 'declararDescobri' })}
+                  // `DESC-10` — uma declaração por vez; dizer isso é melhor que
+                  // deixar o toque cair no vazio.
+                  motivo={
+                    souDeclarante
+                      ? 'Sua declaração está na mesa — espere a resposta.'
+                      : declarante !== undefined
+                        ? `${declarante.apelido} declarou primeiro — é uma por vez, espera abrir.`
+                        : undefined
+                  }
+                >
+                  Descobri!
+                </Botao>
+              </div>
+            )}
+
+            {/* `JOGO-04` — passar a vez é de quem está na vez. */}
+            {ehMinhaVez && !sozinhoNoRodizio && (
+              <div className="min-w-0 flex-1">
+                <Botao
+                  larguraTotal
+                  variante="secundario"
+                  onClick={() => enviar({ t: 'passarVez' })}
+                >
+                  Passei a vez
+                </Botao>
+              </div>
+            )}
+
+            {/* `VIS-04` — na tela de quem não é host esse ⋯ não aparece. */}
+            {eu.ehHost && (
+              <button
+                type="button"
+                aria-label="Ações do host"
+                onClick={() => setMenuDeHost(true)}
+                className="flex h-13 w-13 flex-none cursor-pointer items-center justify-center rounded-botao border border-controle-linha text-[18px] leading-none text-texto"
+              >
+                <span aria-hidden="true">⋯</span>
+              </button>
+            )}
+          </div>
+        </BarraDeAcao>
+      )}
+
+      {menuDeHost && (
+        <Modal
+          folha
+          titulo="Ações do host"
+          descricao="Só você vê estas ações."
+          rotuloCancelar="Fechar"
+          aoCancelar={() => setMenuDeHost(false)}
+        >
+          <div className="flex flex-col gap-2.5">
+            {daVez !== undefined && !ehMinhaVez && !sozinhoNoRodizio && (
+              <Botao
+                larguraTotal
+                variante="secundario"
+                onClick={() => {
+                  enviar({ t: 'pularVez' })
+                  setMenuDeHost(false)
+                }}
+              >
+                Pular a vez de {daVez.apelido}
+              </Botao>
+            )}
+            <Botao
+              larguraTotal
+              variante="destrutivo"
+              onClick={() => {
+                setMenuDeHost(false)
+                setConfirmandoEncerrar(true)
+              }}
+            >
+              Encerrar partida
+            </Botao>
+          </div>
+        </Modal>
+      )}
 
       {/* `HOST-07` — encerrar revela a carta de todo mundo; confirma antes. */}
       {confirmandoEncerrar && (
         <Modal
           titulo="Encerrar a partida?"
-          descricao="As cartas de todo mundo são reveladas e a mesa volta para o lobby. Quem ainda não descobriu vai ver a sua."
+          descricao="Isso revela a carta de todo mundo na hora, inclusive de quem ainda não descobriu."
           rotuloConfirmar="Encerrar e revelar tudo"
           rotuloCancelar="Continuar jogando"
           destrutivo
@@ -197,9 +329,109 @@ export function Jogo({ projecao, enviar, aoSair }: PropsDaTela) {
           aoCancelar={() => setConfirmandoEncerrar(false)}
         />
       )}
-
     </Shell>
   )
+}
+
+/**
+ * A faixa responde "o que eu faço agora?" (`VIS-03`) — e durante uma declaração
+ * ela troca de assunto: o que importa naquele instante é a declaração, não a vez.
+ */
+function faixaDaVez({
+  espectador,
+  souDeclarante,
+  souConfirmador,
+  apelidoDeclarante,
+  ehMinhaVez,
+  acabando,
+  daVez,
+}: {
+  espectador: boolean
+  souDeclarante: boolean
+  souConfirmador: boolean
+  apelidoDeclarante: string | undefined
+  ehMinhaVez: boolean
+  acabando: boolean
+  daVez: Ficha | undefined
+}) {
+  if (espectador) {
+    return { selo: 'assistindo', tom: 'tinta' as const, children: 'Você entra na próxima.' }
+  }
+  if (souDeclarante) {
+    return {
+      selo: 'você declarou',
+      tom: 'mostarda' as const,
+      children: 'Sua declaração está na mesa — espere a resposta.',
+    }
+  }
+  if (souConfirmador && apelidoDeclarante !== undefined) {
+    return {
+      selo: 'confere pra mesa',
+      tom: 'mostarda' as const,
+      children: `${apelidoDeclarante} declarou. Compare o palpite com a carta e responda.`,
+    }
+  }
+  if (apelidoDeclarante !== undefined) {
+    return {
+      selo: 'declaração aberta',
+      tom: 'mostarda' as const,
+      children: `${apelidoDeclarante} declarou. A mesa está conferindo — você não precisa fazer nada.`,
+    }
+  }
+  if (ehMinhaVez) {
+    return {
+      selo: 'sua vez',
+      tom: acabando ? ('mostarda' as const) : ('esmalte' as const),
+      children: (
+        <>
+          Pergunte algo de <strong className="font-semibold">sim ou não</strong> em voz alta.
+        </>
+      ),
+    }
+  }
+  if (daVez === undefined) {
+    return { selo: 'mesa parada', tom: 'tinta' as const, children: 'Ninguém está na vez agora.' }
+  }
+  return {
+    marcador: <MarcadorDeJogador apelido={daVez.apelido} cor={daVez.cor} tamanho="grande" />,
+    children: daVez.conectado
+      ? `Vez de ${daVez.apelido} — responda o que ${daVez.apelido} perguntar.`
+      : `${daVez.apelido} caiu, mas a vez continua sendo dela.`,
+  }
+}
+
+/** A linha de orientação da barra — cinco situações, uma frase cada. */
+function orientacao({
+  jaDescobri,
+  souDeclarante,
+  apelidoDeclarante,
+  ehMinhaVez,
+  semRelogio,
+  sozinhoNoRodizio,
+}: {
+  jaDescobri: boolean
+  souDeclarante: boolean
+  apelidoDeclarante: string | undefined
+  ehMinhaVez: boolean
+  semRelogio: boolean
+  sozinhoNoRodizio: boolean
+}): string {
+  if (jaDescobri) {
+    return 'Você já descobriu. Fique na mesa e responda as perguntas dos outros — sem entregar nada.'
+  }
+  if (souDeclarante) return 'Sua declaração está na mesa — espere a resposta.'
+  if (apelidoDeclarante !== undefined) {
+    return `${apelidoDeclarante} declarou primeiro — é uma por vez, espera abrir.`
+  }
+  if (sozinhoNoRodizio && ehMinhaVez) {
+    return 'Você é o último sem descobrir. A vez é sua até declarar, sem relógio e sem passar.'
+  }
+  if (ehMinhaVez) {
+    return semRelogio
+      ? 'Sem relógio: a vez só passa quando você passar.'
+      : 'Fale o palpite em voz alta antes de apertar Descobri!.'
+  }
+  return 'Não é sua vez. Mas se for da regra da mesa, você pode declarar quando quiser.'
 }
 
 /** `JOGO-01` — as testas de todo mundo, e a sua no meio delas. */
@@ -210,6 +442,7 @@ function Mesa({
   vezDe,
   compacta,
   declaracaoAtual,
+  esmaecida,
   refDaMinha,
   aoIrParaMinha,
 }: {
@@ -219,36 +452,43 @@ function Mesa({
   vezDe: JogadorId | null
   compacta: boolean
   declaracaoAtual: JogadorId | null
+  esmaecida: boolean
   refDaMinha: RefObject<HTMLLIElement | null>
   aoIrParaMinha(): void
 }) {
   return (
     <div className="flex flex-col gap-2.5">
       <div className="flex items-center gap-3">
-        <h2 className="font-mono text-[11px] tracking-[0.12em] text-texto-3 uppercase">
-          {jogadores.length} na mesa
+        <h2 className="font-mono text-rotulo text-texto-3 uppercase">
+          mesa · {jogadores.length} cartas
         </h2>
         {/* `VIS-02` — com a mesa cheia, achar a própria carta não pode ser rolar no escuro. */}
         {compacta && (
           <button
             type="button"
             onClick={aoIrParaMinha}
-            className="ml-auto min-h-8 cursor-pointer rounded-pilula border border-acento bg-acento-suave px-3 text-[12px] font-medium text-acento"
+            className="ml-auto min-h-9 cursor-pointer rounded-chip border border-controle-linha px-2.5 text-miudo font-semibold text-texto"
           >
-            Ir para a minha
+            ir para a minha ↓
           </button>
         )}
       </div>
 
       <ul
-        className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 ${
-          compacta ? 'gap-1.5' : 'gap-2.5'
+        className={`grid transition-opacity duration-200 ${esmaecida ? 'opacity-45' : ''} ${
+          compacta
+            ? 'grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-5'
+            : 'grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4'
         }`}
       >
         {jogadores.map((jogador) => {
           const souEu = jogador.id === euId
           return (
-            <li key={jogador.id} ref={souEu ? refDaMinha : undefined} className={`min-w-0 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${jogador.id === declaracaoAtual ? 'animacao-flash' : ''}`}>
+            <li
+              key={jogador.id}
+              ref={souEu ? refDaMinha : undefined}
+              className={`min-w-0 ${jogador.id === declaracaoAtual ? 'animacao-flash' : ''}`}
+            >
               <Carta
                 apelido={jogador.apelido}
                 cor={jogador.cor}
@@ -268,94 +508,6 @@ function Mesa({
   )
 }
 
-/**
- * `JOGO-04`, `JOGO-05`, `DESC-01`, `FIM-01` — o que dá para fazer agora.
- *
- * `AJU-12` — restando um no rodízio, passar e pular a vez somem: passar a vez
- * para si mesmo é operação sem efeito, e o servidor já ignora o avanço.
- */
-function Acoes({
-  jaDescobriu,
-  souDeclarante,
-  apelidoDeQuemDeclarou,
-  ehMinhaVez,
-  semRelogio,
-  sozinhoNoRodizio,
-  souHost,
-  apelidoDaVez,
-  enviar,
-  aoEncerrar,
-}: {
-  jaDescobriu: boolean
-  souDeclarante: boolean
-  apelidoDeQuemDeclarou: string | undefined
-  ehMinhaVez: boolean
-  semRelogio: boolean
-  sozinhoNoRodizio: boolean
-  souHost: boolean
-  apelidoDaVez: string | undefined
-  enviar: PropsDaTela['enviar']
-  aoEncerrar(): void
-}) {
-  return (
-    <div className="flex flex-col gap-2.5 border-t border-linha pt-5">
-      {!jaDescobriu &&
-        (souDeclarante ? (
-          <Botao larguraTotal motivo="Só quem confirma pode responder à sua declaração.">
-            Declaração enviada · aguardando
-          </Botao>
-        ) : (
-          <Botao
-            larguraTotal
-            onClick={() => enviar({ t: 'declararDescobri' })}
-            // `DESC-10` — uma declaração por vez; dizer isso é melhor que
-            // deixar o toque cair no vazio.
-            motivo={
-              apelidoDeQuemDeclarou === undefined
-                ? undefined
-                : `${apelidoDeQuemDeclarou} declarou primeiro. Assim que responderem, é sua vez de declarar.`
-            }
-          >
-            Descobri!
-          </Botao>
-        ))}
-
-      {/* `JOGO-04` — passar a vez é de quem está na vez. */}
-      {ehMinhaVez && !sozinhoNoRodizio && (
-        <Botao larguraTotal variante="secundario" onClick={() => enviar({ t: 'passarVez' })} className="animacao-pulse-attention">
-          Passei a vez
-        </Botao>
-      )}
-
-      <p className="text-[12px] leading-snug text-texto-3">
-        {jaDescobriu
-          ? 'Você já descobriu. Fique na mesa e responda as perguntas dos outros — sem entregar nada.'
-          : sozinhoNoRodizio && ehMinhaVez
-            ? 'Você é o último sem descobrir. A vez é sua até declarar, sem relógio e sem passar.'
-            : ehMinhaVez
-              ? semRelogio
-                ? 'Sem relógio, a vez só passa quando você passar.'
-                : 'Fale o palpite em voz alta antes de clicar em Descobri!.'
-              : 'Responda em voz alta quando a pergunta vier. Declarar não depende da sua vez.'}
-      </p>
-
-      {/* `VIS-04` — ação de host não existe na tela de quem não é host. */}
-      {souHost && (
-        <div className="mt-1 flex flex-col gap-2.5 border-t border-linha pt-4">
-          {apelidoDaVez !== undefined && !ehMinhaVez && !sozinhoNoRodizio && (
-            <Botao larguraTotal variante="secundario" onClick={() => enviar({ t: 'pularVez' })}>
-              Pular a vez de {apelidoDaVez}
-            </Botao>
-          )}
-          <Botao larguraTotal variante="destrutivo" onClick={aoEncerrar}>
-            Encerrar partida
-          </Botao>
-        </div>
-      )}
-    </div>
-  )
-}
-
 // ---------------------------------------------------------------------------
 // As três visões de uma declaração pendente (`DESC-01`…`DESC-05`)
 // ---------------------------------------------------------------------------
@@ -363,15 +515,14 @@ function Acoes({
 /** Quem declarou: a carta continua selada até alguém responder. */
 function AguardandoConfirmacao() {
   return (
-    <div className="flex flex-col gap-1.5 rounded-bloco border border-aviso-linha bg-aviso-suave p-4">
-      <span className="animacao-pulso font-mono text-[11px] tracking-[0.12em] text-aviso uppercase">
-        aguardando confirmação
-      </span>
-      <p className="text-[15px] leading-relaxed text-texto-2">
-        Você declarou que descobriu. Alguém da mesa vai confirmar ou negar — sua carta continua
-        selada até lá.
+    <section className="flex flex-col items-start gap-2 rounded-papel border-2 border-aviso p-4">
+      <span className="selo bg-aviso text-aviso-contraste">aguardando confirmação</span>
+      <p className="text-apoio leading-relaxed text-texto-2">
+        Alguém da mesa está conferindo se você acertou. Sua carta{' '}
+        <strong className="font-semibold text-texto">continua selada</strong> até a resposta — e se
+        errou, nada acontece: você continua na sua vez.
       </p>
-    </div>
+    </section>
   )
 }
 
@@ -384,130 +535,112 @@ function DecisaoDoConfirmador({
   aoResponder(aceita: boolean): void
 }) {
   return (
-    <div className="flex flex-col gap-3 rounded-bloco border-2 border-aviso bg-superficie p-4">
-      <span className="flex items-center gap-2.5">
-        <MarcadorDeJogador
-          apelido={declarante.apelido}
-          cor={declarante.cor}
-          tamanho="grande"
-        />
-        <span className="flex min-w-0 flex-col">
-          <span className="font-mono text-[10px] tracking-[0.1em] text-aviso uppercase">
-            declarou que descobriu
-          </span>
-          <span className="truncate text-[19px] font-semibold tracking-[-0.02em] text-texto">
-            {declarante.apelido}
+    <section className="flex flex-col gap-3 rounded-papel border-2 border-controle-linha bg-superficie p-4 shadow-botao">
+      <span className="selo bg-aviso text-aviso-contraste">confere pra mesa</span>
+      <h2 className="font-display text-secao text-texto">{declarante.apelido} acertou?</h2>
+      <p className="text-apoio leading-relaxed text-texto-2">
+        O palpite foi falado em voz alta. Compare com a carta:
+      </p>
+
+      <div className="flex flex-col gap-1.5 rounded-botao border border-dashed border-linha p-3.5">
+        <span className="flex items-center gap-2">
+          <MarcadorDeJogador apelido={declarante.apelido} cor={declarante.cor} tamanho="medio" />
+          <span className="font-mono text-rotulo text-texto-3 uppercase">
+            a carta de {declarante.apelido} é
           </span>
         </span>
-      </span>
+        <span className="font-display text-titulo text-balance text-texto">{declarante.carta}</span>
+      </div>
 
-      <p className="text-apoio leading-relaxed text-texto-2">
-        O palpite foi falado em voz alta. A carta de {declarante.apelido} é{' '}
-        <strong className="font-semibold text-texto">{declarante.carta}</strong>. Acertou?
-      </p>
-
-      <div className="flex flex-wrap gap-2.5">
-        <Botao onClick={() => aoResponder(true)}>Confirmar</Botao>
-        <Botao variante="destrutivo" onClick={() => aoResponder(false)}>
-          Negar
+      <div className="flex flex-col gap-2.5">
+        <Botao larguraTotal onClick={() => aoResponder(true)}>
+          Acertou!
+        </Botao>
+        <Botao larguraTotal variante="secundario" onClick={() => aoResponder(false)}>
+          Não é essa
         </Botao>
       </div>
-    </div>
-  )
-}
 
-/** `DESC-01` — os demais só recebem o anúncio; não decidem nada. */
-function AnuncioDeDeclaracao({ apelido }: { apelido: string }) {
-  return (
-    <div className="flex items-center gap-2.5 rounded-painel border border-aviso-linha bg-aviso-suave px-3.5 py-3">
-      <span aria-hidden="true" className="animacao-pulso h-2 w-2 flex-none rounded-pilula bg-aviso" />
-      <p className="text-apoio leading-snug text-texto-2">
-        <strong className="font-semibold text-texto">{apelido}</strong> declarou que descobriu. A
-        mesa está conferindo.
+      <p className="text-apoio text-texto-3">
+        Se você negar, {declarante.apelido} não perde a vez nem leva castigo — só continua jogando.
       </p>
-    </div>
+    </section>
   )
 }
 
 /** `DESC-05` — negar não custa nada a quem declarou, e a tela precisa dizer isso. */
-function DeclaracaoNegada() {
+function DeclaracaoNegada({ aoVoltar }: { aoVoltar(): void }) {
   return (
-    <div className="flex flex-col gap-1.5 rounded-bloco border border-risco-linha bg-risco-suave p-4">
-      <span className="font-mono text-[11px] tracking-[0.12em] text-risco uppercase">
-        não era essa
+    <section className="flex flex-col items-start gap-2.5 rounded-papel border-2 border-controle-linha bg-superficie p-4">
+      <span className="flex items-center gap-2">
+        <span aria-hidden="true" className="font-display text-secao text-texto-3">
+          ≠
+        </span>
+        <h2 className="font-display text-secao text-texto">Não era essa.</h2>
       </span>
-      <p className="text-[15px] leading-relaxed text-texto-2">
-        Negaram seu palpite. Nada mudou: você não perdeu a vez nem ganhou penalidade. Pergunte mais
-        e declare de novo quando quiser.
+      <p className="text-apoio leading-relaxed text-texto-2">
+        Continua tudo igual: <strong className="font-semibold text-texto">a vez ainda é sua</strong>
+        , sua carta segue selada e você pode declarar de novo na hora que quiser.
       </p>
-    </div>
+      <ul className="flex flex-col gap-1 border-t border-dashed border-linha pt-2.5">
+        <li className="font-mono text-rotulo text-texto-3 uppercase">o que não aconteceu</li>
+        {['você não perdeu a vez', 'não existe limite de tentativas', 'ninguém ganhou nada'].map(
+          (item) => (
+            <li key={item} className="flex gap-2 text-apoio text-texto-3">
+              <span aria-hidden="true">·</span>
+              <span>{item}</span>
+            </li>
+          ),
+        )}
+      </ul>
+      <Botao variante="secundario" onClick={aoVoltar}>
+        Voltar pra mesa
+      </Botao>
+    </section>
   )
 }
 
 /** `DESC-04` — a carta que estava na sua testa a partida inteira. */
-function VoceEra({ texto }: { texto: string }) {
+function VoceEra({
+  texto,
+  faltam,
+  aoVoltar,
+}: {
+  texto: string
+  faltam: number
+  aoVoltar(): void
+}) {
   return (
-    <div className="flex flex-col gap-2 rounded-bloco bg-acento p-5">
-      <span className="font-mono text-[11px] tracking-[0.12em] text-acento-contraste/75 uppercase">
-        você era
-      </span>
-      <span className="text-titulo text-balance text-acento-contraste">{texto}</span>
-      <p className="text-apoio leading-relaxed text-acento-contraste/80">
-        Fique na mesa e ajude os outros — sem entregar nada.
-      </p>
-    </div>
+    <section className="flex flex-col items-start gap-2.5 rounded-papel bg-acento p-5">
+      <span className="selo bg-acento-contraste text-acento">a mesa confirmou</span>
+      <span className="font-mono text-rotulo text-acento-contraste/75 uppercase">você era</span>
+      <span className="font-display text-display text-balance text-acento-contraste">{texto}</span>
+      {/* <p className="text-apoio leading-relaxed text-acento-contraste/85">
+        Ficou a partida inteira na sua testa. Quem escreveu isso segue em segredo — e você continua
+        na mesa, respondendo os outros.
+      </p> */}
+      <Botao variante="secundario" onClick={aoVoltar} className="border-acento-contraste text-acento-contraste">
+        Voltar pra mesa
+      </Botao>
+      {faltam > 0 && (
+        <span className="font-mono text-rotulo text-acento-contraste/75 uppercase">
+          {faltam} ainda {faltam === 1 ? 'está descobrindo' : 'estão descobrindo'}
+        </span>
+      )}
+    </section>
   )
 }
 
 /** `SALA-10` — entrou depois do sorteio: assiste esta e joga a próxima. */
 function Espectador() {
   return (
-    <div className="flex flex-col gap-2 rounded-bloco border border-linha bg-superficie p-5">
-      <h2 className="text-titulo text-texto">Você entra na próxima</h2>
-      <p className="text-[15px] leading-relaxed text-texto-2">
-        Ninguém escreveu uma carta para você nesta rodada. Assista, converse no chat — quando esta
-        partida acabar você entra automaticamente.
+    <section className="flex flex-col items-start gap-2 rounded-papel border border-dashed border-linha p-5">
+      <span className="selo bg-controle-linha text-fundo">assistindo</span>
+      <h2 className="font-display text-titulo text-texto">Você entra na próxima.</h2>
+      <p className="text-apoio leading-relaxed text-texto-2">
+        Você vê a mesa inteira, inclusive as cartas — então vale segurar a língua. Pode zoar na
+        resenha; quando esta partida acabar você entra automaticamente.
       </p>
-    </div>
+    </section>
   )
 }
-
-/**
- * `CHAT-01`, `CHAT-04` — o chat é apoio, não canal principal. No celular ele
- * começa recolhido para não disputar espaço com a mesa; a partir de `lg` ele
- * mora na coluna lateral e fica sempre aberto.
- */
-function ChatDaMesa({
-  mensagens,
-  aoEnviar,
-}: {
-  mensagens: Projecao['chat']
-  aoEnviar(texto: string): void
-}) {
-  const [aberto, setAberto] = useState(false)
-
-  return (
-    <div className="flex flex-col gap-3">
-      <button
-        type="button"
-        aria-expanded={aberto}
-        onClick={() => setAberto((estava) => !estava)}
-        className="flex min-h-11 cursor-pointer items-center justify-between gap-3 rounded-painel bg-superficie-2 px-3.5 py-3 text-left lg:hidden"
-      >
-        <span className="font-mono text-[11px] tracking-[0.1em] text-texto-3 uppercase">
-          chat{mensagens.length > 0 && ` · ${mensagens.length}`}
-        </span>
-        <span className="text-miudo font-medium text-acento">{aberto ? 'recolher' : 'abrir'}</span>
-      </button>
-
-      <h2 className="hidden font-mono text-[11px] tracking-[0.1em] text-texto-3 uppercase lg:block">
-        chat
-      </h2>
-
-      <div className={aberto ? 'block' : 'hidden lg:block'}>
-        <Chat mensagens={mensagens} aoEnviar={aoEnviar} />
-      </div>
-    </div>
-  )
-}
-

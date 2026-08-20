@@ -23,6 +23,7 @@ function cartas(facil: string[], medio: string[], dificil: string[]): CartaDoPac
 export const PACOTES: PacoteCompleto[] = [
   {
     id: 'filmes',
+    jogoId: 'quem-sou-eu',
     emoji: '🎥',
     nome: 'Filmes',
     descricao: 'Adivinhe os filmes mais famosos do cinema.',
@@ -68,6 +69,7 @@ export const PACOTES: PacoteCompleto[] = [
   },
   {
     id: 'anime',
+    jogoId: 'quem-sou-eu',
     emoji: '⛩️',
     nome: 'Personagens de Anime',
     descricao: 'Personagens icônicos do mundo dos animes e mangás.',
@@ -113,6 +115,7 @@ export const PACOTES: PacoteCompleto[] = [
   },
   {
     id: 'personagens-filmes',
+    jogoId: 'quem-sou-eu',
     emoji: '🍿',
     nome: 'Personagens de Filmes',
     descricao: 'Heróis, vilões e personagens inesquecíveis.',
@@ -158,6 +161,7 @@ export const PACOTES: PacoteCompleto[] = [
   },
   {
     id: 'livros',
+    jogoId: 'quem-sou-eu',
     emoji: '📚',
     nome: 'Livros',
     descricao: 'Clássicos da literatura, best-sellers e romances.',
@@ -203,6 +207,7 @@ export const PACOTES: PacoteCompleto[] = [
   },
   {
     id: 'futebol',
+    jogoId: 'quem-sou-eu',
     emoji: '⚽',
     nome: 'Jogadores de Futebol',
     descricao: 'Lendas do passado e craques da atualidade.',
@@ -248,6 +253,7 @@ export const PACOTES: PacoteCompleto[] = [
   },
   {
     id: 'jogos',
+    jogoId: 'quem-sou-eu',
     emoji: '🎮',
     nome: 'Jogos',
     descricao: 'Títulos clássicos e sucessos modernos.',
@@ -293,6 +299,7 @@ export const PACOTES: PacoteCompleto[] = [
   },
   {
     id: 'personagens-jogos',
+    jogoId: 'quem-sou-eu',
     emoji: '👾',
     nome: 'Personagens de Jogos',
     descricao: 'Protagonistas e vilões marcantes dos games.',
@@ -338,6 +345,7 @@ export const PACOTES: PacoteCompleto[] = [
   },
   {
     id: 'series',
+    jogoId: 'quem-sou-eu',
     emoji: '📺',
     nome: 'Séries de TV',
     descricao: 'Shows que marcaram época e séries atuais.',
@@ -383,6 +391,7 @@ export const PACOTES: PacoteCompleto[] = [
   },
   {
     id: 'musica',
+    jogoId: 'quem-sou-eu',
     emoji: '🎤',
     nome: 'Cantores/Bandas',
     descricao: 'Ídolos da música, bandas e lendas do rock.',
@@ -428,6 +437,7 @@ export const PACOTES: PacoteCompleto[] = [
   },
   {
     id: 'super-herois',
+    jogoId: 'quem-sou-eu',
     emoji: '🦸‍♂️',
     nome: 'Super-heróis',
     descricao: 'Heróis da Marvel, DC e outros universos.',
@@ -473,6 +483,7 @@ export const PACOTES: PacoteCompleto[] = [
   },
   {
     id: 'campeoes-lol',
+    jogoId: 'quem-sou-eu',
     emoji: '⚔️',
     nome: 'Campeões de LoL',
     descricao: 'Todos os campeões de League of Legends.',

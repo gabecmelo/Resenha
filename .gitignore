@@ -13,3 +13,4 @@ design/
 .env.*
 !.env.example
 .DS_Store
+.tmpdesign/

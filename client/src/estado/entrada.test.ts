@@ -182,19 +182,26 @@ describe('motivoParaEntrar', () => {
 })
 
 describe('motivoParaIniciar (AJU-06, AJU-34)', () => {
-  it('não tem motivo com 2 jogadores ativos', () => {
-    expect(motivoParaIniciar(2)).toBeUndefined()
+  it('não tem motivo com o mínimo exato de jogadores ativos', () => {
+    expect(motivoParaIniciar(2, 2)).toBeUndefined()
   })
 
   it('não tem motivo acima do mínimo', () => {
-    expect(motivoParaIniciar(5)).toBeUndefined()
+    expect(motivoParaIniciar(5, 2)).toBeUndefined()
   })
 
   it('diz o que falta com 1 jogador ativo', () => {
-    expect(motivoParaIniciar(1)).toBe('Precisa de pelo menos 2 pessoas — falta 1.')
+    expect(motivoParaIniciar(1, 2)).toBe('Precisa de pelo menos 2 pessoas — falta 1.')
   })
 
   it('usa o plural quando falta mais de uma pessoa', () => {
-    expect(motivoParaIniciar(0)).toBe('Precisa de pelo menos 2 pessoas — faltam 2.')
+    expect(motivoParaIniciar(0, 2)).toBe('Precisa de pelo menos 2 pessoas — faltam 2.')
+  })
+
+  // `AD-014` — o mínimo é por jogo. Com o global (2), o lobby de Espião
+  // oferecia iniciar com 2 e o servidor recusava depois do clique.
+  it('exige o mínimo do jogo, não o do produto (Espião pede 3)', () => {
+    expect(motivoParaIniciar(2, 3)).toBe('Precisa de pelo menos 3 pessoas — falta 1.')
+    expect(motivoParaIniciar(3, 3)).toBeUndefined()
   })
 })

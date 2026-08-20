@@ -326,8 +326,16 @@ export class SalaDeJogo {
     await this.persistir(sala)
 
     let pacotes: PacoteResumo[] | undefined = undefined;
-    if (sala.fase === 'lobby' && sala.config.modoPacote === 'pacote') {
-      pacotes = await this.getPacotesDisponiveis();
+    if (sala.fase === 'lobby') {
+      const todos = await this.getPacotesDisponiveis();
+      // `ESP-22` — cada jogo só vê os pacotes que ele mesmo pode jogar.
+      //
+      // O catálogo vai no lobby de qualquer sala, e não só quando
+      // `modoPacote === 'pacote'`: aquele campo é vocabulário de "Quem Sou
+      // Eu?" (que tem escrita livre), e os jogos que só existem com pacote
+      // não deveriam precisar falar essa língua pra ver a própria lista
+      // (`CCT-31`). Quem não usa pacote simplesmente não desenha a lista.
+      pacotes = todos.filter((p) => p.jogoId === sala.jogoId);
     }
 
     // Cenário de ops (jogo removido do registro): pula a difusão neste ciclo
@@ -355,8 +363,16 @@ export class SalaDeJogo {
         } else {
           // Fallback para ambiente local de dev onde o miniflare pode não ter lido o SQLite do script
           const { PACOTES } = await import('../../shared/pacotes-dados');
-          this.pacotesDisponiveis = PACOTES.map(p => ({
+          const { LOCAIS } = await import('../../shared/locais-dados');
+          // `CCT-31` — os pacotes de Cartas Contra a Turma têm outro formato
+          // (perguntas + respostas, sem dificuldade), mas o resumo do lobby é
+          // o mesmo: id, nome, emoji, quantidade e o `jogoId` que filtra.
+          const { CARTAS_TURMA } = await import('../../shared/cartas-turma-dados');
+          // `ENIG-30` — mesma história: cena + solução em vez de cartas, resumo igual.
+          const { ENIGMAS } = await import('../../shared/enigmas-dados');
+          this.pacotesDisponiveis = [...PACOTES, ...LOCAIS, ...CARTAS_TURMA, ...ENIGMAS].map(p => ({
             id: p.id,
+            jogoId: p.jogoId,
             nome: p.nome,
             descricao: p.descricao,
             emoji: p.emoji,

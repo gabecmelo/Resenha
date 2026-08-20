@@ -2,6 +2,9 @@ import type {
   Ambiente,
   Comando,
   Config,
+  ConfigCartas,
+  ConfigEnigmas,
+  ConfigEspiao,
   ContextoDeSala,
   Dificuldade,
   EstadoSala,
@@ -11,7 +14,24 @@ import type {
   Resultado,
   ResultadoReducer,
 } from '../../shared/protocolo'
-import { CONFIG_PADRAO, TEMPO_TURNO_MAX_SEG, TEMPO_TURNO_MIN_SEG } from '../../shared/protocolo'
+import {
+  CONFIG_PADRAO,
+  TEMPO_TURNO_MAX_SEG,
+  TEMPO_TURNO_MIN_SEG,
+  MAX_VOTACOES_TETO,
+  META_MAX_PONTOS,
+  META_ENIGMAS_MAX,
+  META_ENIGMAS_MIN,
+  META_MIN_PONTOS,
+  RECARGA_BRANCA_MAX,
+  RECARGA_BRANCA_MIN,
+  REROLLS_MAX,
+  REROLLS_MIN,
+  TEMPO_ESCOLHA_MAX_SEG,
+  TEMPO_ESCOLHA_MIN_SEG,
+  TEMPO_VOTACAO_MAX_SEG,
+  TEMPO_VOTACAO_MIN_SEG,
+} from '../../shared/protocolo'
 import type { PacoteCompleto } from '../../shared/pacotes-dados'
 import * as chat from './chat'
 import { TIPOS_DE_PRAZO, definir } from './prazos'
@@ -193,6 +213,40 @@ function configurar(
     pacoteIds: parcial.pacoteIds ?? sala.config.pacoteIds,
     dificuldades: parcial.dificuldades ?? sala.config.dificuldades,
     modoDistribuicao: parcial.modoDistribuicao ?? sala.config.modoDistribuicao,
+    espiao: {
+      numEspioes: parcial.espiao?.numEspioes ?? sala.config.espiao.numEspioes,
+      espioesSeVeem: parcial.espiao?.espioesSeVeem ?? sala.config.espiao.espioesSeVeem,
+      visibilidadeVoto: parcial.espiao?.visibilidadeVoto ?? sala.config.espiao.visibilidadeVoto,
+      tempoRodadaSeg:
+        parcial.espiao?.tempoRodadaSeg === undefined
+          ? sala.config.espiao.tempoRodadaSeg
+          : parcial.espiao.tempoRodadaSeg,
+      tempoVotacaoSeg: parcial.espiao?.tempoVotacaoSeg ?? sala.config.espiao.tempoVotacaoSeg,
+      maxVotacoes:
+        parcial.espiao?.maxVotacoes === undefined
+          ? sala.config.espiao.maxVotacoes
+          : parcial.espiao.maxVotacoes,
+    },
+    cartas: {
+      tempoEscolhaSeg:
+        parcial.cartas?.tempoEscolhaSeg === undefined
+          ? sala.config.cartas.tempoEscolhaSeg
+          : parcial.cartas.tempoEscolhaSeg,
+      metaDePontos:
+        parcial.cartas?.metaDePontos === undefined
+          ? sala.config.cartas.metaDePontos
+          : parcial.cartas.metaDePontos,
+      rerollsIniciais: parcial.cartas?.rerollsIniciais ?? sala.config.cartas.rerollsIniciais,
+      recargaDaBrancaRodadas:
+        parcial.cartas?.recargaDaBrancaRodadas ?? sala.config.cartas.recargaDaBrancaRodadas,
+    },
+    enigmas: {
+      modoPergunta: parcial.enigmas?.modoPergunta ?? sala.config.enigmas.modoPergunta,
+      metaDePontos:
+        parcial.enigmas?.metaDePontos === undefined
+          ? sala.config.enigmas.metaDePontos
+          : parcial.enigmas.metaDePontos,
+    },
   }
   return { ok: true, valor: SEM_EFEITOS }
 }
@@ -227,10 +281,84 @@ function configValida(parcial: Partial<Config>): boolean {
     if (!Array.isArray(parcial.dificuldades) || parcial.dificuldades.length === 0) return false
     if (parcial.dificuldades.some((d) => !DIFICULDADES_VALIDAS.includes(d))) return false
   }
+  if (parcial.espiao !== undefined && !configEspiaoValida(parcial.espiao)) return false
+  if (parcial.cartas !== undefined && !configCartasValida(parcial.cartas)) return false
+  if (parcial.enigmas !== undefined && !configEnigmasValida(parcial.enigmas)) return false
+  return true
+}
+
+/** `ENIG-24`, `ENIG-33` — faixas do Enigmas Sinistros; `null` só vale na meta. */
+function configEnigmasValida(parcial: Partial<ConfigEnigmas>): boolean {
+  if (parcial.modoPergunta !== undefined && !['fila', 'voz'].includes(parcial.modoPergunta)) {
+    return false
+  }
+  const meta = parcial.metaDePontos
+  if (meta !== undefined && meta !== null) {
+    if (!Number.isInteger(meta)) return false
+    if (meta < META_ENIGMAS_MIN || meta > META_ENIGMAS_MAX) return false
+  }
+  return true
+}
+
+/** `CCT-01` — faixas do Cartas Contra a Turma; `null` é opção válida nos dois campos. */
+function configCartasValida(parcial: Partial<ConfigCartas>): boolean {
+  const escolha = parcial.tempoEscolhaSeg
+  if (escolha !== undefined && escolha !== null) {
+    if (!Number.isInteger(escolha)) return false
+    if (escolha < TEMPO_ESCOLHA_MIN_SEG || escolha > TEMPO_ESCOLHA_MAX_SEG) return false
+  }
+  const meta = parcial.metaDePontos
+  if (meta !== undefined && meta !== null) {
+    if (!Number.isInteger(meta)) return false
+    if (meta < META_MIN_PONTOS || meta > META_MAX_PONTOS) return false
+  }
+  // `CCT-44`, `CCT-45` — zero é opção nos dois: sem troca, e branca sempre à mão.
+  const rerolls = parcial.rerollsIniciais
+  if (rerolls !== undefined) {
+    if (!Number.isInteger(rerolls)) return false
+    if (rerolls < REROLLS_MIN || rerolls > REROLLS_MAX) return false
+  }
+  const recarga = parcial.recargaDaBrancaRodadas
+  if (recarga !== undefined) {
+    if (!Number.isInteger(recarga)) return false
+    if (recarga < RECARGA_BRANCA_MIN || recarga > RECARGA_BRANCA_MAX) return false
+  }
   return true
 }
 
 const DIFICULDADES_VALIDAS: readonly Dificuldade[] = ['facil', 'medio', 'dificil']
+
+/** `ESP-01` — `numEspioes` só é checado contra os ativos no início da rodada (`ESP-02`), não aqui. */
+function configEspiaoValida(parcial: Partial<ConfigEspiao>): boolean {
+  if (parcial.numEspioes !== undefined && parcial.numEspioes !== 'auto') {
+    if (!Number.isInteger(parcial.numEspioes) || parcial.numEspioes <= 0) return false
+  }
+  if (
+    parcial.visibilidadeVoto !== undefined &&
+    !['oculta', 'tempoReal'].includes(parcial.visibilidadeVoto)
+  ) {
+    return false
+  }
+  const segundos = parcial.tempoRodadaSeg
+  if (segundos !== undefined && segundos !== null) {
+    if (!Number.isInteger(segundos)) return false
+    if (segundos < TEMPO_TURNO_MIN_SEG || segundos > TEMPO_TURNO_MAX_SEG) return false
+  }
+  // `ESP-47` — 1..MAX_VOTACOES_TETO, ou `null` para ilimitado.
+  const max = parcial.maxVotacoes
+  if (max !== undefined && max !== null) {
+    if (!Number.isInteger(max)) return false
+    if (max < 1 || max > MAX_VOTACOES_TETO) return false
+  }
+  // `ESP-28` — a votação sempre tem prazo; aqui `null` não é opção.
+  const votacao = parcial.tempoVotacaoSeg
+  if (votacao !== undefined) {
+    if (!Number.isInteger(votacao)) return false
+    if (votacao < TEMPO_VOTACAO_MIN_SEG || votacao > TEMPO_VOTACAO_MAX_SEG) return false
+  }
+  if (parcial.espioesSeVeem !== undefined && typeof parcial.espioesSeVeem !== 'boolean') return false
+  return true
+}
 
 /**
  * `HUB-06`–`HUB-09`, `HUB-11` — troca o jogo da sala. `HUB-12` (broadcast
@@ -286,7 +414,8 @@ async function buscarUmPacote(id: string, env: Env): Promise<PacoteCompleto | nu
   if (doKv) return doKv
   // Fallback para dev local
   const { PACOTES } = await import('../../shared/pacotes-dados')
-  return PACOTES.find((p) => p.id === id) ?? null
+  const { LOCAIS } = await import('../../shared/locais-dados')
+  return [...PACOTES, ...LOCAIS].find((p) => p.id === id) ?? null
 }
 
 /** `ESCR-01`, `HOST-01` — lobby → escrita. */
@@ -314,6 +443,7 @@ async function iniciar(
     hostId: sala.hostId,
     config: sala.config,
     jogadores: sala.jogadores,
+    prazoTurno: sala.prazos.turno,
     autorId: autor.id,
   }
   const rodada = jogo.iniciarRodada(ctx, ambiente, pacotes)
@@ -435,6 +565,7 @@ function paraOJogo(
     hostId: sala.hostId,
     config: sala.config,
     jogadores: sala.jogadores,
+    prazoTurno: sala.prazos.turno,
     autorId,
   }
   const resultado = jogo.reduzir(sala.jogo, ctx, entrada, ambiente)

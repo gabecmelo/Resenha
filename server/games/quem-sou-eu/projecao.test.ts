@@ -320,7 +320,7 @@ describe('alvo e carta escrita (ESCR-02, ESCR-04)', () => {
       const projecao = projetar(jogo, sala, 'a')
 
       expect(projecao.sala.pacotesSelecionados).toEqual([
-        { id: 'filmes', nome: 'Filmes', emoji: '🎬', descricao: '', quantidade: 0 },
+        { id: 'filmes', jogoId: 'quem-sou-eu', nome: 'Filmes', emoji: '🎬', descricao: '', quantidade: 0 },
       ])
     })
 
@@ -336,8 +336,8 @@ describe('alvo e carta escrita (ESCR-02, ESCR-04)', () => {
       const projecao = projetar(jogo, sala, 'a')
 
       expect(projecao.sala.pacotesSelecionados).toEqual([
-        { id: 'filmes', nome: 'Filmes', emoji: '🎬', descricao: '', quantidade: 0 },
-        { id: 'anime', nome: 'Anime', emoji: '🍥', descricao: '', quantidade: 0 },
+        { id: 'filmes', jogoId: 'quem-sou-eu', nome: 'Filmes', emoji: '🎬', descricao: '', quantidade: 0 },
+        { id: 'anime', jogoId: 'quem-sou-eu', nome: 'Anime', emoji: '🍥', descricao: '', quantidade: 0 },
       ])
     })
 

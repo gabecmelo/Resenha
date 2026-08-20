@@ -6,62 +6,85 @@ import { Modal } from './Modal'
 import { SomToggle } from './SomToggle'
 
 export interface PropsDoShell {
+  /**
+   * O que a marca diz agora. Fora de partida é "Resenha"; dentro dela vira o
+   * nome do jogo, que é a informação útil naquele momento.
+   */
+  titulo?: string
   /** Código da sala. Ausente na tela de início, onde ainda não há sala. */
   codigo?: string
-  /** Uma linha sobre o momento da sala: "5 pessoas · Quem Sou Eu?". */
-  legenda?: string
+  /**
+   * A faixa de fase: o que está acontecendo agora (vez de alguém, relógio,
+   * votação aberta). Sempre a primeira coisa abaixo da moldura, sempre no
+   * mesmo lugar — é onde a pessoa olha para se situar.
+   */
+  faixa?: ReactNode
   /** `CONN-06` — chamado só depois da confirmação. */
   aoSair?(): void
   children: ReactNode
 }
 
 /**
- * A moldura do site: uma linha só com marca, sala, tema e sair. Quase toda a
- * tela pertence ao jogo, então o cabeçalho não cresce nem ganha navegação.
+ * A moldura do site: uma linha só com marca, sala, som, tema e sair. Quase toda
+ * a tela pertence ao jogo, então o cabeçalho não cresce nem ganha navegação —
+ * 52px no celular, 56px no desktop, e nada além disso.
  *
  * `SALA-08` — o código fica sempre à vista e um toque nele copia o convite.
- *
- * `AJU-27` — os dois lados seguem a mesma régua: cada elemento tem a mesma
- * altura de toque e as margens negativas das pontas devolvem o texto à margem
- * da página, para que a marca à esquerda e o "Sair" à direita fiquem alinhados
- * com o conteúdo abaixo em qualquer largura.
  */
-export function Shell({ codigo, legenda, aoSair, children }: PropsDoShell) {
+export function Shell({ titulo = 'Resenha', codigo, faixa, aoSair, children }: PropsDoShell) {
   const [confirmandoSaida, setConfirmandoSaida] = useState(false)
 
   return (
     <div className="flex min-h-dvh flex-col bg-fundo">
-      <header className="sticky top-0 z-30 border-b border-linha bg-fundo">
-        <div className="mx-auto flex h-14 w-full max-w-[1280px] items-center gap-2 px-4 sm:h-15 sm:gap-3">
-          <span className="flex h-11 flex-none items-center gap-2 text-[15px] font-semibold tracking-tight text-texto">
-            <LogoResenha tamanho={22} />
-            Resenha
-          </span>
-
-          {legenda !== undefined && (
-            <span className="hidden min-w-0 flex-1 items-center truncate text-miudo text-texto-3 sm:flex">
-              {legenda}
+      <header className="sticky top-0 z-30 border-b border-linha bg-superficie">
+        <div className="mx-auto flex h-13 w-full max-w-[1280px] items-center gap-1.5 pr-1.5 pl-3 sm:h-14 sm:gap-2 sm:pr-2 sm:pl-4">
+          {/*
+            Fora de uma sala a marca fala sozinha, em caixa baixa; dentro dela o
+            disco acende e o nome do jogo assume — é o contexto que importa ali.
+          */}
+          <LogoResenha tamanho={22} />
+          {codigo === undefined ? (
+            <span className="flex-none font-display text-[17px] tracking-[-0.01em] text-texto">
+              resenha
             </span>
+          ) : (
+            <span className="flex-none truncate text-apoio font-semibold text-texto">{titulo}</span>
           )}
 
-          <span className="-mr-2 flex min-w-0 flex-1 items-center justify-end gap-1 sm:flex-none sm:gap-2">
-            {codigo !== undefined && <CopiarConvite codigo={codigo} />}
-            <SomToggle />
-            <AlternadorDeTema />
-            {aoSair !== undefined && (
-              <button
-                type="button"
-                onClick={() => setConfirmandoSaida(true)}
-                className="flex h-11 flex-none cursor-pointer items-center rounded-controle px-2 text-apoio font-medium text-texto-2 hover:text-texto"
-              >
-                Sair
-              </button>
-            )}
-          </span>
+          {codigo !== undefined && <CopiarConvite codigo={codigo} />}
+
+          <span className="flex-1" />
+
+          <SomToggle />
+          <AlternadorDeTema />
+          {aoSair !== undefined && (
+            <button
+              type="button"
+              aria-label="Sair da sala"
+              title="Sair da sala"
+              onClick={() => setConfirmandoSaida(true)}
+              className="flex h-11 w-9 flex-none cursor-pointer items-center justify-center rounded-chip text-texto-3 hover:text-texto"
+            >
+              <IconeSair />
+            </button>
+          )}
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-[1280px] flex-1 px-4 pt-5 pb-16">{children}</main>
+      {faixa !== undefined && (
+        <div className="sticky top-13 z-20 border-b border-linha bg-superficie sm:top-14">
+          <div className="mx-auto w-full max-w-[1280px] px-3 py-2.5 sm:px-4">{faixa}</div>
+        </div>
+      )}
+
+      {/*
+        O respiro de cima mora aqui, e não em cada tela: o cabeçalho e a faixa
+        são grudentos (`sticky`), e sem esta folga o conteúdo nasce colado neles
+        — o papel precisa de margem contra a borda da mesa.
+      */}
+      <main className="mx-auto w-full max-w-[1280px] flex-1 px-3 pt-4 pb-6 sm:px-4 sm:pt-5">
+        {children}
+      </main>
 
       {confirmandoSaida && aoSair !== undefined && (
         <Modal
@@ -78,6 +101,30 @@ export function Shell({ codigo, legenda, aoSair, children }: PropsDoShell) {
   )
 }
 
+/**
+ * Porta com a seta saindo — o mesmo desenho que todo jogo usa para "sair".
+ * Vale mais que um glifo bonito: é o ícone que a pessoa já sabe ler sem pensar.
+ */
+function IconeSair() {
+  return (
+    <svg
+      width="19"
+      height="19"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M14 20h4a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-4" />
+      <path d="M10 17l5-5-5-5" />
+      <path d="M15 12H3" />
+    </svg>
+  )
+}
+
 /** `SALA-08` — o código em destaque e o link de convite a um toque. */
 function CopiarConvite({ codigo }: { codigo: string }) {
   const [copiado, setCopiado] = useState(false)
@@ -85,6 +132,7 @@ function CopiarConvite({ codigo }: { codigo: string }) {
   return (
     <button
       type="button"
+      aria-label={`Copiar o link do convite da sala ${codigo}`}
       onClick={() => {
         void navigator.clipboard
           ?.writeText(linkDeConvite(window.location.origin, codigo))
@@ -94,12 +142,35 @@ function CopiarConvite({ codigo }: { codigo: string }) {
           })
           .catch(() => setCopiado(false))
       }}
-      className="flex h-11 min-w-0 cursor-pointer items-center gap-2 rounded-controle px-2 hover:bg-superficie-2"
+      className={`flex h-11 min-w-0 flex-none cursor-pointer items-center gap-1.5 rounded-chip border border-dashed px-2.5 font-mono text-dado tracking-[0.1em] transition-colors ${
+        copiado ? 'border-pronto text-pronto' : 'border-linha text-texto hover:border-controle-linha'
+      }`}
     >
-      <span className="font-mono text-[15px] font-medium tracking-[0.08em] text-texto">
-        {codigo}
+      <span className="truncate">{codigo}</span>
+      <span aria-hidden="true" className="flex-none text-texto-3">
+        {copiado ? '✓' : '⧉'}
       </span>
-      <span className="shrink-0 text-miudo text-texto-3">{copiado ? 'copiado' : 'copiar'}</span>
     </button>
+  )
+}
+
+/**
+ * A barra de ação fixa (`Kit de Partida` — moldura). Mora no pé da coluna e
+ * gruda no rodapé quando a página não cabe na janela.
+ *
+ * Ela era `lg:static`, partindo de que no desktop a ação já estaria à vista.
+ * Não estava: com a barra do navegador comendo altura, a janela fica baixa e o
+ * botão principal nasce abaixo da dobra — era preciso rolar pra achar o começo
+ * da partida. `sticky` resolve os dois casos sem condicional, porque ele só
+ * age quando o elemento sairia da tela: em janela alta o desenho é idêntico ao
+ * de antes, em janela baixa a barra encosta no rodapé.
+ *
+ * Uma ação primária por vez — o resto é secundário ou pílula.
+ */
+export function BarraDeAcao({ children }: { children: ReactNode }) {
+  return (
+    <div className="sticky bottom-0 z-20 mt-4 -mx-3 flex flex-col gap-2.5 border-t-2 border-controle-linha bg-superficie px-3 pt-3 pb-[max(12px,env(safe-area-inset-bottom))] sm:-mx-4 sm:px-4 lg:mt-6 lg:mx-0 lg:rounded-papel lg:border lg:border-linha lg:p-4">
+      {children}
+    </div>
   )
 }

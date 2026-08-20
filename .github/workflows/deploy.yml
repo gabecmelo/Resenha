@@ -1,0 +1,45 @@
+name: Deploy produção
+
+# Toda atualização da main vai pro ar — mas só depois de passar pelos portões.
+# O `workflow_dispatch` fica aqui pra republicar a main na mão sem precisar de
+# um commit novo.
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+# Dois deploys ao mesmo tempo no mesmo Worker sobem versões fora de ordem.
+concurrency:
+  group: deploy-producao
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    name: Publicar em resenha.dev.br
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run test:unit
+      - run: npm run test:integration
+
+      # Sem `CLOUDFLARE_ENV`, o plugin Vite resolve o ambiente de topo do
+      # `wrangler.jsonc` — o Worker `resenha`, com o KV e o Durable Object de
+      # produção.
+      - run: npm run build
+
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy -c dist/resenha/wrangler.json

@@ -44,8 +44,14 @@ async function abrir(codigo: string, token?: string): Promise<Cliente> {
   return { ws, recebidas }
 }
 
-async function assentar(): Promise<void> {
-  for (let i = 0; i < 30; i += 1) await new Promise((pronto) => setTimeout(pronto, 1))
+/** Igual à de `sala-do.integration.test.ts`: janela fixa sem argumento, espera
+ * por condição com ele. Ver o comentário de lá. */
+async function assentar(pronto?: () => boolean): Promise<void> {
+  const tentativas = pronto === undefined ? 30 : 400
+  for (let i = 0; i < tentativas; i += 1) {
+    if (pronto?.() === true) return
+    await new Promise((resolver) => setTimeout(resolver, 1))
+  }
 }
 
 function mandar(cliente: Cliente, comando: Comando): void {
@@ -58,7 +64,11 @@ async function entrar(
 ): Promise<Cliente & { token: string; jogadorId: string }> {
   const cliente = await abrir(codigo)
   mandar(cliente, { t: 'entrar', apelido })
-  await assentar()
+  await assentar(
+    () =>
+      cliente.recebidas.some((m) => m.t === 'entrou') &&
+      cliente.recebidas.some((m) => m.t === 'projecao'),
+  )
 
   const entrou = cliente.recebidas.find((m) => m.t === 'entrou')
   if (entrou === undefined) throw new Error(`não entrou: ${JSON.stringify(cliente.recebidas)}`)

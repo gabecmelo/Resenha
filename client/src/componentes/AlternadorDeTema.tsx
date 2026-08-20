@@ -45,7 +45,7 @@ export function AlternadorDeTema() {
         guardarTema(deposito, proximo)
         setEscolhido(proximo)
       }}
-      className="flex h-11 w-11 flex-none cursor-pointer items-center justify-center rounded-controle text-texto-2 hover:bg-superficie-2 hover:text-texto"
+      className="flex h-11 w-9 flex-none cursor-pointer items-center justify-center rounded-chip text-texto-3 hover:text-texto"
     >
       {proximo === 'escuro' ? <Lua /> : <Sol />}
     </button>

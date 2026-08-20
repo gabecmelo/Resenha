@@ -30,6 +30,13 @@ async function novaSala(nome: string): Promise<DurableObjectStub> {
   return stub
 }
 
+async function novaSalaComJogo(nome: string, jogoId: string): Promise<DurableObjectStub> {
+  const stub = env.SALA.get(env.SALA.idFromName(nome))
+  const criada = await stub.fetch(`http://sala/criar?codigo=ABCDE&jogoId=${jogoId}`, { method: 'POST' })
+  if (criada.status !== 201) throw new Error(`criar devolveu ${criada.status}`)
+  return stub
+}
+
 async function abrir(stub: DurableObjectStub, token?: string): Promise<Cliente> {
   const url = token === undefined ? 'http://sala/ws' : `http://sala/ws?token=${token}`
   const resposta = await stub.fetch(url, { headers: { Upgrade: 'websocket' } })
@@ -44,8 +51,18 @@ async function abrir(stub: DurableObjectStub, token?: string): Promise<Cliente> 
   return { ws, recebidas }
 }
 
-async function assentar(): Promise<void> {
-  for (let i = 0; i < 30; i += 1) await new Promise((pronto) => setTimeout(pronto, 1))
+/**
+ * Sem argumento, é uma janela fixa — e só quem afirma que **nada** deveria
+ * chegar tem direito a ela. Todo o resto espera por uma condição: uma janela
+ * calibrada na máquina de quem escreve estoura num runner de CI carregado, e aí
+ * o teste morre por tempo, não por comportamento.
+ */
+async function assentar(pronto?: () => boolean): Promise<void> {
+  const tentativas = pronto === undefined ? 30 : 400
+  for (let i = 0; i < tentativas; i += 1) {
+    if (pronto?.() === true) return
+    await new Promise((resolver) => setTimeout(resolver, 1))
+  }
 }
 
 function mandar(cliente: Cliente, comando: Comando): void {
@@ -55,7 +72,13 @@ function mandar(cliente: Cliente, comando: Comando): void {
 async function entrar(stub: DurableObjectStub, apelido: string): Promise<Jogador> {
   const cliente = await abrir(stub)
   mandar(cliente, { t: 'entrar', apelido })
-  await assentar()
+  // `entrou` e a primeira projeção são duas difusões separadas. Esperar só pela
+  // primeira já deixou um teste ler a projeção antes de ela chegar.
+  await assentar(
+    () =>
+      cliente.recebidas.some((m) => m.t === 'entrou') &&
+      cliente.recebidas.some((m) => m.t === 'projecao'),
+  )
 
   const entrou = cliente.recebidas.find((m) => m.t === 'entrou')
   if (entrou === undefined) {
@@ -77,12 +100,63 @@ function ultimaProjecao(cliente: Cliente): Projecao {
   return ultima
 }
 
+/**
+ * Espera até a **última** projeção que `cliente` recebeu satisfazer `condicao`.
+ *
+ * É o que separa "o servidor ainda não fez" de "a mensagem ainda não chegou".
+ * Um alarme ou um fechamento de socket difundem depois de a chamada voltar, e a
+ * janela fixa de `assentar()` já deixou o teste ler a projeção anterior num
+ * runner carregado.
+ */
+function esperarProjecao(cliente: Cliente, condicao: (p: Projecao) => boolean): Promise<void> {
+  return assentar(() => {
+    const ultima = projecoes(cliente).at(-1)
+    return ultima !== undefined && condicao(ultima)
+  })
+}
+
+/**
+ * Espera a **próxima** difusão chegar, sem afirmar nada sobre o conteúdo.
+ *
+ * Para quando o efeito esperado é indistinguível do estado anterior — trocar
+ * para o jogo que a projeção já mostrava, por exemplo.
+ */
+function esperarNovaProjecao(cliente: Cliente): Promise<void> {
+  const antes = projecoes(cliente).length
+  return assentar(() => projecoes(cliente).length > antes)
+}
+
 function erros(cliente: Cliente): Extract<Mensagem, { t: 'erro' }>[] {
   return cliente.recebidas.filter((m): m is Extract<Mensagem, { t: 'erro' }> => m.t === 'erro')
 }
 
 function lerSala(stub: DurableObjectStub): Promise<Sala | null> {
   return runInDurableObject(stub, (_i, state) => carregar<EstadoQuemSouEu>(state.storage))
+}
+
+/**
+ * Espera até o estado **gravado** satisfazer `condicao`.
+ *
+ * Irmão de `esperarProjecao` para o que o alarme faz: o efeito existe no
+ * storage antes de virar difusão, e há teste que afirma sobre o storage.
+ */
+async function esperarSala(
+  stub: DurableObjectStub,
+  condicao: (sala: Sala) => boolean,
+): Promise<void> {
+  for (let i = 0; i < 400; i += 1) {
+    const sala = await lerSala(stub)
+    if (sala !== null && condicao(sala)) return
+    await new Promise((resolver) => setTimeout(resolver, 1))
+  }
+}
+
+/** Espera o servidor registrar a queda do socket, antes de reconectar. */
+function esperarDesconexao(stub: DurableObjectStub, jogadorId: string): Promise<void> {
+  return esperarSala(stub, (sala) => {
+    const jogador = sala.jogadores.find((j) => j.id === jogadorId)
+    return jogador !== undefined && !jogador.conectado
+  })
 }
 
 /** Antecipa um prazo sem mexer no alarme já agendado. */
@@ -107,18 +181,18 @@ async function partida(
 
   if (tempoTurnoSeg !== null) {
     mandar(ana, { t: 'configurar', config: { tempoTurnoSeg } })
-    await assentar()
+    await esperarProjecao(ana, (p) => p.sala.config.tempoTurnoSeg === tempoTurnoSeg)
   }
 
   mandar(ana, { t: 'iniciar' })
-  await assentar()
+  await esperarProjecao(ana, (p) => p.sala.fase === 'escrita')
   for (const jogador of [ana, bruno, carla]) {
     mandar(jogador, { t: 'escreverCarta', texto: 'Chapolin' })
     mandar(jogador, { t: 'marcarPronto', pronto: true })
-    await assentar()
   }
+  await esperarProjecao(ana, (p) => p.jogadores.every((j) => j.pronto))
   mandar(ana, { t: 'comecar' })
-  await assentar()
+  await esperarProjecao(ana, (p) => p.sala.fase === 'jogo')
 
   return { stub, ana, bruno, carla }
 }
@@ -139,7 +213,7 @@ describe('entrada na sala', () => {
 
     const ana = await entrar(stub, 'Ana')
     const bruno = await entrar(stub, 'Bruno')
-    await assentar()
+    await esperarProjecao(ana, (p) => p.jogadores.length === 2)
 
     expect(ultimaProjecao(ana).eu.ehHost).toBe(true)
     expect(ultimaProjecao(bruno).eu.ehHost).toBe(false)
@@ -151,7 +225,7 @@ describe('entrada na sala', () => {
 
     const intruso = await abrir(stub)
     mandar(intruso, { t: 'entrar', apelido: 'ana' })
-    await assentar()
+    await assentar(() => erros(intruso).length > 0)
 
     expect(erros(intruso).map((e) => e.codigo)).toEqual(['APELIDO_EM_USO'])
     expect(intruso.ws.readyState).toBe(WebSocket.READY_STATE_OPEN)
@@ -162,7 +236,7 @@ describe('entrada na sala', () => {
     const stub = await novaSala('DO-PROJECAO')
     const ana = await entrar(stub, 'Ana')
     const bruno = await entrar(stub, 'Bruno')
-    await assentar()
+    await esperarProjecao(ana, (p) => p.jogadores.length === 2)
 
     expect(ultimaProjecao(ana).eu.id).toBe(ana.jogadorId)
     expect(ultimaProjecao(bruno).eu.id).toBe(bruno.jogadorId)
@@ -184,7 +258,9 @@ describe('desconexão e reconexão', () => {
     const bruno = await entrar(stub, 'Bruno')
 
     bruno.ws.close()
-    await assentar()
+    await esperarProjecao(ana, (p) =>
+      p.jogadores.some((j) => j.id === bruno.jogadorId && !j.conectado),
+    )
 
     const ficha = ultimaProjecao(ana).jogadores.find((j) => j.id === bruno.jogadorId)
     expect(ficha).toMatchObject({ apelido: 'Bruno', conectado: false })
@@ -196,10 +272,10 @@ describe('desconexão e reconexão', () => {
     const antes = ultimaProjecao(ana)
 
     ana.ws.close()
-    await assentar()
+    await esperarDesconexao(stub, ana.jogadorId)
     const volta = await abrir(stub, ana.token)
     mandar(volta, { t: 'ola', token: ana.token })
-    await assentar()
+    await esperarProjecao(volta, (p) => p.eu.id === ana.jogadorId)
 
     const depois = ultimaProjecao(volta)
     expect(depois.eu.id).toBe(ana.jogadorId)
@@ -212,17 +288,17 @@ describe('desconexão e reconexão', () => {
     await entrar(stub, 'Bruno')
     await entrar(stub, 'Carla')
     mandar(ana, { t: 'iniciar' })
-    await assentar()
+    await esperarProjecao(ana, (p) => p.sala.fase === 'escrita')
     mandar(ana, { t: 'escreverCarta', texto: 'Chapolin' })
     mandar(ana, { t: 'notas', texto: 'não é humano' })
-    await assentar()
+    await esperarProjecao(ana, (p) => p.eu.notas === 'não é humano')
     const alvoAntes = ultimaProjecao(ana).eu.alvo
 
     ana.ws.close()
-    await assentar()
+    await esperarDesconexao(stub, ana.jogadorId)
     const volta = await abrir(stub, ana.token)
     mandar(volta, { t: 'ola', token: ana.token })
-    await assentar()
+    await esperarProjecao(volta, (p) => p.eu.id === ana.jogadorId)
 
     expect(ultimaProjecao(volta).eu).toMatchObject({
       alvo: alvoAntes,
@@ -238,10 +314,10 @@ describe('desconexão e reconexão', () => {
     if (daVez === undefined) throw new Error('ninguém é da vez')
 
     daVez.ws.close()
-    await assentar()
+    await esperarDesconexao(stub, daVez.jogadorId)
     const volta = await abrir(stub, daVez.token)
     mandar(volta, { t: 'ola', token: daVez.token })
-    await assentar()
+    await esperarProjecao(volta, (p) => p.eu.id === daVez.jogadorId)
 
     expect(ultimaProjecao(volta).jogo?.vezDe).toBe(vezAntes)
     expect(ultimaProjecao(volta).jogo?.ordem).toEqual(ultimaProjecao(ana).jogo?.ordem)
@@ -253,7 +329,7 @@ describe('desconexão e reconexão', () => {
 
     const intruso = await abrir(stub)
     mandar(intruso, { t: 'ola', token: 'token-que-nunca-existiu' })
-    await assentar()
+    await assentar(() => erros(intruso).length > 0)
 
     expect(erros(intruso).map((e) => e.codigo)).toEqual(['JOGADOR_NAO_ENCONTRADO'])
     expect(intruso.ws.readyState).not.toBe(WebSocket.READY_STATE_OPEN)
@@ -271,11 +347,11 @@ describe('migração automática de host (`HOST-04`)', () => {
     // asserção mediria um relógio que já andou durante o alarme e as esperas.
     const desconectouEm = Date.now()
     ana.ws.close()
-    await assentar()
+    await esperarSala(stub, (sala) => sala.prazos.migracaoHost !== null)
     const prazo = (await lerSala(stub))?.prazos.migracaoHost
     await vencerPrazo(stub, 'migracaoHost')
     await runDurableObjectAlarm(stub)
-    await assentar()
+    await esperarSala(stub, (sala) => sala.hostId === bruno.jogadorId)
 
     expect(prazo).toBeGreaterThanOrEqual(desconectouEm + MIGRACAO_HOST_MS)
     expect(prazo).toBeLessThan(desconectouEm + MIGRACAO_HOST_MS + 5_000)
@@ -290,7 +366,7 @@ describe('migração automática de host (`HOST-04`)', () => {
     ana.ws.close()
     await vencerPrazo(stub, 'migracaoHost')
     await runDurableObjectAlarm(stub)
-    await assentar()
+    await esperarProjecao(bruno, (p) => p.eu.ehHost)
 
     expect(ultimaProjecao(bruno).chat.map((m) => m.texto)).toContain(
       'Bruno agora comanda a sala.',
@@ -304,10 +380,10 @@ describe('migração automática de host (`HOST-04`)', () => {
     await entrar(stub, 'Bruno')
 
     ana.ws.close()
-    await assentar()
+    await esperarSala(stub, (sala) => sala.prazos.migracaoHost !== null)
     const volta = await abrir(stub, ana.token)
     mandar(volta, { t: 'ola', token: ana.token })
-    await assentar()
+    await esperarProjecao(volta, (p) => p.eu.id === ana.jogadorId)
 
     expect((await lerSala(stub))?.prazos.migracaoHost).toBeNull()
     expect((await lerSala(stub))?.hostId).toBe(ana.jogadorId)
@@ -319,12 +395,13 @@ describe('migração automática de host (`HOST-04`)', () => {
     const bruno = await entrar(stub, 'Bruno')
 
     ana.ws.close()
+    await esperarSala(stub, (sala) => sala.prazos.migracaoHost !== null)
     await vencerPrazo(stub, 'migracaoHost')
     await runDurableObjectAlarm(stub)
-    await assentar()
+    await esperarSala(stub, (sala) => sala.hostId === bruno.jogadorId)
     const volta = await abrir(stub, ana.token)
     mandar(volta, { t: 'ola', token: ana.token })
-    await assentar()
+    await esperarProjecao(volta, (p) => p.eu.id === ana.jogadorId)
 
     expect(ultimaProjecao(volta).eu.ehHost).toBe(false)
     expect(ultimaProjecao(volta).sala.hostId).toBe(bruno.jogadorId)
@@ -339,7 +416,7 @@ describe('hibernação (AD-005, `CONN-05`)', () => {
     await vencerPrazo(stub, 'turno')
     await evictDurableObject(stub)
     await runDurableObjectAlarm(stub)
-    await assentar()
+    await esperarProjecao(ana, (p) => p.jogo?.vezDe !== vezAntes)
 
     expect((await lerSala(stub))?.jogo?.vezDe).not.toBe(vezAntes)
     expect(ultimaProjecao(ana).jogo?.vezDe).not.toBe(vezAntes)
@@ -351,7 +428,7 @@ describe('hibernação (AD-005, `CONN-05`)', () => {
 
     await evictDurableObject(stub)
     mandar(ana, { t: 'chat', texto: 'voltei' })
-    await assentar()
+    await esperarProjecao(ana, (p) => p.chat.at(-1)?.texto === 'voltei')
 
     const depois = ultimaProjecao(ana)
     expect(depois.sala.fase).toBe('jogo')
@@ -382,7 +459,7 @@ describe('robustez do socket', () => {
     expect(ana.ws.readyState).toBe(WebSocket.READY_STATE_OPEN)
     expect(ana.recebidas).toHaveLength(recebidasAntes)
     mandar(ana, { t: 'chat', texto: 'sigo aqui' })
-    await assentar()
+    await esperarProjecao(ana, (p) => p.chat.at(-1)?.texto === 'sigo aqui')
     expect(ultimaProjecao(ana).chat.at(-1)?.texto).toBe('sigo aqui')
   })
 
@@ -392,7 +469,7 @@ describe('robustez do socket', () => {
 
     const anonimo = await abrir(stub)
     mandar(anonimo, { t: 'chat', texto: 'oi' })
-    await assentar()
+    await assentar(() => erros(anonimo).length > 0)
 
     expect(erros(anonimo).map((e) => e.codigo)).toEqual(['SEM_AUTORIDADE'])
     expect(anonimo.ws.readyState).toBe(WebSocket.READY_STATE_OPEN)
@@ -404,7 +481,7 @@ describe('robustez do socket', () => {
     const bruno = await entrar(stub, 'Bruno')
 
     mandar(bruno, { t: 'sair' })
-    await assentar()
+    await esperarProjecao(ana, (p) => p.jogadores.length === 1)
 
     expect(bruno.ws.readyState).not.toBe(WebSocket.READY_STATE_OPEN)
     expect(ultimaProjecao(ana).jogadores.map((j) => j.apelido)).toEqual(['Ana'])
@@ -414,10 +491,12 @@ describe('robustez do socket', () => {
     const stub = await novaSala('DO-EXPULSA')
     const ana = await entrar(stub, 'Ana')
     const bruno = await entrar(stub, 'Bruno')
-    await assentar()
+    await esperarProjecao(bruno, (p) => p.jogadores.length === 2)
     const recebidasAntes = bruno.recebidas.length
 
     mandar(ana, { t: 'expulsar', jogadorId: bruno.jogadorId })
+    await esperarProjecao(ana, (p) => p.jogadores.length === 1)
+    // A janela fixa vem depois do efeito: é ela que sustenta "nada chegou ao expulso".
     await assentar()
 
     expect(bruno.recebidas).toHaveLength(recebidasAntes)
@@ -438,18 +517,18 @@ async function jogoCom(
 
   if (tempoTurnoSeg !== null) {
     mandar(host, { t: 'configurar', config: { tempoTurnoSeg } })
-    await assentar()
+    await esperarProjecao(host, (p) => p.sala.config.tempoTurnoSeg === tempoTurnoSeg)
   }
 
   mandar(host, { t: 'iniciar' })
-  await assentar()
+  await esperarProjecao(host, (p) => p.sala.fase === 'escrita')
   for (const jogador of jogadores) {
     mandar(jogador, { t: 'escreverCarta', texto: `carta de ${jogador.jogadorId}` })
     mandar(jogador, { t: 'marcarPronto', pronto: true })
-    await assentar()
   }
+  await esperarProjecao(host, (p) => p.jogadores.every((j) => j.pronto))
   mandar(host, { t: 'comecar' })
-  await assentar()
+  await esperarProjecao(host, (p) => p.sala.fase === 'jogo')
 
   return { stub, jogadores }
 }
@@ -457,9 +536,12 @@ async function jogoCom(
 /** "Descobri!" de `quem`, confirmado por `confirmador`. */
 async function descobre(quem: Jogador, confirmador: Jogador): Promise<void> {
   mandar(quem, { t: 'declararDescobri' })
-  await assentar()
+  await esperarProjecao(confirmador, (p) => p.jogo?.declaracaoPendente?.jogadorId === quem.jogadorId)
   mandar(confirmador, { t: 'responderDeclaracao', aceita: true })
-  await assentar()
+  await esperarProjecao(
+    quem,
+    (p) => p.jogadores.find((j) => j.id === quem.jogadorId)?.descobriu === true,
+  )
 }
 
 describe('partida em dois (`AJU-06`, `AJU-09`, `AJU-13`)', () => {
@@ -553,13 +635,13 @@ describe('o chat preserva o autor que saiu (`AJU-16`)', () => {
     const stub = await novaSala('DO-CHAT-AUTOR')
     const ana = await entrar(stub, 'Ana')
     const bruno = await entrar(stub, 'Bruno')
-    await assentar()
+    await esperarProjecao(ana, (p) => p.jogadores.length === 2)
     const corDeBruno = ultimaProjecao(ana).jogadores.find((j) => j.id === bruno.jogadorId)?.cor
 
     mandar(bruno, { t: 'chat', texto: 'até mais' })
-    await assentar()
+    await esperarProjecao(ana, (p) => p.chat.at(-1)?.texto === 'até mais')
     mandar(bruno, { t: 'sair' })
-    await assentar()
+    await esperarProjecao(ana, (p) => p.jogadores.length === 1)
 
     const visao = ultimaProjecao(ana)
     // Controle: o autor não está mais na lista, então o apelido só pode vir da
@@ -590,10 +672,10 @@ describe('registro de jogos (`HUB-01`, `HUB-05`, `HUB-12`)', () => {
     const ana = await entrar(stub, 'Ana')
 
     ana.ws.close()
-    await assentar()
+    await esperarDesconexao(stub, ana.jogadorId)
     const volta = await abrir(stub, ana.token)
     mandar(volta, { t: 'ola', token: ana.token })
-    await assentar()
+    await esperarProjecao(volta, (p) => p.eu.id === ana.jogadorId)
 
     expect(ultimaProjecao(volta).sala.jogoId).toBe('quem-sou-eu')
   })
@@ -605,7 +687,7 @@ describe('registro de jogos (`HUB-01`, `HUB-05`, `HUB-12`)', () => {
     await entrar(stub, 'Carla')
 
     mandar(ana, { t: 'iniciar' })
-    await assentar()
+    await esperarProjecao(ana, (p) => p.sala.fase === 'escrita')
 
     expect(ultimaProjecao(ana).sala.fase).toBe('escrita')
   })
@@ -617,7 +699,7 @@ describe('registro de jogos (`HUB-01`, `HUB-05`, `HUB-12`)', () => {
 
     // Config não-padrão, pra provar que o reset de fato aconteceu.
     mandar(ana, { t: 'configurar', config: { tempoTurnoSeg: 30 } })
-    await assentar()
+    await esperarProjecao(bruno, (p) => p.sala.config.tempoTurnoSeg === 30)
     expect(ultimaProjecao(bruno).sala.config.tempoTurnoSeg).toBe(30)
 
     // Jogo atual diferente do alvo, pra que a troca a seguir não seja idempotente (`HUB-09`).
@@ -629,7 +711,7 @@ describe('registro de jogos (`HUB-01`, `HUB-05`, `HUB-12`)', () => {
     })
 
     mandar(ana, { t: 'trocarJogo', jogoId: 'quem-sou-eu' })
-    await assentar()
+    await esperarNovaProjecao(bruno)
 
     // Bruno não mandou nada — a atualização só pode ter chegado por difusão.
     expect(ultimaProjecao(bruno).sala.jogoId).toBe('quem-sou-eu')
@@ -650,7 +732,7 @@ describe('registro de jogos (`HUB-01`, `HUB-05`, `HUB-12`)', () => {
     const projecoesAntes = projecoes(ana).length
 
     mandar(ana, { t: 'chat', texto: 'ainda funciono?' })
-    await assentar()
+    await esperarSala(stub, (sala) => sala.chat.at(-1)?.texto === 'ainda funciono?')
     expect(ana.ws.readyState).toBe(WebSocket.OPEN)
 
     // A sala não trava nem lança: o comando é processado e persistido, só a
@@ -661,8 +743,34 @@ describe('registro de jogos (`HUB-01`, `HUB-05`, `HUB-12`)', () => {
 
     // E a sala segue viva pra comandos seguintes, mesmo sem o jogo resolvido.
     mandar(ana, { t: 'chat', texto: 'segundo comando' })
-    await assentar()
+    await esperarSala(stub, (sala) => sala.chat.at(-1)?.texto === 'segundo comando')
     expect((await lerSala(stub))?.chat.at(-1)?.texto).toBe('segundo comando')
+  })
+})
+
+describe('filtro de pacotes por jogoId na projeção (T10, `ESP-22`)', () => {
+  it('sala de Espião só vê pacotes com jogoId === "espiao"', async () => {
+    const stub = await novaSalaComJogo('DO-PACOTES-ESPIAO', 'espiao')
+    const ana = await entrar(stub, 'Ana')
+
+    mandar(ana, { t: 'configurar', config: { modoPacote: 'pacote' } })
+    await esperarProjecao(ana, (p) => p.sala.config.modoPacote === 'pacote')
+
+    const pacotes = ultimaProjecao(ana).sala.pacotesDisponiveis ?? []
+    expect(pacotes.length).toBeGreaterThan(0)
+    expect(pacotes.every((p) => p.jogoId === 'espiao')).toBe(true)
+  })
+
+  it('sala de Quem Sou Eu só vê pacotes com jogoId === "quem-sou-eu" (sem regressão)', async () => {
+    const stub = await novaSala('DO-PACOTES-QSE')
+    const ana = await entrar(stub, 'Ana')
+
+    mandar(ana, { t: 'configurar', config: { modoPacote: 'pacote' } })
+    await esperarProjecao(ana, (p) => p.sala.config.modoPacote === 'pacote')
+
+    const pacotes = ultimaProjecao(ana).sala.pacotesDisponiveis ?? []
+    expect(pacotes.length).toBeGreaterThan(0)
+    expect(pacotes.every((p) => p.jogoId === 'quem-sou-eu')).toBe(true)
   })
 })
 
@@ -671,10 +779,10 @@ describe('limite de taxa do chat (`CHAT-02`)', () => {
     const stub = await novaSala('DO-CHAT-TAXA')
     const ana = await entrar(stub, 'Ana')
     const bruno = await entrar(stub, 'Bruno')
-    await assentar()
+    await esperarProjecao(ana, (p) => p.jogadores.length === 2)
 
     for (let i = 0; i <= CHAT_MAX_POR_JANELA; i += 1) mandar(ana, { t: 'chat', texto: `m${i}` })
-    await assentar()
+    await assentar(() => erros(ana).length > 0)
 
     expect(erros(ana).map((e) => e.codigo)).toEqual(['CHAT_LIMITE_DE_TAXA'])
     expect(erros(bruno)).toEqual([])

@@ -41,5 +41,65 @@
 
   "observability": {
     "enabled": true
+  },
+
+  // O wrangler desliga o endereço `.workers.dev` quando esta chave não existe,
+  // e `resenha.resenhaa.workers.dev` é o link que circulou antes do domínio
+  // próprio — deixar cair quebraria quem ainda o tem salvo. Vale trocar por
+  // `false` quando ninguém mais chegar por ele.
+  "workers_dev": true,
+
+  // O staging. É um Worker **separado** de propósito: `resenha-beta` tem o
+  // próprio namespace de Durable Object e o próprio KV, então uma branch que
+  // mude o formato do `EstadoSala` não encosta em quem está jogando na
+  // produção. Nada aqui é herdado do topo — `durable_objects`, `kv_namespaces`
+  // e `assets` precisam ser repetidos; só `main`, `compatibility_date` e
+  // `migrations` atravessam.
+  //
+  // Sobe com `npm run deploy:beta` (local) ou pelo workflow "Deploy beta"
+  // no GitHub, escolhendo a branch na hora.
+  "env": {
+    "beta": {
+      "name": "resenha-beta",
+
+      // O domínio do staging é declarado aqui, e não clicado no painel: assim
+      // o deploy reata o vínculo sozinho e ninguém precisa lembrar do passo.
+      // A produção continua com o domínio preso pelo painel — mexer nisso pelo
+      // config exigiria testar num deploy de produção, e não vale o risco só
+      // pela simetria.
+      "routes": [{ "pattern": "beta.resenha.dev.br", "custom_domain": true }],
+
+      // O beta vive só no domínio próprio; não herda o `.workers.dev` do topo.
+      "workers_dev": false,
+
+      "assets": {
+        "directory": "./dist/client",
+        "not_found_handling": "single-page-application"
+      },
+
+      "durable_objects": {
+        "bindings": [
+          {
+            "name": "SALA",
+            "class_name": "SalaDurableObject"
+          }
+        ]
+      },
+
+      // Namespace próprio (título `PACOTES_KV_BETA`). O binding tem o mesmo
+      // nome do de produção porque o código lê `env.PACOTES_KV` nos dois.
+      // Precisa do seu próprio seed: `npm run seed:pacotes` aponta pro de
+      // produção.
+      "kv_namespaces": [
+        {
+          "binding": "PACOTES_KV",
+          "id": "26112063d9c241c792327c2eddfe8a03"
+        }
+      ],
+
+      "observability": {
+        "enabled": true
+      }
+    }
   }
 }

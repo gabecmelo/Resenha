@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 9,
+  "next_id": 11,
   "lessons": [
     {
       "id": "L-001",
@@ -148,6 +148,42 @@
       ],
       "created": "2026-08-12T14:57:39Z",
       "last_seen": "2026-08-12T14:57:39Z"
+    },
+    {
+      "id": "L-009",
+      "key": "surviving_mutant::when a spec pins a majority threshold calculation to a specific denominator e g active players not voters add a test with partial turnout where the two denominators would diverge not just full turnout or coincidental ratio cases",
+      "text": "When a spec pins a majority/threshold calculation to a specific denominator (e.g. active players, not voters), add a test with partial turnout where the two denominators would diverge, not just full-turnout or coincidental-ratio cases.",
+      "signal": "surviving_mutant",
+      "scope": "server/games",
+      "status": "candidate",
+      "features": [
+        "espiao"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "server/games/espiao/regras.ts:281 (mutant survived unit suite) (server/games)"
+      ],
+      "created": "2026-08-13T22:22:37Z",
+      "last_seen": "2026-08-13T22:22:37Z"
+    },
+    {
+      "id": "L-010",
+      "key": "spec_precision_gap::when a spec s out of scope table narrows a phase s scope below what that phase s own ac text literally says resolve the contradiction in spec md itself before tasks or flag it explicitly in requirement traceability don t let verify be the first place it surfaces",
+      "text": "When a spec's Out-of-Scope table narrows a phase's scope below what that phase's own AC text literally says, resolve the contradiction in spec.md itself before Tasks, or flag it explicitly in Requirement Traceability — don't let Verify be the first place it surfaces.",
+      "signal": "spec_precision_gap",
+      "scope": "specs",
+      "status": "candidate",
+      "features": [
+        "espiao"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "ESP-22 vs spec.md Out-of-Scope table (specs)"
+      ],
+      "created": "2026-08-13T22:22:44Z",
+      "last_seen": "2026-08-13T22:22:44Z"
     }
   ]
 }

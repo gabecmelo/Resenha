@@ -1,0 +1,63 @@
+name: Deploy beta
+
+# Só na mão. Em Actions → "Deploy beta" → "Run workflow", o seletor "Use
+# workflow from" escolhe a branch que vai pro beta.resenha.dev.br — é assim que
+# você testa um jogo novo com a mesa antes de mandar pra main.
+#
+# A branch escolhida precisa ter este arquivo. Branches criadas antes dele não
+# aparecem funcionando no seletor: rebase na main resolve.
+on:
+  workflow_dispatch:
+    inputs:
+      pular_testes:
+        description: 'Pular os testes (só pra republicar algo que já passou)'
+        type: boolean
+        default: false
+
+concurrency:
+  group: deploy-beta
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    name: Publicar em beta.resenha.dev.br
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Portões
+        if: ${{ !inputs.pular_testes }}
+        run: |
+          npm run typecheck
+          npm run lint
+          npm run test:unit
+          npm run test:integration
+
+      # É `CLOUDFLARE_ENV` que troca o alvo: o plugin Vite resolve `env.beta` do
+      # `wrangler.jsonc` e escreve `name: resenha-beta` no config de saída, com
+      # o KV e o Durable Object próprios do staging. O `wrangler deploy` abaixo
+      # é idêntico ao de produção justamente por isso.
+      - run: npm run build
+        env:
+          CLOUDFLARE_ENV: beta
+
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy -c dist/resenha/wrangler.json
+
+      - name: Resumo
+        run: |
+          echo "### Beta no ar" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Branch: \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Commit: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- URL: https://beta.resenha.dev.br" >> $GITHUB_STEP_SUMMARY

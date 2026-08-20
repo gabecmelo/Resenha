@@ -1,0 +1,36 @@
+name: CI
+
+# Os mesmos portões que rodam antes de qualquer deploy, só que sem publicar
+# nada. Existe pra uma branch quebrada aparecer antes de chegar na main.
+on:
+  pull_request:
+  push:
+    branches-ignore:
+      - main
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  portoes:
+    name: Portões
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # O `postinstall` roda `wrangler types`, que gera o
+      # `worker-configuration.d.ts` — ele é gitignored, e sem ele o typecheck
+      # não fecha.
+      - run: npm ci
+
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run test:unit
+      - run: npm run test:integration
+      - run: npm run build

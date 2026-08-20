@@ -17,11 +17,15 @@ export interface PropsDoCampo {
   mono?: boolean
   /** `SALA-02` — quem chega por link já cai com o cursor no apelido. */
   autoFoco?: boolean
-  aoTeclarEnter?(): void
+  aoTeclarEnter?: (() => void) | undefined
 }
 
 /**
  * Campo de uma linha com rótulo, contador e erro de limite.
+ *
+ * **O erro mora no campo**, nunca num alerta no topo da tela: o rótulo, o
+ * contador e a borda mudam juntos para esmalte, e a mensagem entra logo abaixo
+ * com o triângulo. Quem errou não precisa procurar onde.
  *
  * `AJU-26` — o campo para no limite, e texto colado acima dele é truncado. A
  * trava é conveniência, não regra: quem recusa de verdade continua sendo o
@@ -43,13 +47,32 @@ export function CampoDeTexto({
   const id = useId()
   const excedente = limite === undefined ? 0 : Math.max(valor.length - limite, 0)
   const aviso =
-    erro ?? (excedente > 0 ? `Passou ${excedente} caractere${excedente > 1 ? 's' : ''} do limite.` : undefined)
+    erro ??
+    (excedente > 0
+      ? `Passou ${excedente} caractere${excedente > 1 ? 's' : ''} do limite.`
+      : undefined)
+  const errado = aviso !== undefined
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className="text-apoio font-medium text-texto">
-        {rotulo}
-      </label>
+    <div className="flex flex-col gap-2">
+      <div className="flex items-baseline justify-between gap-3">
+        <label
+          htmlFor={id}
+          className={`text-[15px] font-semibold ${errado ? 'text-acento' : 'text-texto'}`}
+        >
+          {rotulo}
+        </label>
+        {limite !== undefined && (
+          <span
+            className={`flex-none font-mono text-[12px] tabular-nums ${
+              errado ? 'text-acento' : 'text-texto-3'
+            }`}
+          >
+            {valor.length}/{limite}
+          </span>
+        )}
+      </div>
+
       <input
         id={id}
         type="text"
@@ -58,31 +81,26 @@ export function CampoDeTexto({
         maxLength={limite}
         disabled={travado}
         autoFocus={autoFoco}
-        aria-invalid={aviso !== undefined}
+        aria-invalid={errado}
         aria-describedby={`${id}-apoio`}
         onChange={(evento) => aoMudar(evento.target.value)}
         onKeyDown={(evento) => {
           if (evento.key === 'Enter') aoTeclarEnter?.()
         }}
-        className={`min-h-12 w-full rounded-controle border bg-superficie px-3.5 text-texto placeholder:text-texto-apagado disabled:cursor-not-allowed disabled:bg-superficie-2 disabled:text-texto-2 ${
-          mono ? 'font-mono text-[20px] tracking-[0.28em] uppercase' : 'text-corpo'
-        } ${
-          aviso === undefined ? 'border-controle-linha focus:border-acento' : 'border-risco'
-        } focus:outline-none`}
+        className={`min-h-[52px] w-full rounded-chip border-2 bg-superficie px-3.5 text-texto caret-acento placeholder:text-texto-apagado focus:outline-none disabled:cursor-not-allowed disabled:border-dashed disabled:bg-superficie-2 disabled:text-texto-2 ${
+          mono ? 'font-mono text-[20px] tracking-[0.28em] uppercase' : 'text-[17px]'
+        } ${errado ? 'border-acento' : 'border-linha focus:border-controle-linha'}`}
       />
-      <div id={`${id}-apoio`} className="flex justify-between gap-3">
-        <span className={`text-[12px] ${aviso === undefined ? 'text-texto-3' : 'text-risco'}`}>
-          {aviso ?? dica}
-        </span>
-        {limite !== undefined && (
-          <span
-            className={`shrink-0 font-mono text-[12px] ${
-              excedente > 0 ? 'font-medium text-risco' : 'text-texto-3'
-            }`}
-          >
-            {valor.length}/{limite}
+
+      <div id={`${id}-apoio`} className="flex gap-2">
+        {errado && (
+          <span aria-hidden="true" className="flex-none text-acento">
+            ▲
           </span>
         )}
+        <span className={`text-apoio leading-snug ${errado ? 'text-acento' : 'text-texto-3'}`}>
+          {aviso ?? dica}
+        </span>
       </div>
     </div>
   )
