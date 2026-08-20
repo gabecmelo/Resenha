@@ -360,7 +360,7 @@ export function CartasJogo({ projecao, enviar, aoSair }: PropsDaTela) {
       {confirmandoTroca && (
         <Modal
           titulo="Trocar a mão inteira?"
-          descricao="As sete saem e sete novas entram. As velhas não voltam nesta partida."
+          descricao="As seis saem e seis novas entram. As velhas não voltam nesta partida."
           rotuloConfirmar={`Trocar (fico com ${cartas.rerolls - 1})`}
           rotuloCancelar="Ficar com esta"
           aoConfirmar={() => {

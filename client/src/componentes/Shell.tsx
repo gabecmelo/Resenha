@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from 'react'
+import { type ReactNode, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { linkDeConvite } from '../estado/entrada'
 import { AlternadorDeTema } from './AlternadorDeTema'
 import { LogoResenha } from './LogoResenha'
@@ -91,7 +91,13 @@ export function Shell({ titulo = 'Resenha', codigo, faixa, aoSair, children }: P
         são grudentos (`sticky`), e sem esta folga o conteúdo nasce colado neles
         — o papel precisa de margem contra a borda da mesa.
       */}
-      <main className="mx-auto w-full max-w-[1280px] flex-1 px-3 pt-4 pb-6 sm:px-4 sm:pt-5">
+      {/*
+        O respiro de baixo é pra tela que termina em texto. Quando a tela
+        termina em barra de ação, ele vira 24px de vazio rolável embaixo dela:
+        a pessoa já vê tudo e a página ainda desce. A barra traz o próprio
+        respiro (e o `safe-area` do celular), então aqui o do `main` sai.
+      */}
+      <main className="mx-auto w-full max-w-[1280px] flex-1 px-3 pt-4 pb-6 has-[[data-barra-de-acao]]:pb-0 sm:px-4 sm:pt-5">
         {children}
       </main>
 
@@ -208,22 +214,64 @@ function CopiarConvite({ codigo }: { codigo: string }) {
 }
 
 /**
- * A barra de ação fixa (`Kit de Partida` — moldura). Mora no pé da coluna e
- * gruda no rodapé quando a página não cabe na janela.
+ * A barra de ação (`Kit de Partida` — moldura). Uma ação primária por vez; o
+ * resto é secundário ou pílula.
  *
- * Ela era `lg:static`, partindo de que no desktop a ação já estaria à vista.
- * Não estava: com a barra do navegador comendo altura, a janela fica baixa e o
- * botão principal nasce abaixo da dobra — era preciso rolar pra achar o começo
- * da partida. `sticky` resolve os dois casos sem condicional, porque ele só
- * age quando o elemento sairia da tela: em janela alta o desenho é idêntico ao
- * de antes, em janela baixa a barra encosta no rodapé.
+ * **No celular ela é `fixed`.** Era `sticky bottom-0`, e `sticky` só cola
+ * quando o elemento sairia da tela — numa tela curta, com a partida ainda
+ * vazia, a barra parava no meio do vidro com preto embaixo. Pior: o elemento
+ * que gruda depende do pai, e o pai muda de tela pra tela (às vezes é o
+ * `main`, às vezes uma coluna do grid), então não havia um ajuste só que
+ * servisse pra todas. `fixed` não pergunta nada a ninguém: encosta no rodapé
+ * sempre, em qualquer tela.
  *
- * Uma ação primária por vez — o resto é secundário ou pílula.
+ * O preço de `fixed` é sair do fluxo e passar por cima do conteúdo. Por isso o
+ * espaçador: ele mede a barra e reserva a mesma altura, pra que a última linha
+ * da página continue alcançável na rolagem.
+ *
+ * **No desktop segue `sticky`**, que ali sempre funcionou: a coluna é alta, a
+ * barra é um cartão no fim dela e só gruda quando a janela é baixa demais.
  */
 export function BarraDeAcao({ children }: { children: ReactNode }) {
+  const barra = useRef<HTMLDivElement>(null)
+  const [altura, setAltura] = useState(0)
+
+  const medir = useCallback(() => {
+    const alvo = barra.current
+    if (alvo === null) return
+    // Só re-renderiza quando o número muda de verdade, senão isto seria um
+    // laço: medir → estado → render → medir.
+    setAltura((antes) => (antes === alvo.offsetHeight ? antes : alvo.offsetHeight))
+  }, [])
+
+  /*
+    Depois de cada render, e antes da pintura: o conteúdo da barra muda (um
+    botão, dois, um aviso que entra) e a altura reservada tem que acompanhar no
+    mesmo quadro, senão a página pula.
+
+    Medição direta, e não `ResizeObserver`: o observador não roda em aba que o
+    navegador não está compondo, e a altura ficaria travada em zero justo no
+    caso em que a barra tapa o fim da página.
+  */
+  useLayoutEffect(medir)
+
+  // Girar o celular ou redimensionar a janela reflui a barra sem passar pelo
+  // React — aí não há render pra disparar a medição acima.
+  useEffect(() => {
+    window.addEventListener('resize', medir)
+    return () => window.removeEventListener('resize', medir)
+  }, [medir])
+
   return (
-    <div className="sticky bottom-0 z-20 mt-4 -mx-3 flex flex-col gap-2.5 border-t-2 border-controle-linha bg-superficie px-3 pt-3 pb-[max(12px,env(safe-area-inset-bottom))] sm:-mx-4 sm:px-4 lg:mt-6 lg:mx-0 lg:rounded-papel lg:border lg:border-linha lg:p-4">
-      {children}
-    </div>
+    <>
+      <div aria-hidden="true" style={{ height: altura }} className="mt-3 lg:hidden" />
+      <div
+        ref={barra}
+        data-barra-de-acao=""
+        className="fixed inset-x-0 bottom-0 z-20 flex flex-col gap-2.5 border-t-2 border-controle-linha bg-superficie px-3 pt-3 pb-[max(12px,env(safe-area-inset-bottom))] sm:px-4 lg:sticky lg:inset-x-auto lg:mt-6 lg:rounded-papel lg:border lg:border-linha lg:p-4"
+      >
+        {children}
+      </div>
+    </>
   )
 }

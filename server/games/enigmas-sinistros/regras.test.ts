@@ -246,6 +246,32 @@ describe('ENIG-08…ENIG-11 — a fila de perguntas', () => {
     ).toEqual({ ok: false, erro: 'FASE_INVALIDA' })
   })
 
+  it('ENIG-33: em voz alta o narrador pode anotar de que era a pergunta', () => {
+    const emVoz = { ...CONFIG_PADRAO, pacoteIds: [PACOTE_LEVE], enigmas: { modoPergunta: 'voz' as const, metaDePontos: 5 } }
+    const { estado, contexto } = partida({ config: emVoz })
+    const narrador = { ...contexto, autorId: narradorDe(estado) }
+
+    const depois = aplicar(estado, narrador, {
+      t: 'responderPergunta',
+      perguntaId: null,
+      resposta: 'sim',
+      texto: '  ele conhecia a vítima?  ',
+    })
+    expect(depois.perguntas[0]!.texto).toBe('ele conhecia a vítima?')
+  })
+
+  it('ENIG-33: a anotação de voz respeita o limite da pergunta', () => {
+    const emVoz = { ...CONFIG_PADRAO, pacoteIds: [PACOTE_LEVE], enigmas: { modoPergunta: 'voz' as const, metaDePontos: 5 } }
+    const { estado, contexto } = partida({ config: emVoz })
+    const r = reduzir(estado, { ...contexto, autorId: narradorDe(estado) }, {
+      t: 'responderPergunta',
+      perguntaId: null,
+      resposta: 'sim',
+      texto: 'a'.repeat(LIMITE_PERGUNTA + 1),
+    }, AMBIENTE)
+    expect(r).toEqual({ ok: false, erro: 'CARTA_INVALIDA' })
+  })
+
   it('ENIG-33: no modo fila a batida solta é recusada', () => {
     const { estado, contexto } = partida()
     const r = reduzir(estado, { ...contexto, autorId: narradorDe(estado) }, {

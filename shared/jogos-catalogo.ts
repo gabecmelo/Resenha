@@ -79,7 +79,7 @@ export const CATALOGO_DE_JOGOS: JogoCatalogo[] = [
   {
     id: 'enigmas-sinistros',
     nome: 'Enigmas Sinistros',
-    descricao: 'Uma cena impossível na mesa. Só sim, não e talvez pra desatar.',
+    descricao: 'Uma cena impossível na mesa. Só sim, não e indiferente pra desatar.',
     // Em dois o jogo existe: um narra, o outro desata. Só que sem terceiro não
     // há palpite alheio pra puxar o raciocínio, e o placar vira um contra zero.
     // Deixa jogar, avisa que fica melhor em três (`ENIG-02`).

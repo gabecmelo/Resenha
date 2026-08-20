@@ -1,12 +1,20 @@
 import { useState } from 'react'
-import { CATALOGO_DE_JOGOS, nomeDoJogo } from '../../../shared/jogos-catalogo'
+import { CATALOGO_DE_JOGOS } from '../../../shared/jogos-catalogo'
 import { conteudoDoJogo } from '../../../shared/jogos-conteudo'
 import { tocarClique } from '../sons'
 import { ModalComoJogar } from './ModalComoJogar'
 
 export interface PropsDoSeletorDeJogos {
   jogoIdSelecionado: string
-  /** Ausente (ou `somenteLeitura`) = sem controle nenhum, só o nome do jogo atual (`VIS-04`). */
+  /**
+   * Mostra a lista inteira, mas nada nela escolhe: o card vira papel, sem
+   * clique de seleção. O "como jogar" continua de pé.
+   *
+   * É o que o não-host vê no lobby. Não fere `VIS-04`: o que a regra proíbe é
+   * a **ação** de host aparecer na tela de quem não pode fazê-la, e ler o
+   * catálogo não mexe na sala. Esconder o catálogo dele só fazia com que a
+   * pessoa entrasse sem saber o que ia jogar.
+   */
   somenteLeitura?: boolean
   aoSelecionar?(jogoId: string): void
 }
@@ -28,12 +36,6 @@ export function SeletorDeJogos({
   aoSelecionar,
 }: PropsDoSeletorDeJogos) {
   const [explicando, setExplicando] = useState<string | null>(null)
-
-  if (somenteLeitura) {
-    return (
-      <span className="font-display text-secao text-texto">{nomeDoJogo(jogoIdSelecionado)}</span>
-    )
-  }
 
   return (
     <div className="flex w-full flex-col gap-2">
@@ -57,6 +59,9 @@ export function SeletorDeJogos({
         const marcado = jogo.id === jogoIdSelecionado
         const selecionar = () => aoSelecionar?.(jogo.id)
         const temComoJogar = conteudoDoJogo(jogo.id) !== undefined
+        // Só leitura: o miolo do card deixa de ser botão. Um botão que não faz
+        // nada mente sobre o que a pessoa pode fazer ali.
+        const Miolo = somenteLeitura ? 'div' : 'button'
 
         return (
           /*
@@ -72,16 +77,16 @@ export function SeletorDeJogos({
             className={`flex flex-col rounded-botao bg-superficie transition-[transform,box-shadow,border-color] duration-150 ${
               marcado
                 ? 'border-2 border-controle-linha shadow-botao'
-                : 'border border-linha hover:border-controle-linha'
+                : `border border-linha ${somenteLeitura ? '' : 'hover:border-controle-linha'}`
             }`}
           >
-          <button
-            type="button"
-            aria-pressed={marcado}
-            onClick={selecionar}
-            className={`flex w-full cursor-pointer items-start gap-3 p-3.5 text-left ${
-              temComoJogar ? 'pb-2' : ''
-            }`}
+          <Miolo
+            {...(somenteLeitura
+              ? {}
+              : { type: 'button' as const, 'aria-pressed': marcado, onClick: selecionar })}
+            className={`flex w-full items-start gap-3 p-3.5 text-left ${
+              somenteLeitura ? '' : 'cursor-pointer'
+            } ${temComoJogar ? 'pb-2' : ''}`}
           >
             {/*
               O disco marcado é o mesmo gesto de um formulário de papel: um
@@ -113,7 +118,7 @@ export function SeletorDeJogos({
                 )}
               </span>
             </span>
-          </button>
+          </Miolo>
 
             {/*
               Alinhado à direita e discreto: a ação principal do card é

@@ -96,6 +96,9 @@ function projetarEnigmas(
     rodada: estado.rodada,
     fase: estado.fase,
     cena: estado.enigma?.cena ?? '',
+    // Entre enigmas não há carta na mesa; `medio` é o meio da escala e não
+    // promete nada à mesa enquanto não há cena nenhuma pra qualificar.
+    dificuldade: estado.enigma?.dificuldade ?? 'medio',
     narrador: { id: narradorId, apelido: apelidoDe(sala, narradorId) },
     souNarrador,
     modoPergunta: sala.config.enigmas.modoPergunta,

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import type { Comando, EstadoSala, Mensagem } from '../../shared/protocolo'
 import type { EstadoQuemSouEu } from '../games/quem-sou-eu/regras'
 import { carregar, salvar } from './estado'
+import { FOLGA_DO_ALARME_MS } from './prazos'
 import { SALA_OCIOSA_MS, SALA_VAZIA_MS } from './sala-do'
 
 type Sala = EstadoSala<EstadoQuemSouEu>
@@ -237,7 +238,9 @@ describe('convivência dos prazos no alarme único (AD-010)', () => {
     // Com o host caído há três prazos vivos ao mesmo tempo: migração de host
     // (30s), sala vazia (30min) e ociosidade (6h). O alarme é do mais próximo.
     expect(pendentes).toHaveLength(3)
-    expect(agendado).toBe(Math.min(...pendentes))
-    expect(agendado).toBe(sala?.prazos.migracaoHost)
+    // O alarme sai do menor prazo mais a folga: quem age no estouro do relógio
+    // ainda chega antes de ser cobrado.
+    expect(agendado).toBe(Math.min(...pendentes) + FOLGA_DO_ALARME_MS)
+    expect(agendado).toBe((sala?.prazos.migracaoHost ?? 0) + FOLGA_DO_ALARME_MS)
   })
 })

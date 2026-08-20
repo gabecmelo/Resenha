@@ -6,13 +6,15 @@ import {
   type JogadorId,
   type Situacao,
 } from '../../../shared/protocolo'
+import type { EnigmaDoPacote } from '../../../shared/enigmas-dados'
 import { projetar } from './projecao'
 import type { EstadoEnigmas } from './regras'
 
 const ENIGMA = {
   cena: 'O homem morreu de sede dentro de um caminhão-pipa cheio d’água.',
   solucao: 'Ele era o motorista e ficou preso nas ferragens depois de capotar.',
-}
+  dificuldade: 'medio',
+} satisfies EnigmaDoPacote
 
 function jogador(id: JogadorId, situacao: Situacao = 'ativo'): Jogador {
   return {

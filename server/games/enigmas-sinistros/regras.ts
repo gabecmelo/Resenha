@@ -31,7 +31,10 @@ const MIN_JOGADORES_ENIGMAS = 2
 export interface PerguntaDoEnigma {
   id: number
   autorId: JogadorId
-  /** Vazio no modo em voz alta: lá existe a batida, não o texto. */
+  /**
+   * Vazio quando a batida veio em voz alta e o narrador não anotou de que era
+   * a pergunta.
+   */
   texto: string
   resposta: RespostaDoNarrador | null
 }
@@ -165,7 +168,7 @@ export function reduzir(
     case 'perguntarEnigma':
       return perguntar(estado, ctx, comando.texto)
     case 'responderPergunta':
-      return responder(estado, ctx, comando.perguntaId, comando.resposta)
+      return responder(estado, ctx, comando.perguntaId, comando.resposta, comando.texto ?? '')
     case 'declararSolucao':
       return declarar(estado, ctx, comando.texto)
     case 'julgarDeclaracao':
@@ -232,15 +235,19 @@ function perguntar(
 
 /**
  * `ENIG-09` — o narrador responde, e as três respostas são as únicas que
- * existem. No modo em voz alta a pergunta não passou pelo servidor, então a
- * resposta entra sozinha no histórico: a mesa continua vendo o ritmo do
- * enigma, mesmo sem o texto.
+ * existem.
+ *
+ * No modo em voz alta a pergunta não passou pelo servidor, então a resposta
+ * entra sozinha no histórico. O narrador pode anotar de que era a pergunta —
+ * `texto` vazio é o caso normal, de quem não quis parar a conversa pra
+ * escrever, e a linha ainda vale pelo número e pela resposta.
  */
 function responder(
   estado: EstadoEnigmas,
   ctx: ContextoDeSala,
   perguntaId: number | null,
   resposta: RespostaDoNarrador,
+  texto: string,
 ): ResultadoReducer<EstadoEnigmas> {
   if (ctx.fase !== 'jogo' || estado.fase !== 'enigma') return { ok: false, erro: 'FASE_INVALIDA' }
   if (ctx.autorId !== narradorDe(estado)) return { ok: false, erro: 'SEM_AUTORIDADE' }
@@ -250,10 +257,12 @@ function responder(
 
   if (perguntaId === null) {
     if (ctx.config.enigmas.modoPergunta !== 'voz') return { ok: false, erro: 'FASE_INVALIDA' }
+    const anotado = texto.trim()
+    if (anotado.length > LIMITE_PERGUNTA) return { ok: false, erro: 'CARTA_INVALIDA' }
     novo.perguntas.push({
       id: novo.proximoIdPergunta,
       autorId: ctx.autorId,
-      texto: '',
+      texto: anotado,
       resposta,
     })
     novo.proximoIdPergunta += 1

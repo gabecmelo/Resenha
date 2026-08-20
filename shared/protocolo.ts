@@ -215,14 +215,21 @@ export const TEMPO_ESCOLHA_MAX_SEG = 5 * 60
 export const META_MIN_PONTOS = 3
 export const META_MAX_PONTOS = 15
 
-/** `CCT-03`, `CCT-14` — cartas na mão de cada jogador, reposta a cada rodada. */
-export const TAMANHO_DA_MAO = 7
+/**
+ * `CCT-03`, `CCT-14` — cartas na mão de cada jogador, reposta a cada rodada.
+ *
+ * Seis, e não as sete clássicas: no celular a mão é uma coluna que se rola, e
+ * a sétima carta quase nunca era lida antes de a pessoa decidir. Uma a menos
+ * encurta a leitura sem tirar escolha de verdade.
+ */
+export const TAMANHO_DA_MAO = 6
 
 /**
- * `CCT-35` — quantas perguntas o juiz recebe pra escolher a da rodada. Três é
- * o que cabe na tela sem virar catálogo e já dá escolha de verdade.
+ * `CCT-35` — quantas perguntas o juiz recebe pra escolher a da rodada. Quatro
+ * fecham a grade de duas colunas do `sm:` pra cima sem sobrar buraco, e o juiz
+ * quase sempre acha entre elas uma que conversa com a mesa daquela noite.
  */
-export const OPCOES_DE_PERGUNTA = 3
+export const OPCOES_DE_PERGUNTA = 4
 
 /** `CCT-40`, `CCT-42` — de quantas em quantas rodadas cai mais uma troca de mão. */
 export const RODADAS_POR_REROLL = 3
@@ -454,8 +461,18 @@ export type Comando =
   | { t: 'trocarMao' }
   /** `ENIG-08` — a mesa manda uma pergunta escrita pra fila do narrador. */
   | { t: 'perguntarEnigma'; texto: string }
-  /** `ENIG-09` — o narrador responde. `perguntaId` é `null` no modo em voz alta. */
-  | { t: 'responderPergunta'; perguntaId: number | null; resposta: RespostaDoNarrador }
+  /**
+   * `ENIG-09` — o narrador responde. `perguntaId` é `null` no modo em voz alta,
+   * onde a pergunta não passou pelo servidor; ali o narrador pode anotar de que
+   * era a pergunta em `texto`, e deixar em branco quando não quiser parar pra
+   * escrever.
+   */
+  | {
+      t: 'responderPergunta'
+      perguntaId: number | null
+      resposta: RespostaDoNarrador
+      texto?: string
+    }
   /** `ENIG-14` — alguém acha que desatou e conta a versão dele, só pro narrador. */
   | { t: 'declararSolucao'; texto: string }
   /** `ENIG-15` — o narrador diz se a declaração fecha o enigma. */
@@ -638,7 +655,11 @@ export type RespostaDoNarrador = 'sim' | 'nao' | 'naoImporta'
 /** `ENIG-10` — uma pergunta já respondida, ou ainda na fila. */
 export interface PerguntaProjetada {
   id: number
-  /** Vazio no modo em voz alta: lá a batida existe, o texto não. */
+  /**
+   * Vazio quando o narrador respondeu em voz alta sem anotar de que era a
+   * pergunta. A linha continua valendo: o número e a resposta já mostram o
+   * ritmo do enigma.
+   */
   texto: string
   autor: { id: JogadorId; apelido: string }
   /** `null` enquanto o narrador não respondeu. */
@@ -664,6 +685,12 @@ export interface ProjecaoEnigmas {
   fase: 'enigma' | 'revelacao'
   /** A cena. Visível a todos, sempre. */
   cena: string
+  /**
+   * Vai à vista da mesa junto da cena, e de propósito: saber que a carta é
+   * difícil muda o tipo de pergunta que a turma faz, e evita que uma mesa nova
+   * conclua que o jogo é impossível na primeira rodada.
+   */
+  dificuldade: Dificuldade
   /** `ENIG-05` — só na tela do narrador, e na de todos depois da revelação. */
   solucao?: string
   narrador: { id: JogadorId; apelido: string }
