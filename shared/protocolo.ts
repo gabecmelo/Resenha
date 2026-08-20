@@ -215,14 +215,21 @@ export const TEMPO_ESCOLHA_MAX_SEG = 5 * 60
 export const META_MIN_PONTOS = 3
 export const META_MAX_PONTOS = 15
 
-/** `CCT-03`, `CCT-14` — cartas na mão de cada jogador, reposta a cada rodada. */
-export const TAMANHO_DA_MAO = 7
+/**
+ * `CCT-03`, `CCT-14` — cartas na mão de cada jogador, reposta a cada rodada.
+ *
+ * Seis, e não as sete clássicas: no celular a mão é uma coluna que se rola, e
+ * a sétima carta quase nunca era lida antes de a pessoa decidir. Uma a menos
+ * encurta a leitura sem tirar escolha de verdade.
+ */
+export const TAMANHO_DA_MAO = 6
 
 /**
- * `CCT-35` — quantas perguntas o juiz recebe pra escolher a da rodada. Três é
- * o que cabe na tela sem virar catálogo e já dá escolha de verdade.
+ * `CCT-35` — quantas perguntas o juiz recebe pra escolher a da rodada. Quatro
+ * fecham a grade de duas colunas do `sm:` pra cima sem sobrar buraco, e o juiz
+ * quase sempre acha entre elas uma que conversa com a mesa daquela noite.
  */
-export const OPCOES_DE_PERGUNTA = 3
+export const OPCOES_DE_PERGUNTA = 4
 
 /** `CCT-40`, `CCT-42` — de quantas em quantas rodadas cai mais uma troca de mão. */
 export const RODADAS_POR_REROLL = 3

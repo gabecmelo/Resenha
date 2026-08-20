@@ -972,7 +972,7 @@ function RegrasCartas({
       {folha === 'rerolls' && (
         <FolhaDeEscolha
           titulo="Trocas de mão"
-          descricao={`A mão velha vai pro descarte e sete novas entram. Cada um ganha mais uma troca a cada ${RODADAS_POR_REROLL} rodadas.`}
+          descricao={`A mão velha vai pro descarte e seis novas entram. Cada um ganha mais uma troca a cada ${RODADAS_POR_REROLL} rodadas.`}
           opcoes={PRESETS_DE_REROLLS}
           atual={config.cartas.rerollsIniciais}
           aoEscolher={(rerollsIniciais) => mudarCartas({ rerollsIniciais })}

@@ -26,7 +26,7 @@ O Resenha é um hub de party games. "Quem Sou Eu?" e "Espião" já estão jogáv
 | Assumption / decision | Chosen default | Rationale | Confirmed? |
 | --- | --- | --- | --- |
 | O sistema pontua e aponta um campeão — contradiz `AD-003` ("não pontua e não decide vencedor", escopo "todos os jogos do hub") | Placar da partida, 1 ponto por rodada vencida. `AD-003` passa a ter exceção registrada (`AD-015`). | Escolha explícita do dono ("Placar da partida"). Diferente de Espião/Quem Sou Eu, aqui **quem julga é uma pessoa** — o sistema só conta o que um humano decidiu, não arbitra regra nenhuma. O espírito de `AD-003` (o sistema é tabuleiro, não juiz) segue intacto. | y |
-| Mão: sorteada ou escolhida | Sorteada, 7 cartas, reposta ao fim de cada rodada. | Decisão do dono ("Mão sorteada"). 7 é o tamanho clássico e o que dá escolha real sem virar leitura longa no celular. | y (o 7 é padrão meu) |
+| Mão: sorteada ou escolhida | Sorteada, 6 cartas, reposta ao fim de cada rodada. | Decisão do dono ("Mão sorteada"). Começou em 7, o tamanho clássico, e caiu pra 6 depois de jogar: no celular a mão é uma coluna rolável e a sétima carta quase nunca era lida antes da decisão. | y |
 | Carta em branco | Cada jogador tem 1. Ao gastar, volta 5 rodadas depois. | Literal do dono: "pode escrever uma vez a cada 5 rodadas — ao gastar, depois de 5 rodadas recebe de novo essa chance". | y |
 | Juiz | Rotativo entre os jogadores ativos, na ordem de entrada, começando por um sorteado. | Único desenho que mantém todo mundo jogando (o juiz não é um espectador fixo) e não precisa de nova config. | n (padrão meu) |
 | Fim da partida | Meta de pontos configurável, padrão 5; opção "sem meta" (só o host encerra). | Um placar sem linha de chegada nunca vira vitória; a opção "sem meta" preserva o encerramento manual que os outros jogos já têm. | n (padrão meu) |
@@ -51,7 +51,7 @@ O Resenha é um hub de party games. "Quem Sou Eu?" e "Espião" já estão jogáv
 
 1. WHEN o host está no lobby de uma sala com jogo Cartas Contra a Turma THEN o sistema SHALL permitir configurar: pacote(s) de cartas, tempo de escolha (padrão 90s, ou "sem tempo") e meta de pontos (padrão 5, ou "sem meta")
 2. WHEN o host clica "Começar" com menos de 3 jogadores ativos THEN o sistema SHALL recusar com o mesmo erro de jogadores insuficientes já usado nos outros jogos
-3. WHEN o host clica "Começar" com jogadores e configuração válidos THEN o sistema SHALL sortear o juiz da primeira rodada, distribuir 7 cartas-resposta privadas pra cada jogador ativo e virar a primeira carta-pergunta
+3. WHEN o host clica "Começar" com jogadores e configuração válidos THEN o sistema SHALL sortear o juiz da primeira rodada, distribuir 6 cartas-resposta privadas pra cada jogador ativo e virar a primeira carta-pergunta
 4. WHEN um jogador abre sua projeção durante a fase de escolha THEN o sistema SHALL mostrar a carta-pergunta pra todos e a mão **apenas pro dono dela**
 5. WHEN o jogador da vez é o juiz THEN o sistema SHALL indicar que ele não joga nesta rodada e não SHALL revelar a mão dele como jogável
 6. WHEN um jogador não-juiz escolhe uma carta da mão THEN o sistema SHALL registrar a escolha, removê-la da mão e mantê-la oculta de todos os outros até a pilha fechar
@@ -62,7 +62,7 @@ O Resenha é um hub de party games. "Quem Sou Eu?" e "Espião" já estão jogáv
 11. WHEN a pilha está aberta THEN o sistema SHALL permitir que **somente o juiz** escolha uma resposta vencedora
 12. WHEN o juiz escolhe a vencedora THEN o sistema SHALL segurar a revelação pela batida de suspense já usada no Espião e então revelar, pra todos, qual carta ganhou e **quem** a jogou
 13. WHEN a vencedora é revelada THEN o sistema SHALL dar 1 ponto ao autor dela
-14. WHEN a revelação da rodada termina THEN o sistema SHALL repor a mão de cada jogador até 7 cartas, passar o juiz pro próximo jogador ativo na ordem e virar uma nova carta-pergunta
+14. WHEN a revelação da rodada termina THEN o sistema SHALL repor a mão de cada jogador até 6 cartas, passar o juiz pro próximo jogador ativo na ordem e virar uma nova carta-pergunta
 15. WHEN uma carta (pergunta ou resposta) já foi usada na partida THEN o sistema SHALL NOT sorteá-la de novo enquanto houver cartas não usadas no pool; quando o pool acabar, SHALL reembaralhar as usadas
 16. WHEN o host encerra a partida a qualquer momento THEN o sistema SHALL ir pra tela de revelação com o placar final
 17. WHEN um jogador sai e os ativos caem abaixo de 3 THEN o sistema SHALL cancelar a partida e voltar a sala ao lobby, mesmo padrão dos outros jogos
@@ -135,7 +135,7 @@ O Resenha é um hub de party games. "Quem Sou Eu?" e "Espião" já estão jogáv
 
 **Acceptance Criteria**:
 
-1. WHEN uma rodada começa THEN o sistema SHALL entregar ao juiz três perguntas e nenhuma delas ao resto da mesa, até que ele escolha uma
+1. WHEN uma rodada começa THEN o sistema SHALL entregar ao juiz quatro perguntas e nenhuma delas ao resto da mesa, até que ele escolha uma
 2. WHEN o juiz escolhe a pergunta THEN o sistema SHALL mantê-la virada pra baixo pra mesa, e só na revelação abrir a fase de escolha e começar a contar o tempo
 3. WHEN alguém toca numa carta — pergunta, resposta da mão, vencedora ou troca de mão — THEN o sistema SHALL pedir confirmação mostrando o que vai acontecer, antes de enviar o comando
 4. WHEN a fase de escolha fecha THEN o sistema SHALL entregar a pilha inteira virada pra baixo, inclusive pro juiz, e revelar cada carta pra mesa toda ao mesmo tempo em que o juiz a vira

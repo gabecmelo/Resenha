@@ -227,7 +227,8 @@ describe('CCT-35, CCT-36 — o juiz escolhe e vira a pergunta', () => {
     })
     expect(depois.pergunta).toBe(opcoes[1])
     expect(depois.opcoesPergunta).toEqual([])
-    expect(depois.descartePerguntas).toEqual([opcoes[0], opcoes[2]])
+    // Todas menos a escolhida, seja qual for o tamanho de `OPCOES_DE_PERGUNTA`.
+    expect(depois.descartePerguntas).toEqual(opcoes.filter((_, i) => i !== 1))
   })
 
   it('CCT-35: não dá pra trocar a pergunta depois de escolhida', () => {

@@ -473,7 +473,7 @@ function MesaDoNarrador({
       <section className="flex flex-col gap-3">
         <p className="text-rotulo text-texto-3 uppercase">responda em voz alta</p>
         <CampoDeTexto
-          rotulo="do que era a pergunta — opcional"
+          rotulo="Do que era a pergunta — opcional"
           valor={anotacao}
           aoMudar={aoMudarAnotacao}
           limite={LIMITE_PERGUNTA}
@@ -685,7 +685,7 @@ function Historico({ enigmas }: { enigmas: ProjecaoEnigmas }) {
                 </span>
                 <span className="min-w-0 flex-1 text-apoio leading-snug text-texto">
                   {pergunta.texto === '' ? (
-                    <span className="text-texto-3">perguntada em voz alta</span>
+                    <span className="text-texto-3">Perguntada em voz alta</span>
                   ) : (
                     <>
                       {pergunta.texto}

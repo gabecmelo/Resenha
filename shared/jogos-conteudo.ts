@@ -209,7 +209,7 @@ export const CONTEUDO_DOS_JOGOS: ConteudoDoJogo[] = [
       {
         titulo: 'Receba a sua mão',
         texto:
-          'Cada pessoa começa com 7 cartas de resposta. A mão se completa a cada rodada, então ninguém fica sem opção.',
+          'Cada pessoa começa com 6 cartas de resposta. A mão se completa a cada rodada, então ninguém fica sem opção.',
       },
       {
         titulo: 'Jogue a sua resposta',
