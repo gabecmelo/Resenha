@@ -173,6 +173,8 @@ const MOTIVO_PADRAO_DO_RECOMENDADO =
 const MOTIVO_DO_RECOMENDADO: Record<string, string> = {
   'enigmas-sinistros': 'com mais gente perguntando, o raciocínio de um puxa o do outro.',
   'dedo-na-cara': 'com pouca gente a votação quase não se divide, e quase toda carta empata.',
+  espiao: 'com pouca gente, cada pergunta já é quase uma acusação e o espião não tem onde se esconder.',
+  'cartas-contra-a-turma': 'com pouca gente o juiz escolhe entre duas cartas, e aí quase não há julgamento.',
 }
 
 /**

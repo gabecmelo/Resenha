@@ -68,13 +68,21 @@ export const CATALOGO_DE_JOGOS: JogoCatalogo[] = [
     id: 'espiao',
     nome: 'Espião',
     descricao: 'Todos sabem o local. Menos um. Descubra quem.',
+    // Em três, cada pergunta é quase uma acusação e uma votação errada já
+    // decide a partida. De quatro pra cima o espião tem onde se esconder, que
+    // é o que faz o jogo durar (`ESP-02`).
     minJogadores: 3,
+    recomendadoJogadores: 4,
   },
   {
     id: 'cartas-contra-a-turma',
     nome: 'Cartas Contra a Turma',
     descricao: 'Uma frase no meio da mesa e a pior resposta possível ganha.',
+    // Em três, o juiz escolhe entre duas cartas e o julgamento quase não
+    // existe. De quatro pra cima a pilha fica grande o bastante pra ter
+    // disputa de verdade (`CCT-02`).
     minJogadores: 3,
+    recomendadoJogadores: 4,
   },
   {
     id: 'enigmas-sinistros',
