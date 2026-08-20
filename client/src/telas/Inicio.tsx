@@ -6,6 +6,7 @@ import type { ErroDeSala } from '../estado/conexao'
 import {
   LIMITE_PADRAO,
   MAX_APELIDO,
+  jogoDaUrl,
   limiteDigitado,
   motivoDoCodigo,
   motivoParaCriar,
@@ -62,7 +63,9 @@ export function Inicio({
   // `AJU-36` — já preenchido: quem não quiser mexer cria a sala sem passo a mais.
   const [limite, setLimite] = useState(LIMITE_PADRAO)
   // `HUB-01` — o jogo padrão já vem pré-selecionado.
-  const [jogoId, setJogoId] = useState(JOGO_PADRAO)
+  // `/?jogo=espiao` — quem veio da página daquele jogo já escolheu. Lido uma
+  // vez, na montagem: depois disso quem manda é o clique no seletor.
+  const [jogoId, setJogoId] = useState(() => jogoDaUrl(window.location.search) ?? JOGO_PADRAO)
   // Chegou por link ou já achou a sala pelo código: em ambos os casos a pessoa
   // está na porta, e o que falta é dizer como te chamam.
   const [naPorta, setNaPorta] = useState(codigoInicial !== '')

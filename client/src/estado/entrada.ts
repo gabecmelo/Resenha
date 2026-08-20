@@ -7,12 +7,34 @@
  * (`HOST-01`, `ESCR-06` valem para todo botão desabilitado do produto).
  */
 
+import { jogoDoCatalogo } from '../../../shared/jogos-catalogo'
 import {
   ALFABETO_CODIGO,
   MAX_JOGADORES,
   MIN_JOGADORES,
   TAMANHO_CODIGO,
 } from '../../../shared/protocolo'
+
+/**
+ * Jogo pedido pela busca da URL (`/?jogo=espiao`).
+ *
+ * Quem chega pelas páginas indexáveis veio procurando **aquele** jogo, e cair
+ * na tela inicial com outro selecionado é fazer a pessoa refazer à mão a
+ * escolha que ela já tinha feito no Google.
+ *
+ * Só o catálogo decide o que vale: um valor desconhecido devolve `null` e a
+ * tela segue com o padrão. Isto é sugestão de interface, não comando — quem
+ * recusa `jogoId` de verdade continua sendo o servidor, ao criar a sala.
+ */
+export function jogoDaUrl(busca: string): string | null {
+  const pedido = new URLSearchParams(busca).get('jogo')
+  if (pedido === null) return null
+
+  const jogo = jogoDoCatalogo(pedido)
+  // `emBreve` está no catálogo mas não é jogável: selecionar deixaria a tela
+  // com um jogo que o botão "Criar" recusa.
+  return jogo === undefined || jogo.emBreve === true ? null : jogo.id
+}
 
 /** `SALA-03` */
 export const MIN_APELIDO = 2
