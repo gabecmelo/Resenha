@@ -74,7 +74,7 @@ Toda ambiguidade foi resolvida em `discuss` (nesta própria sessão, sem `contex
 **Acceptance Criteria**:
 
 1. WHEN o host está no lobby THEN o sistema SHALL mostrar um controle "Mudar jogo" que reabre o seletor de jogos.
-2. WHEN alguém que não é host está no lobby THEN o sistema SHALL mostrar apenas o nome do jogo atual, sem controle de troca (mesmo padrão de toda ação host-only do produto — `VIS-04`).
+2. WHEN alguém que não é host está no lobby THEN o sistema SHALL mostrar o nome do jogo atual e SHALL permitir abrir o catálogo em leitura — a lista dos jogos e o "como jogar" de cada um —, sem nenhum controle de troca (`VIS-04` proíbe a **ação** de host na tela de quem não pode fazê-la; ler o catálogo não mexe na sala).
 3. WHEN o host confirma a troca para um jogo diferente do atual THEN o sistema SHALL mudar o `jogoId` da sala e resetar `config` para o padrão do jogo novo.
 4. WHEN o host confirma a troca para o **mesmo** jogo que já está ativo THEN o sistema SHALL manter a `config` como estava (não resetar à toa).
 5. WHEN alguém que não é host tenta trocar o jogo (comando direto, fora da UI) THEN o sistema SHALL recusar com o mesmo erro de autoridade usado em toda ação host-only.

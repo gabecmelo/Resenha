@@ -516,8 +516,13 @@ function AcaoDeIniciar({
 }
 
 /**
- * `HUB-06`…`HUB-12` — host troca de jogo sem sair do lobby; não-host só vê o
- * nome do jogo atual, sem controle nenhum (`VIS-04`).
+ * `HUB-06`…`HUB-12` — host troca de jogo sem sair do lobby.
+ *
+ * O não-host não troca, mas abre a mesma lista pra ler: quais jogos existem e,
+ * em cada um, o "como jogar". Antes ele via só o nome do jogo em texto puro e
+ * entrava sem saber o que ia jogar — a regra que vale (`VIS-04`) é a **ação**
+ * de host não aparecer pra quem não pode fazê-la, e ler o catálogo não mexe na
+ * sala.
  */
 function JogoDaSala({
   jogoId,
@@ -555,24 +560,44 @@ function JogoDaSala({
           </span>
         </button>
       ) : (
-        <span className="flex-none font-mono text-dado text-texto-2">{nomeDoJogo(jogoId)}</span>
+        <button
+          type="button"
+          onClick={() => setModalAberto(true)}
+          className="flex min-h-11 flex-none cursor-pointer items-center gap-2 rounded-chip border border-dashed border-linha px-3 font-mono text-dado text-texto-2 hover:border-controle-linha hover:text-texto"
+        >
+          {nomeDoJogo(jogoId)}
+          <span aria-hidden="true" className="text-texto-3">
+            ?
+          </span>
+        </button>
       )}
 
-      {modalAberto && (
-        <Modal
-          folha
-          titulo="O que vamos jogar"
-          descricao="Trocar de jogo reseta as regras da partida pro padrão do jogo novo."
-          rotuloConfirmar="Confirmar"
-          aoConfirmar={() => {
-            enviar({ t: 'trocarJogo', jogoId: jogoIdRascunho })
-            setModalAberto(false)
-          }}
-          aoCancelar={() => setModalAberto(false)}
-        >
-          <SeletorDeJogos jogoIdSelecionado={jogoIdRascunho} aoSelecionar={setJogoIdRascunho} />
-        </Modal>
-      )}
+      {modalAberto &&
+        (souHost ? (
+          <Modal
+            folha
+            titulo="O que vamos jogar"
+            descricao="Trocar de jogo reseta as regras da partida pro padrão do jogo novo."
+            rotuloConfirmar="Confirmar"
+            aoConfirmar={() => {
+              enviar({ t: 'trocarJogo', jogoId: jogoIdRascunho })
+              setModalAberto(false)
+            }}
+            aoCancelar={() => setModalAberto(false)}
+          >
+            <SeletorDeJogos jogoIdSelecionado={jogoIdRascunho} aoSelecionar={setJogoIdRascunho} />
+          </Modal>
+        ) : (
+          <Modal
+            folha
+            titulo="O que vamos jogar"
+            descricao={`A sala está em ${nomeDoJogo(jogoId)}. Quem comanda escolhe — aqui dá pra ver os outros e ler as regras de cada um.`}
+            rotuloCancelar="Fechar"
+            aoCancelar={() => setModalAberto(false)}
+          >
+            <SeletorDeJogos jogoIdSelecionado={jogoId} somenteLeitura />
+          </Modal>
+        ))}
     </div>
   )
 }

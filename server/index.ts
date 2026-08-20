@@ -1,6 +1,7 @@
 import { MAX_JOGADORES } from '../shared/protocolo'
 import { JOGO_PADRAO } from '../shared/jogos-catalogo'
 import { gerarCodigo, normalizarCodigo } from './core/codigo'
+import { codigoDoCaminho, paginaDeConvite } from './convite'
 import { limiteDeEntrada } from './core/roster'
 import { SalaDeJogo } from './core/sala-do'
 import { REGISTRO_DE_JOGOS } from './games/registro'
@@ -26,8 +27,8 @@ const ROTA_WS = /^\/api\/salas\/([^/]+)\/ws$/
  * Os assets estáticos não passam por aqui: com `not_found_handling` em
  * `single-page-application` e a compatibility date do projeto, a plataforma
  * serve o asset (ou o `index.html`) antes de invocar o Worker, e só o que não
- * é navegação — as chamadas de API e o upgrade de WebSocket — chega até este
- * handler.
+ * é navegação — as chamadas de API, o upgrade de WebSocket e a raspagem de
+ * link do caminho de uma sala — chega até este handler.
  */
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -52,6 +53,25 @@ export default {
 
     const rota = ROTA_WS.exec(url.pathname)
     if (rota !== null) return conectarSala(env, request, rota[1])
+
+    /*
+      O caminho de uma sala. Só chega aqui o que **não** é navegação — quem
+      abre no navegador recebe o app dos assets antes do Worker —, então na
+      prática este é o raspador de link do grupo, que não manda
+      `Sec-Fetch-Mode: navigate` e por isso levava o 404 em texto puro. Daí o
+      link colado ir seco, sem cartão nenhum.
+    */
+    const codigo = codigoDoCaminho(url.pathname)
+    if (codigo !== null && (request.method === 'GET' || request.method === 'HEAD')) {
+      return new Response(paginaDeConvite(codigo, url.origin), {
+        headers: {
+          'content-type': 'text/html; charset=utf-8',
+          // O cartão é o mesmo pra qualquer sala; cinco minutos poupam o
+          // Worker quando um link circula num grupo grande.
+          'cache-control': 'public, max-age=300',
+        },
+      })
+    }
 
     return new Response('não encontrado', { status: 404 })
   },
