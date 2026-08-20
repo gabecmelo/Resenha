@@ -403,7 +403,7 @@ function FichaNaMesa({
       {confirmandoExpulsao && (
         <Modal
           titulo={`Tirar ${jogador.apelido} da mesa?`}
-          descricao={`${jogador.apelido} sai da sala agora e não consegue voltar por este código.`}
+          descricao={`${jogador.apelido} sai da sala agora (ele consegue voltar por este código).`}
           rotuloConfirmar={`Tirar ${jogador.apelido}`}
           destrutivo
           aoConfirmar={() => {
