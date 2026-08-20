@@ -443,11 +443,28 @@ export function paginasDeJogo(origem: string): Plugin {
 
     configureServer(servidor) {
       servidor.middlewares.use((requisicao, resposta, seguir) => {
-        const caminho = (requisicao.url ?? '').split('?')[0]?.replace(/^\//, '') ?? ''
+        /*
+         * `IncomingMessage` e `ServerResponse` só ganham forma com
+         * `@types/node`, que este projeto não carrega — mesmo motivo do
+         * `globalThis` em `vite.config.ts`. Sem esse pacote os parâmetros caem
+         * em `any` e tudo passa; num `npm ci` do zero os tipos do `connect`
+         * resolvem, `IncomingMessage` aparece sem os membros do `node` e o
+         * acesso a `.url` quebra só lá.
+         *
+         * Declarar aqui apenas os três membros que este middleware usa tira a
+         * dependência dos dois lados e faz local e CI concordarem.
+         */
+        const pedido = requisicao as unknown as { url?: string | undefined }
+        const saida = resposta as unknown as {
+          setHeader(nome: string, valor: string): void
+          end(corpo: string): void
+        }
+
+        const caminho = (pedido.url ?? '').split('?')[0]?.replace(/^\//, '') ?? ''
 
         if (caminho === 'sitemap.xml') {
-          resposta.setHeader('Content-Type', 'application/xml; charset=utf-8')
-          resposta.end(sitemap(origem, hoje()))
+          saida.setHeader('Content-Type', 'application/xml; charset=utf-8')
+          saida.end(sitemap(origem, hoje()))
           return
         }
 
@@ -459,8 +476,8 @@ export function paginasDeJogo(origem: string): Plugin {
           return
         }
 
-        resposta.setHeader('Content-Type', 'text/html; charset=utf-8')
-        resposta.end(paginaDoJogo(conteudo, origem))
+        saida.setHeader('Content-Type', 'text/html; charset=utf-8')
+        saida.end(paginaDoJogo(conteudo, origem))
       })
     },
   }
