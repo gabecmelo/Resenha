@@ -12,6 +12,7 @@
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test": "npm run test:unit && npm run test:integration",
     "qr:pix": "node scripts/gerar-qr-pix.mjs",
+    "og": "node scripts/gerar-og.mjs",
     "deploy": "node scripts/deploy.mjs",
     "deploy:beta": "node scripts/deploy.mjs --beta",
     "deploy:dry": "node scripts/deploy.mjs --dry-run",

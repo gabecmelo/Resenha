@@ -1,0 +1,183 @@
+<!doctype html>
+<!--
+  O cartão que aparece quando alguém cola resenha.dev.br no WhatsApp, no Discord
+  ou em qualquer lugar que leia Open Graph.
+
+  É HTML de propósito: fica no mesmo idioma visual do produto (mesmas fontes,
+  mesma paleta, mesma sombra dura da direção Bancada) e muda junto com ele.
+  `scripts/gerar-og.mjs` rasteriza este arquivo em 1200×630.
+
+  Papel claro mesmo no tema escuro do app: a miniatura aparece dentro da lista de
+  conversas alheia, quase sempre sobre fundo escuro, e o creme é o que separa o
+  cartão do resto da tela.
+-->
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=block"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --papel: #efe4d2;
+        --superficie: #fbf5e9;
+        --tinta: #1b1712;
+        --fraco: #6e6354;
+        --linha: #d5c9b4;
+        --acento: #c93a22;
+        --acento-contraste: #fff3e6;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        width: 1200px;
+        height: 630px;
+        background: var(--papel);
+        font-family: 'Archivo', system-ui, sans-serif;
+        color: var(--tinta);
+        overflow: hidden;
+      }
+
+      /* A moldura de tinta: a borda do papel apoiado na mesa. */
+      .folha {
+        width: 100%;
+        height: 100%;
+        border: 7px solid var(--tinta);
+        padding: 62px 72px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+
+      /* Marca à esquerda, endereço à direita: libera a linha de baixo inteira
+         pras fichas dos jogos, que só cabem numa linha se ninguém disputar. */
+      .topo {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+      }
+
+      .marca {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      /*
+         O ícone é o mesmo `LogoResenha.tsx` do cabeçalho, com os tokens do tema
+         claro escritos em hex: aqui não existe CSS do app pra herdar, e o
+         cartão é sempre papel claro.
+      */
+      .marca svg {
+        width: 46px;
+        height: 46px;
+        display: block;
+      }
+
+      .marca span {
+        font-family: 'Archivo Black', sans-serif;
+        font-size: 36px;
+        letter-spacing: -0.01em;
+      }
+
+      h1 {
+        font-family: 'Archivo Black', sans-serif;
+        font-size: 82px;
+        line-height: 1.04;
+        letter-spacing: -0.015em;
+        margin-bottom: 26px;
+      }
+
+      .apoio {
+        font-size: 29px;
+        line-height: 1.45;
+        color: var(--fraco);
+        max-width: 830px;
+      }
+
+      .fichas {
+        display: flex;
+        gap: 10px;
+      }
+
+      .ficha {
+        font-family: 'DM Mono', monospace;
+        font-size: 20px;
+        padding: 12px 18px;
+        border-radius: 999px;
+        background: var(--superficie);
+        border: 1.5px solid var(--linha);
+        white-space: nowrap;
+      }
+
+      .ficha--acesa {
+        background: var(--acento);
+        border-color: var(--acento);
+        color: var(--acento-contraste);
+      }
+
+      .endereco {
+        font-family: 'DM Mono', monospace;
+        font-size: 25px;
+        font-weight: 500;
+        white-space: nowrap;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="folha">
+      <div class="topo">
+        <div class="marca">
+          <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect
+              x="21"
+              y="13"
+              width="29"
+              height="37"
+              rx="4"
+              fill="var(--acento)"
+              transform="rotate(9 35 31)"
+            />
+            <rect
+              x="13.5"
+              y="16.5"
+              width="28"
+              height="36"
+              rx="4"
+              fill="var(--superficie)"
+              stroke="var(--tinta)"
+              stroke-width="3.5"
+              transform="rotate(-8 27 34)"
+            />
+          </svg>
+          <span>resenha</span>
+        </div>
+        <span class="endereco">resenha.dev.br</span>
+      </div>
+
+      <div>
+        <h1>Junta a galera<br />e abre a mesa.</h1>
+        <p class="apoio">
+          Party games no navegador. Sem app, sem cadastro —<br />
+          cria a sala, manda o código, joga.
+        </p>
+      </div>
+
+      <div class="fichas">
+        <span class="ficha ficha--acesa">Quem Sou Eu?</span>
+        <span class="ficha">Espião</span>
+        <span class="ficha">Cartas Contra a Turma</span>
+        <span class="ficha">Enigmas Sinistros</span>
+      </div>
+    </div>
+  </body>
+</html>
