@@ -63,6 +63,7 @@ export function Lobby({ projecao, enviar, aoSair }: PropsDaTela) {
       pendencias={pendencias}
       resumo={resumoDaPartida(sala, ativos.length)}
       recomendado={abaixoDoRecomendado ? recomendado : undefined}
+      jogoId={sala.jogoId}
       enviar={enviar}
     />
   )
@@ -157,6 +158,21 @@ export function Lobby({ projecao, enviar, aoSair }: PropsDaTela) {
       <div className="lg:hidden">{acao}</div>
     </Shell>
   )
+}
+
+/**
+ * Por que vale esperar mais uma pessoa — a razão muda com o jogo.
+ *
+ * O conselho é o mesmo em todos ("dá, mas rende mais a partir de N"); o que
+ * não pode ser o mesmo é o motivo, que é a única parte que ensina alguma coisa
+ * sobre o jogo que a mesa escolheu.
+ */
+const MOTIVO_PADRAO_DO_RECOMENDADO =
+  'com mais gente na mesa, a partida ganha ritmo.'
+
+const MOTIVO_DO_RECOMENDADO: Record<string, string> = {
+  'enigmas-sinistros': 'com mais gente perguntando, o raciocínio de um puxa o do outro.',
+  'dedo-na-cara': 'com pouca gente a votação quase não se divide, e quase toda carta empata.',
 }
 
 /**
@@ -446,6 +462,7 @@ function AcaoDeIniciar({
   pendencias,
   resumo,
   recomendado,
+  jogoId,
   enviar,
 }: {
   souHost: boolean
@@ -455,6 +472,7 @@ function AcaoDeIniciar({
   resumo: string
   /** Presente só quando a mesa está abaixo do que o jogo pede pra render. */
   recomendado: number | undefined
+  jogoId: string
   enviar: PropsDaTela['enviar']
 }) {
   if (!souHost) {
@@ -506,8 +524,8 @@ function AcaoDeIniciar({
               </span>
               <span>
                 Dá pra jogar com {ativos}, mas este jogo rende mais a partir de{' '}
-                <strong className="font-semibold text-texto">{recomendado}</strong> — com mais
-                gente perguntando, o raciocínio de um puxa o do outro.
+                <strong className="font-semibold text-texto">{recomendado}</strong> —{' '}
+                {MOTIVO_DO_RECOMENDADO[jogoId] ?? MOTIVO_PADRAO_DO_RECOMENDADO}
               </span>
             </p>
           )}
