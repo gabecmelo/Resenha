@@ -3,6 +3,7 @@ import { linkDeConvite } from '../estado/entrada'
 import { AlternadorDeTema } from './AlternadorDeTema'
 import { LogoResenha } from './LogoResenha'
 import { Modal } from './Modal'
+import { ModalDeApoio } from './ModalDeApoio'
 import { SomToggle } from './SomToggle'
 
 export interface PropsDoShell {
@@ -33,6 +34,7 @@ export interface PropsDoShell {
  */
 export function Shell({ titulo = 'Resenha', codigo, faixa, aoSair, children }: PropsDoShell) {
   const [confirmandoSaida, setConfirmandoSaida] = useState(false)
+  const [pedindoApoio, setPedindoApoio] = useState(false)
 
   return (
     <div className="flex min-h-dvh flex-col bg-fundo">
@@ -48,13 +50,20 @@ export function Shell({ titulo = 'Resenha', codigo, faixa, aoSair, children }: P
               resenha
             </span>
           ) : (
-            <span className="flex-none truncate text-apoio font-semibold text-texto">{titulo}</span>
+            // O nome do jogo é o único elástico da linha: com a moldura, o código,
+            // o apoiar, o som, o tema e o sair, um celular estreito não fecha a
+            // conta se todo mundo for rígido. O código nunca encolhe (`SALA-08`),
+            // então quem cede é o título.
+            <span className="min-w-0 shrink truncate text-apoio font-semibold text-texto">
+              {titulo}
+            </span>
           )}
 
           {codigo !== undefined && <CopiarConvite codigo={codigo} />}
 
           <span className="flex-1" />
 
+          <BotaoDeApoio aoAbrir={() => setPedindoApoio(true)} />
           <SomToggle />
           <AlternadorDeTema />
           {aoSair !== undefined && (
@@ -86,6 +95,8 @@ export function Shell({ titulo = 'Resenha', codigo, faixa, aoSair, children }: P
         {children}
       </main>
 
+      {pedindoApoio && <ModalDeApoio aoFechar={() => setPedindoApoio(false)} />}
+
       {confirmandoSaida && aoSair !== undefined && (
         <Modal
           titulo="Sair da sala?"
@@ -98,6 +109,48 @@ export function Shell({ titulo = 'Resenha', codigo, faixa, aoSair, children }: P
         />
       )}
     </div>
+  )
+}
+
+/**
+ * O caminho para apoiar, sempre disponível e nunca no caminho.
+ *
+ * Fica no cabeçalho porque precisa existir em toda tela — inclusive na de
+ * início, para quem quiser voltar e ajudar depois. É ícone puro no celular,
+ * onde o código da sala e o sair já disputam a linha, e ganha a palavra do
+ * `sm:` pra cima, onde sobra espaço: um ícone de coração sozinho não diz o que
+ * faz, e o cabeçalho é o único lugar do produto sem legenda embaixo.
+ */
+function BotaoDeApoio({ aoAbrir }: { aoAbrir(): void }) {
+  return (
+    <button
+      type="button"
+      onClick={aoAbrir}
+      title="Ajude a manter o Resenha no ar"
+      className="flex h-11 w-9 flex-none cursor-pointer items-center justify-center gap-1.5 rounded-chip text-texto-3 hover:text-acento sm:w-auto sm:px-2.5"
+    >
+      <IconeApoio />
+      <span className="hidden font-mono text-rotulo uppercase sm:inline">apoiar</span>
+    </button>
+  )
+}
+
+/** Coração de contorno: o gesto certo sem a promessa de recompensa de um cifrão. */
+function IconeApoio() {
+  return (
+    <svg
+      width="17"
+      height="17"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M12 20.5 4.3 13a4.8 4.8 0 0 1 6.8-6.8l.9.9.9-.9A4.8 4.8 0 0 1 19.7 13z" />
+    </svg>
   )
 }
 
