@@ -38,7 +38,7 @@ export function SeletorDeJogos({
   const [explicando, setExplicando] = useState<string | null>(null)
 
   return (
-    <div className="flex w-full flex-col gap-2">
+    <div className="flex w-full flex-col gap-1.5">
       {CATALOGO_DE_JOGOS.map((jogo) => {
         if (jogo.emBreve === true) {
           return (
@@ -70,11 +70,18 @@ export function SeletorDeJogos({
             HTML inválido — o navegador desmonta a árvore e o clique interno
             deixa de ser previsível. A moldura e a sombra vivem aqui; quem
             escuta o clique de escolher é o botão de dentro, que ocupa o card
-            inteiro menos a linha do "como jogar".
+            inteiro menos o canto do "como jogar".
+
+            O "como jogar" fica **sobreposto** no canto de baixo, e não numa
+            faixa própria: com cinco jogos no catálogo, uma linha só pra ele
+            custava uma altura de card inteira na lista e empurrava o quinto pra
+            fora da tela. Sobrepor, e não dividir a linha em duas colunas,
+            porque estreitar o texto quebrava toda descrição em duas linhas — o
+            que devolvia a altura economizada.
           */
           <div
             key={jogo.id}
-            className={`flex flex-col rounded-botao bg-superficie transition-[transform,box-shadow,border-color] duration-150 ${
+            className={`relative flex rounded-botao bg-superficie transition-[transform,box-shadow,border-color] duration-150 ${
               marcado
                 ? 'border-2 border-controle-linha shadow-botao'
                 : `border border-linha ${somenteLeitura ? '' : 'hover:border-controle-linha'}`
@@ -84,9 +91,9 @@ export function SeletorDeJogos({
             {...(somenteLeitura
               ? {}
               : { type: 'button' as const, 'aria-pressed': marcado, onClick: selecionar })}
-            className={`flex w-full items-start gap-3 p-3.5 text-left ${
+            className={`flex min-w-0 flex-1 items-start gap-3 px-3.5 py-3 text-left ${
               somenteLeitura ? '' : 'cursor-pointer'
-            } ${temComoJogar ? 'pb-2' : ''}`}
+            }`}
           >
             {/*
               O disco marcado é o mesmo gesto de um formulário de papel: um
@@ -103,7 +110,7 @@ export function SeletorDeJogos({
             <span className="flex min-w-0 flex-col gap-0.5">
               <span className="font-display text-[19px] text-texto">{jogo.nome}</span>
               <span className="text-apoio text-texto-3">{jogo.descricao}</span>
-              <span className="mt-0.5 font-mono text-[12px] text-texto-3">
+              <span className="mt-0.5 pr-24 font-mono text-[12px] text-texto-3">
                 {jogo.minJogadores}+ pessoas
                 {/*
                   O mínimo é o que o servidor aceita; o recomendado é o que a
@@ -121,9 +128,11 @@ export function SeletorDeJogos({
           </Miolo>
 
             {/*
-              Alinhado à direita e discreto: a ação principal do card é
-              escolher. Quem já conhece o jogo não deve tropeçar nesta linha
-              toda vez, e quem não conhece precisa achá-la sem perguntar.
+              No canto direito e discreto: a ação principal do card é escolher.
+              Quem já conhece o jogo não deve tropeçar nele toda vez, e quem não
+              conhece precisa achá-lo sem perguntar. A linha de baixo reserva
+              espaço pra ele com `pr`, que é o que impede os dois de se
+              encostarem numa tela estreita.
             */}
             {temComoJogar && (
               <button
@@ -132,7 +141,7 @@ export function SeletorDeJogos({
                   tocarClique()
                   setExplicando(jogo.id)
                 }}
-                className="mr-3.5 mb-2.5 ml-auto min-h-8 cursor-pointer font-mono text-[12px] text-texto-3 uppercase underline underline-offset-4 hover:text-acento"
+                className="absolute right-3.5 bottom-1.5 flex min-h-8 cursor-pointer items-center font-mono text-[12px] text-texto-3 uppercase underline underline-offset-4 hover:text-acento"
               >
                 como jogar
               </button>
