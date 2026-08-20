@@ -16,6 +16,7 @@
 | [Espião](https://resenha.dev.br/espiao) | Todos sabem o local. Menos um. Descubra quem. | 3+ |
 | [Cartas Contra a Turma](https://resenha.dev.br/cartas-contra-a-turma) | Uma frase no meio da mesa e a pior resposta possível ganha. | 3+ |
 | [Enigmas Sinistros](https://resenha.dev.br/enigmas-sinistros) | Uma cena impossível. Só sim, não e indiferente pra desatar. | 2+ |
+| [Dedo na Cara](https://resenha.dev.br/dedo-na-cara) | Quem aqui é mais capaz? A mesa aponta e alguém se explica. | 3+ |
 
 Cada sala aguenta até 20 pessoas. Funciona com a turma junta no sofá, cada um com o celular na mão, e funciona igual com todo mundo em chamada de vídeo.
 
