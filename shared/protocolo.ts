@@ -664,6 +664,12 @@ export interface ProjecaoEnigmas {
   fase: 'enigma' | 'revelacao'
   /** A cena. Visível a todos, sempre. */
   cena: string
+  /**
+   * Vai à vista da mesa junto da cena, e de propósito: saber que a carta é
+   * difícil muda o tipo de pergunta que a turma faz, e evita que uma mesa nova
+   * conclua que o jogo é impossível na primeira rodada.
+   */
+  dificuldade: Dificuldade
   /** `ENIG-05` — só na tela do narrador, e na de todos depois da revelação. */
   solucao?: string
   narrador: { id: JogadorId; apelido: string }

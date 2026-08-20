@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { ENIGMAS } from './enigmas-dados'
+import type { Dificuldade } from './protocolo'
 import { montarBaralho } from './enigmas'
+
+const DIFICULDADES: Dificuldade[] = ['facil', 'medio', 'dificil']
 
 describe('ENIGMAS — conteúdo dos pacotes', () => {
   it('ENIG-30: oferece ao menos um pacote leve e um pesado', () => {
@@ -26,6 +29,23 @@ describe('ENIGMAS — conteúdo dos pacotes', () => {
   it('ENIG-32: cada pacote sozinho dá pra uma partida inteira', () => {
     for (const pacote of ENIGMAS) {
       expect(pacote.enigmas.length).toBeGreaterThanOrEqual(10)
+    }
+  })
+
+  it('todo enigma tem uma dificuldade da escala do app', () => {
+    for (const pacote of ENIGMAS) {
+      for (const enigma of pacote.enigmas) {
+        expect(DIFICULDADES).toContain(enigma.dificuldade)
+      }
+    }
+  })
+
+  it('nenhum pacote é só difícil: toda mesa tem por onde começar', () => {
+    for (const pacote of ENIGMAS) {
+      const niveis = new Set(pacote.enigmas.map((e) => e.dificuldade))
+      // Sem fácil, a primeira rodada de uma mesa nova queima o jogo.
+      expect(niveis).toContain('facil')
+      expect(niveis.size).toBeGreaterThan(1)
     }
   })
 

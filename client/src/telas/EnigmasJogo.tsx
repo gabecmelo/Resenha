@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import type { Cor, ProjecaoEnigmas, RespostaDoNarrador } from '../../../shared/protocolo'
+import type {
+  Cor,
+  Dificuldade,
+  ProjecaoEnigmas,
+  RespostaDoNarrador,
+} from '../../../shared/protocolo'
 import { LIMITE_DECLARACAO, LIMITE_PERGUNTA } from '../../../shared/protocolo'
 import {
   BarraDeAcao,
@@ -119,7 +124,12 @@ export function EnigmasJogo({ projecao, enviar, aoSair }: PropsDaTela) {
         <div className="flex flex-col gap-5">
           <TiraDePacotes pacotes={sala.pacotesSelecionados} />
 
-          <Cena texto={enigmas.cena} narrador={enigmas.narrador.apelido} souNarrador={enigmas.souNarrador} />
+          <Cena
+            texto={enigmas.cena}
+            narrador={enigmas.narrador.apelido}
+            souNarrador={enigmas.souNarrador}
+            dificuldade={enigmas.dificuldade}
+          />
 
           <Solucao enigmas={enigmas} />
 
@@ -304,21 +314,49 @@ export function EnigmasJogo({ projecao, enviar, aoSair }: PropsDaTela) {
   )
 }
 
+/**
+ * Como o selo de dificuldade se apresenta. Só o `dificil` é carimbado em
+ * esmalte: ele é o único que muda o que a mesa deveria fazer — perguntar mais
+ * antes de chutar. Os outros dois informam sem disputar atenção com a cena,
+ * que é o texto que importa.
+ */
+const SELO_DE_DIFICULDADE: Record<Dificuldade, { rotulo: string; pintura: string }> = {
+  facil: { rotulo: 'fácil', pintura: 'border border-linha text-texto-3' },
+  medio: { rotulo: 'médio', pintura: 'border border-linha text-texto-3' },
+  dificil: { rotulo: 'difícil', pintura: 'bg-acento text-acento-contraste' },
+}
+
 /** A cena — o único papel que toda a mesa lê igual, do começo ao fim. */
 function Cena({
   texto,
   narrador,
   souNarrador,
+  dificuldade,
 }: {
   texto: string
   narrador: string
   souNarrador: boolean
+  dificuldade: Dificuldade
 }) {
+  const selo = SELO_DE_DIFICULDADE[dificuldade]
+
   return (
     <section className="rounded-papel border border-linha bg-superficie-2 p-4 shadow-[var(--sombra-botao)] sm:p-5">
-      <p className="text-rotulo text-texto-3 uppercase">
-        {souNarrador ? 'você narra este' : `${narrador} narra este`}
-      </p>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-rotulo text-texto-3 uppercase">
+          {souNarrador ? 'você narra este' : `${narrador} narra este`}
+        </p>
+        {/*
+          Fica na mesma linha de quem narra, e não em cima da cena: é etiqueta
+          da carta, não parte da história. Quem lê a cena não pode tropeçar
+          nele antes de ler o que interessa.
+        */}
+        <span
+          className={`flex-none rounded-chip px-2 py-0.5 font-mono text-compacto-apoio tracking-[0.1em] uppercase ${selo.pintura}`}
+        >
+          {selo.rotulo}
+        </span>
+      </div>
       <p className="mt-2 text-titulo leading-snug font-semibold text-texto">{texto}</p>
     </section>
   )

@@ -149,8 +149,9 @@ O Resenha é um hub de party games. "Quem Sou Eu?", "Espião" e "Cartas Contra a
 2. WHEN mais de um pacote é selecionado THEN o sistema SHALL juntar os enigmas num baralho só, sem repetir cena
 3. WHEN um novo pacote é adicionado a `shared/enigmas-dados.ts` THEN o sistema SHALL passar a oferecê-lo no lobby sem nenhuma outra mudança de código; cada pacote sozinho SHALL bastar pra uma partida inteira; e o sistema SHALL recusar começar sem nenhum pacote selecionado
 4. WHEN o modo é "em voz alta" THEN o sistema SHALL esconder o campo de pergunta escrita, SHALL recusar perguntas escritas, e SHALL registrar no histórico a batida do narrador — a resposta dada em voz alta, sem texto de pergunta
+5. WHEN uma cena vai à mesa THEN o sistema SHALL mostrar junto dela o nível do enigma — `facil`, `medio` ou `dificil`, a mesma escala das cartas de pacote dos outros jogos —, visível a todos e não só ao narrador; e todo pacote SHALL ter ao menos um enigma fácil e mais de um nível, pra que a primeira rodada de uma mesa nova não queime o jogo
 
-**Independent Test**: Abrir uma sala em modo voz e conferir que o campo de pergunta não existe e que os três botões do narrador escrevem a batida no histórico da mesa.
+**Independent Test**: Abrir uma sala em modo voz e conferir que o campo de pergunta não existe e que os três botões do narrador escrevem a batida no histórico da mesa. Conferir também que a carta na mesa mostra o nível junto da cena.
 
 ---
 
@@ -191,12 +192,13 @@ O Resenha é um hub de party games. "Quem Sou Eu?", "Espião" e "Cartas Contra a
 | ENIG-31 | P6: Conteúdo e configuração | Specify | Verified |
 | ENIG-32 | P6: Conteúdo e configuração | Specify | Verified |
 | ENIG-33 | P6: Conteúdo e configuração | Specify | Verified |
+| ENIG-34 | P6: Conteúdo e configuração | Specify | Verified |
 
-**ID format:** `ENIG-[NUMBER]`, mapeado em ordem às ACs de P1 (01–07), P2 (08–13), P3 (14–18), P4 (19–23), P5 (24–29) e P6 (30–33) acima.
+**ID format:** `ENIG-[NUMBER]`, mapeado em ordem às ACs de P1 (01–07), P2 (08–13), P3 (14–18), P4 (19–23), P5 (24–29) e P6 (30–34) acima.
 
 **Status values:** Pending → In Design → In Tasks → Implementing → Verified
 
-**Coverage:** 33 total, 33 implementados — servidor coberto por 49 testes (regras e projeção) e o conteúdo por 9; o fluxo completo foi jogado numa mesa de 3 nos dois modos de pergunta, incluindo declaração certa, declaração errada, entrega da solução, rotação de narrador e encerramento.
+**Coverage:** 34 total, 34 implementados — servidor coberto por 49 testes (regras e projeção) e o conteúdo por 11; o fluxo completo foi jogado numa mesa de 3 nos dois modos de pergunta, incluindo declaração certa, declaração errada, entrega da solução, rotação de narrador e encerramento.
 
 ---
 
