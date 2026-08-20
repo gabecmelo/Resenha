@@ -15,12 +15,17 @@ import { montarBaralho } from '../../../shared/enigmas'
 import { embaralhar } from './sorteio'
 
 /**
- * `ENIG-02` — mínimo de jogadores ativos: um narrador e ao menos dois pra
+ * `ENIG-02` — mínimo de jogadores ativos: um narrador e ao menos um pra
  * perguntar. Vive aqui (não em `shared/protocolo.ts`) porque é regra de jogo,
  * não do `core`; `shared/jogos-catalogo.ts` guarda o mesmo número só para a UI
  * desenhar o aviso antes de clicar "Começar" (`AD-014`).
+ *
+ * Era 3. Baixou para 2 porque em dois o jogo **funciona** — um narra, o outro
+ * desata —, e travar a mesa que quer jogar assim é o sistema decidindo o que é
+ * diversão. O catálogo segue recomendando 3, que é onde a dinâmica rende: sem
+ * um terceiro não há palpite alheio pra puxar o raciocínio.
  */
-const MIN_JOGADORES_ENIGMAS = 3
+const MIN_JOGADORES_ENIGMAS = 2
 
 /** Uma pergunta da mesa, na fila ou já respondida (`ENIG-10`). */
 export interface PerguntaDoEnigma {

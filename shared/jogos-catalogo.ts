@@ -14,6 +14,12 @@ export interface JogoCatalogo {
   /** `AD-014` — mínimo de jogadores ativos exigido por este jogo, substitui o antigo `MIN_JOGADORES` único. */
   minJogadores: number
   /**
+   * Quanta gente o jogo pede pra ficar bom, quando isso é maior que o mínimo
+   * técnico. Não trava nada — o servidor só conhece `minJogadores`. É um aviso
+   * na tela pra mesa saber no que está se metendo antes de começar.
+   */
+  recomendadoJogadores?: number
+  /**
    * Anunciado mas ainda não jogável: aparece no seletor pontilhado, sem
    * seleção. Quem recusa de verdade continua sendo o servidor, que valida o
    * `jogoId` contra `REGISTRO_DE_JOGOS` — este campo é só a promessa na tela.
@@ -43,6 +49,14 @@ export function minJogadoresDoJogo(jogoId: string): number {
   return jogoDoCatalogo(jogoId)?.minJogadores ?? MIN_JOGADORES
 }
 
+/**
+ * Quantos jogadores este jogo pede pra render, quando isso passa do mínimo.
+ * `undefined` quando o mínimo já é o suficiente — a tela não desenha aviso.
+ */
+export function recomendadoDoJogo(jogoId: string): number | undefined {
+  return jogoDoCatalogo(jogoId)?.recomendadoJogadores
+}
+
 export const CATALOGO_DE_JOGOS: JogoCatalogo[] = [
   {
     id: 'quem-sou-eu',
@@ -66,7 +80,11 @@ export const CATALOGO_DE_JOGOS: JogoCatalogo[] = [
     id: 'enigmas-sinistros',
     nome: 'Enigmas Sinistros',
     descricao: 'Uma cena impossível na mesa. Só sim, não e talvez pra desatar.',
-    minJogadores: 3,
+    // Em dois o jogo existe: um narra, o outro desata. Só que sem terceiro não
+    // há palpite alheio pra puxar o raciocínio, e o placar vira um contra zero.
+    // Deixa jogar, avisa que fica melhor em três (`ENIG-02`).
+    minJogadores: 2,
+    recomendadoJogadores: 3,
   },
 ]
 

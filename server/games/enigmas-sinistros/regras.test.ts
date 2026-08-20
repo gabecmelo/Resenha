@@ -89,14 +89,19 @@ function desatar(
 }
 
 describe('iniciarRodada', () => {
-  it('ENIG-02: recusa com menos de 3 jogadores ativos', () => {
-    const r = iniciarRodada(ctx({ jogadores: [jogador('a'), jogador('b')] }), AMBIENTE)
+  it('ENIG-02: recusa com menos de 2 jogadores ativos', () => {
+    const r = iniciarRodada(ctx({ jogadores: [jogador('a')] }), AMBIENTE)
     expect(r).toEqual({ ok: false, erro: 'JOGADORES_INSUFICIENTES' })
+  })
+
+  it('ENIG-02: aceita a mesa de dois — um narra, o outro desata', () => {
+    const r = iniciarRodada(ctx({ jogadores: [jogador('a'), jogador('b')] }), AMBIENTE)
+    expect(r.ok).toBe(true)
   })
 
   it('ENIG-02: jogador aguardando não conta pro mínimo', () => {
     const r = iniciarRodada(
-      ctx({ jogadores: [jogador('a'), jogador('b'), jogador('c', 'aguardando')] }),
+      ctx({ jogadores: [jogador('a'), jogador('b', 'aguardando')] }),
       AMBIENTE,
     )
     expect(r).toEqual({ ok: false, erro: 'JOGADORES_INSUFICIENTES' })
@@ -509,12 +514,23 @@ describe('ENIG-23 — quem sai não trava a mesa', () => {
     expect(depois.estado.ordemNarradores).not.toContain(narrador)
   })
 
-  it('abaixo do mínimo, a partida é cancelada e a sala volta pro lobby', () => {
+  it('em dois a partida continua — o mínimo agora é 2 (`ENIG-02`)', () => {
     const { estado, contexto } = partida()
     const r = reduzir(
       estado,
       { ...contexto, jogadores: [jogador('a'), jogador('b')] },
       { t: 'saiuJogador', jogadorId: 'c' },
+      AMBIENTE,
+    )
+    expect(r.ok && r.faseSeguinte).toBeUndefined()
+  })
+
+  it('abaixo do mínimo, a partida é cancelada e a sala volta pro lobby', () => {
+    const { estado, contexto } = partida()
+    const r = reduzir(
+      estado,
+      { ...contexto, jogadores: [jogador('a')] },
+      { t: 'saiuJogador', jogadorId: 'b' },
       AMBIENTE,
     )
     expect(r.ok && r.faseSeguinte).toBe('lobby')
