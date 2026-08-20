@@ -125,6 +125,13 @@
 
 ## Handoff
 
+- **Feature `dedo-na-cara`: quinto jogo, spec antes do código.** `.specs/features/dedo-na-cara/spec.md` (23 requisitos `DEDO-01`…`DEDO-23`). Branch `feat/dedo-na-cara`, commits `359ffaf` (spec), `f03b769` (conteúdo), `e6f6bc3` (servidor), `2da0605` (seed do KV), `656b272` (telas), `3cc35c9` (lobby), `2f911c0` (página indexável).
+  - **Desenho**: gênero "quem é mais provável" — a carta é uma pergunta que a mesa inteira lê ao mesmo tempo e todo mundo aponta pra alguém. Sem narrador e sem relógio. Maioria simples e estrita entrega a carta; empate no topo não pontua ninguém. As quatro decisões vieram do dono por `AskUserQuestion`: nome, votação secreta **ou** aberta (configurável), ninguém narra, e auto-voto proibido por padrão mas liberável.
+  - **Conteúdo é nosso**: a mecânica do gênero não é protegida, mas o nome e as cartas da Buró são. Nenhuma carta saiu de baralho comercial; as 60 são originais, e a regra editorial ("toda carta começa em 'Quem aqui'", "a carta boa tem mais de um candidato óbvio", "nada que humilhe de verdade") está escrita no topo de `shared/dedo-dados.ts`.
+  - **Lei de tela**: a lista de gente **não muda de lugar entre as duas fases** — ela vira contagem no mesmo ponto em que era escolha. É onde o olho já está quando os dedos abrem.
+  - **Achado de produção**: `scripts/seed-pacotes.ts` nunca semeou os pacotes de Cartas nem os de Enigmas no índice do KV; o defeito estava escondido pelo fallback do Durable Object, que só roda com o índice vazio. Corrigido junto (`2da0605`).
+  - **Mínimo é 3, e é regra de jogo**: em dupla, sem auto-voto, cada um só tem um alvo possível e toda carta empata.
+
 - **Feature `enigmas-sinistros`: implementada e jogada, spec escrita depois do código.** `.specs/features/enigmas-sinistros/spec.md` (33 requisitos `ENIG-01`…`ENIG-33`, todos `Verified`). Quarto e último jogo do roadmap (`resenha-roadmap-jogos`), fechando a lista: Quem Sou Eu → Espião → Cartas Contra a Turma → **Enigmas Sinistros**. Branch `feat/redesign-and-spy-game`, commits `f6c9061` (conteúdo), `651e5fd` (servidor), `07b6764` (cliente), `124c431` (spec).
   - **Desenho**: narrador rotativo guarda a solução e responde só sim/não/não importa; a mesa pergunta por fila escrita ou em voz alta (escolha do host); quem acha que desatou declara por escrito e **só o narrador lê** antes de julgar; errar não elimina, vira histórico público; 1 ponto pra quem desata, com meta configurável. Sem relógio nenhum — as quatro decisões vieram do dono por `AskUserQuestion`.
   - **Escolha minha, não pedida**: `entregarSolucao` — sem relógio e com narrador rotativo, um enigma que ninguém desata travaria a mesa pra sempre. Registrada na tabela de assumptions da spec.
