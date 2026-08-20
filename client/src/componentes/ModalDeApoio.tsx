@@ -22,7 +22,7 @@ export function ModalDeApoio({ aoFechar }: { aoFechar(): void }) {
     <Modal titulo="Se o Resenha rendeu boas risadas…" rotuloCancelar="Fechar" aoCancelar={aoFechar}>
       <p className="text-corpo text-texto-2">
         Ele é de graça, sem anúncio e sem cadastro — e vai continuar assim. Um Pix de qualquer
-        valor paga o domínio e o servidor, e me diz que vale a pena seguir fazendo jogo novo.
+        valor me ajuda a pagar o domínio e o servidor, e me diz que vale a pena seguir fazendo jogo novo.
       </p>
 
       {/*
@@ -46,8 +46,7 @@ export function ModalDeApoio({ aoFechar }: { aoFechar(): void }) {
       </div>
 
       <p className="text-apoio leading-relaxed text-texto-3">
-        Cai na conta de <span className="font-semibold text-texto-2">{PIX_RECEBEDOR}</span>, que
-        mantém o Resenha. A chave é aleatória — não é CPF nem telefone.
+        Conta: <span className="font-semibold text-texto-2">{PIX_RECEBEDOR}</span>.
       </p>
     </Modal>
   )
