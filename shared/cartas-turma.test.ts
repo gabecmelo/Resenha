@@ -46,6 +46,17 @@ describe('CARTAS_TURMA — conteúdo dos pacotes', () => {
     }
   })
 
+  /*
+   * A atribuição é obrigação de licença, não enfeite: se este campo sumir num
+   * refactor, o app passa a distribuir obra adaptada sem creditar a origem.
+   * O teste existe pra isso doer aqui, e não depois.
+   */
+  it('o pacote adaptado de obra alheia carrega o crédito da licença', () => {
+    const classico = CARTAS_TURMA.find((p) => p.id === 'cartas-classico')
+    expect(classico?.creditos).toContain('Cards Against Humanity')
+    expect(classico?.creditos).toContain('CC BY-NC-SA')
+  })
+
   it('nenhuma carta em branco ou com espaço sobrando', () => {
     for (const pacote of CARTAS_TURMA) {
       for (const texto of [...pacote.perguntas, ...pacote.respostas]) {

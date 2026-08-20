@@ -378,7 +378,10 @@ export class SalaDeJogo {
             nome: p.nome,
             descricao: p.descricao,
             emoji: p.emoji,
-            quantidade: p.quantidade
+            quantidade: p.quantidade,
+            // Só os pacotes adaptados de obra alheia têm crédito; a chave não
+            // vai quando não há o que creditar (`exactOptionalPropertyTypes`).
+            ...('creditos' in p && p.creditos !== undefined ? { creditos: p.creditos } : {})
           }));
         }
         this.pacotesCacheTimestamp = agora;

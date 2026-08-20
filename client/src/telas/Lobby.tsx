@@ -1517,6 +1517,16 @@ function GavetaDePacotes({
       <span className="font-mono text-compacto-apoio tracking-[0.1em] text-texto-3 uppercase">
         {pacote.quantidade} {unidade}
       </span>
+      {/*
+        Crédito de licença, quando o conteúdo do pacote é adaptado de obra
+        alheia. Fica no card, e não num rodapé de página: a exigência é
+        aparecer onde a obra é oferecida, e é aqui que a mesa escolhe.
+      */}
+      {pacote.creditos !== undefined && (
+        <span className="border-t border-dashed border-linha pt-2 text-compacto-apoio leading-snug text-texto-apagado">
+          {pacote.creditos}
+        </span>
+      )}
     </>
   )
 
