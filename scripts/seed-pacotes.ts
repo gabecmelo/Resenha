@@ -2,11 +2,18 @@ import { execSync } from 'child_process';
 import { writeFileSync, unlinkSync } from 'fs';
 import { PACOTES } from '../shared/pacotes-dados';
 import { LOCAIS } from '../shared/locais-dados';
+import { CARTAS_TURMA } from '../shared/cartas-turma-dados';
+import { ENIGMAS } from '../shared/enigmas-dados';
+import { CARTAS_DEDO } from '../shared/dedo-dados';
 import type { PacoteResumo } from '../shared/protocolo';
 
-// `AD-014` — o índice cobre todos os jogos: sem os locais aqui, o Espião só
-// funcionaria no fallback local. E sem `jogoId` o filtro por jogo devolve vazio.
-const TODOS = [...PACOTES, ...LOCAIS];
+// `AD-014` — o índice cobre **todos** os jogos: é ele que o lobby lê pra
+// desenhar o seletor de pacotes. Faltar um jogo aqui não quebra nada de
+// imediato, porque o Durable Object cai num fallback que lê `shared/` direto —
+// e é justamente isso que esconde o erro: enquanto o KV estiver vazio tudo
+// aparece, e no dia em que este script rodar o que ficou de fora some do
+// lobby. Cartas, Enigmas e Dedo na Cara faltavam aqui.
+const TODOS = [...PACOTES, ...LOCAIS, ...CARTAS_TURMA, ...ENIGMAS, ...CARTAS_DEDO];
 
 const resumos: PacoteResumo[] = TODOS.map(p => ({
   id: p.id,
@@ -44,7 +51,11 @@ const onde = isRemote ? (isBeta ? 'beta (resenha-beta)' : 'produção (resenha)'
 console.log(`Iniciando seed dos pacotes no KV — ${onde}...`);
 putKv('pacotes:indice', resumos);
 
-for (const pacote of TODOS) {
+// O pacote inteiro só é lido do KV por quem usa `PacoteCompleto` (Quem Sou Eu
+// e Espião, em `buscarUmPacote`). Cartas, Enigmas e Dedo na Cara têm formato
+// próprio e leem de `shared/` dentro do próprio `iniciarRodada`, então gravar
+// o conteúdo deles aqui só ocuparia o KV à toa.
+for (const pacote of [...PACOTES, ...LOCAIS]) {
   putKv(`pacote:${pacote.id}`, pacote);
 }
 
