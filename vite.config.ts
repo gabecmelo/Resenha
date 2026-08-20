@@ -2,6 +2,7 @@ import { cloudflare } from '@cloudflare/vite-plugin'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
+import { paginasDeJogo } from './scripts/paginas'
 
 /**
  * `CLOUDFLARE_ENV` é o mesmo sinal que faz o plugin escolher `env.beta` do
@@ -46,6 +47,9 @@ export default defineConfig({
   define: { __BETA__: JSON.stringify(ambienteDoBuild() === 'beta') },
   plugins: [
     carimbarOrigem,
+    // As páginas indexáveis de cada jogo. Ver `scripts/paginas.ts` para por que
+    // elas são arquivo e não rota do app.
+    paginasDeJogo(origemDoBuild()),
     react(),
     tailwindcss(),
     // `root` é `client/`, então o config do Worker precisa ser apontado
