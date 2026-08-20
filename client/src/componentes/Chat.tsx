@@ -92,7 +92,13 @@ function Historico({ mensagens }: { mensagens: MensagemChat[] }) {
       onScroll={(evento) => {
         grudadoNoFim.current = estaNoFim(evento.currentTarget)
       }}
-      className="max-h-[80vh] min-h-24 resize-y overflow-y-auto overscroll-contain"
+      /*
+        Sem piso de altura: com três avisos de sistema na sala nova, o piso de
+        96px deixava a caixa mais alta que a conversa e o painel inteiro ficava
+        maior do que precisava no desktop. A conversa vazia já tem o próprio
+        tamanho — é outro bloco, com o recado de que a resenha é em voz alta.
+      */
+      className="max-h-[80vh] resize-y overflow-y-auto overscroll-contain"
     >
       <ol className="flex flex-col gap-3.5">
         {mensagens.map((mensagem, indice) => {
