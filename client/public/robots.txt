@@ -1,0 +1,11 @@
+# O Resenha é um site pequeno e inteiro público: não há área logada, painel nem
+# nada que não deva ser indexado. Então a regra é liberar tudo, e a razão de
+# este arquivo existir é a linha `Sitemap` — sem ela o Google descobre as
+# páginas de jogo só por link, o que é mais lento e menos confiável.
+#
+# A Cloudflare acrescenta o bloco gerenciado dela abaixo deste conteúdo.
+
+User-agent: *
+Allow: /
+
+Sitemap: https://resenha.dev.br/sitemap.xml

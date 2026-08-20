@@ -3,7 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Resenha</title>
+    <!--
+      O titulo tambem e a etiqueta da aba durante a partida, entao ele nao pode
+      ser uma fila de palavra-chave. "Resenha" sozinho tambem nao servia: ele
+      nao aparece em busca nenhuma, porque ninguem procura pelo nome de um
+      produto que ainda nao conhece.
+    -->
+    <title>Resenha — party games no navegador pra jogar com os amigos</title>
+    <link rel="canonical" href="%ORIGEM%/" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#EFE4D2" />
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#141210" />
@@ -54,6 +61,55 @@
       content="Party games no navegador. Sem app, sem cadastro — cria a sala, manda o código, joga."
     />
     <meta name="twitter:image" content="%ORIGEM%/og.png?v=1" />
+
+    <!--
+      Dados estruturados: dizem ao buscador o que este endereco e, em vez de
+      deixar que ele deduza de um `<div id="root">` vazio. A lista de jogos e o
+      unico caminho de descoberta que a home oferece hoje — o app e pintado por
+      JavaScript, entao nao ha link em HTML pras paginas de jogo.
+    -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Resenha",
+        "alternateName": "Resenha — party games no navegador",
+        "url": "%ORIGEM%/",
+        "inLanguage": "pt-BR",
+        "description": "Party games no navegador pra jogar com os amigos. Sem instalar nada e sem cadastro.",
+        "publisher": { "@type": "Organization", "name": "Resenha", "url": "%ORIGEM%/" },
+        "hasPart": [
+          {
+            "@type": "VideoGame",
+            "name": "Quem Sou Eu?",
+            "url": "%ORIGEM%/quem-sou-eu",
+            "playMode": "MultiPlayer",
+            "gamePlatform": "Navegador de internet"
+          },
+          {
+            "@type": "VideoGame",
+            "name": "Espião",
+            "url": "%ORIGEM%/espiao",
+            "playMode": "MultiPlayer",
+            "gamePlatform": "Navegador de internet"
+          },
+          {
+            "@type": "VideoGame",
+            "name": "Cartas Contra a Turma",
+            "url": "%ORIGEM%/cartas-contra-a-turma",
+            "playMode": "MultiPlayer",
+            "gamePlatform": "Navegador de internet"
+          },
+          {
+            "@type": "VideoGame",
+            "name": "Enigmas Sinistros",
+            "url": "%ORIGEM%/enigmas-sinistros",
+            "playMode": "MultiPlayer",
+            "gamePlatform": "Navegador de internet"
+          }
+        ]
+      }
+    </script>
     <!--
       Fontes do handoff de design. `display=swap` deixa o texto pintar de
       imediato na fonte de sistema, então a primeira pintura não espera a rede.

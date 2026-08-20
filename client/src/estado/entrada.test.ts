@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
+import { CATALOGO_DE_JOGOS } from '../../../shared/jogos-catalogo'
 import {
   LIMITE_PADRAO,
   caminhoDaSala,
   codigoDaUrl,
+  jogoDaUrl,
   limiteDigitado,
   linkDeConvite,
   motivoParaCriar,
@@ -203,5 +205,32 @@ describe('motivoParaIniciar (AJU-06, AJU-34)', () => {
   it('exige o mínimo do jogo, não o do produto (Espião pede 3)', () => {
     expect(motivoParaIniciar(2, 3)).toBe('Precisa de pelo menos 3 pessoas — falta 1.')
     expect(motivoParaIniciar(3, 3)).toBeUndefined()
+  })
+})
+
+describe('jogoDaUrl', () => {
+  it('devolve o jogo pedido pela busca', () => {
+    expect(jogoDaUrl('?jogo=espiao')).toBe('espiao')
+  })
+
+  it('aceita a busca com outros parâmetros junto', () => {
+    expect(jogoDaUrl('?ref=discord&jogo=enigmas-sinistros')).toBe('enigmas-sinistros')
+  })
+
+  it('devolve null sem o parâmetro', () => {
+    expect(jogoDaUrl('')).toBeNull()
+    expect(jogoDaUrl('?outra=coisa')).toBeNull()
+  })
+
+  it('recusa um jogo fora do catálogo em vez de selecionar o desconhecido', () => {
+    expect(jogoDaUrl('?jogo=xadrez')).toBeNull()
+    expect(jogoDaUrl('?jogo=')).toBeNull()
+  })
+
+  it('não seleciona jogo anunciado como "em breve"', () => {
+    const emBreve = CATALOGO_DE_JOGOS.find((jogo) => jogo.emBreve === true)
+    // Sem nenhum "em breve" no catálogo não há o que afirmar; o caso volta a
+    // ser coberto assim que um for anunciado.
+    if (emBreve !== undefined) expect(jogoDaUrl(`?jogo=${emBreve.id}`)).toBeNull()
   })
 })
