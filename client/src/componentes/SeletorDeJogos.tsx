@@ -1,4 +1,8 @@
+import { useState } from 'react'
 import { CATALOGO_DE_JOGOS, nomeDoJogo } from '../../../shared/jogos-catalogo'
+import { conteudoDoJogo } from '../../../shared/jogos-conteudo'
+import { tocarClique } from '../sons'
+import { ModalComoJogar } from './ModalComoJogar'
 
 export interface PropsDoSeletorDeJogos {
   jogoIdSelecionado: string
@@ -23,6 +27,8 @@ export function SeletorDeJogos({
   somenteLeitura = false,
   aoSelecionar,
 }: PropsDoSeletorDeJogos) {
+  const [explicando, setExplicando] = useState<string | null>(null)
+
   if (somenteLeitura) {
     return (
       <span className="font-display text-secao text-texto">{nomeDoJogo(jogoIdSelecionado)}</span>
@@ -50,17 +56,31 @@ export function SeletorDeJogos({
 
         const marcado = jogo.id === jogoIdSelecionado
         const selecionar = () => aoSelecionar?.(jogo.id)
+        const temComoJogar = conteudoDoJogo(jogo.id) !== undefined
 
         return (
-          <button
+          /*
+            O card é um `div`, e não mais um `button`, porque agora carrega dois
+            controles: escolher o jogo e ler as regras. Botão dentro de botão é
+            HTML inválido — o navegador desmonta a árvore e o clique interno
+            deixa de ser previsível. A moldura e a sombra vivem aqui; quem
+            escuta o clique de escolher é o botão de dentro, que ocupa o card
+            inteiro menos a linha do "como jogar".
+          */
+          <div
             key={jogo.id}
-            type="button"
-            aria-pressed={marcado}
-            onClick={selecionar}
-            className={`flex w-full cursor-pointer items-start gap-3 rounded-botao bg-superficie p-3.5 text-left transition-[transform,box-shadow,border-color] duration-150 ${
+            className={`flex flex-col rounded-botao bg-superficie transition-[transform,box-shadow,border-color] duration-150 ${
               marcado
                 ? 'border-2 border-controle-linha shadow-botao'
                 : 'border border-linha hover:border-controle-linha'
+            }`}
+          >
+          <button
+            type="button"
+            aria-pressed={marcado}
+            onClick={selecionar}
+            className={`flex w-full cursor-pointer items-start gap-3 p-3.5 text-left ${
+              temComoJogar ? 'pb-2' : ''
             }`}
           >
             {/*
@@ -94,8 +114,31 @@ export function SeletorDeJogos({
               </span>
             </span>
           </button>
+
+            {/*
+              Alinhado à direita e discreto: a ação principal do card é
+              escolher. Quem já conhece o jogo não deve tropeçar nesta linha
+              toda vez, e quem não conhece precisa achá-la sem perguntar.
+            */}
+            {temComoJogar && (
+              <button
+                type="button"
+                onClick={() => {
+                  tocarClique()
+                  setExplicando(jogo.id)
+                }}
+                className="mr-3.5 mb-2.5 ml-auto min-h-8 cursor-pointer font-mono text-[12px] text-texto-3 uppercase underline underline-offset-4 hover:text-acento"
+              >
+                como jogar
+              </button>
+            )}
+          </div>
         )
       })}
+
+      {explicando !== null && (
+        <ModalComoJogar jogoId={explicando} aoFechar={() => setExplicando(null)} />
+      )}
     </div>
   )
 }
