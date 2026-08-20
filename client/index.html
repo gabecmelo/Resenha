@@ -20,9 +20,9 @@
       o cabeçalho de cache: trocar o cartão exige subir esse número, senão as
       conversas antigas seguem mostrando a versão anterior.
 
-      As URLs são as de produção mesmo no bundle do beta. O beta é ambiente de
-      teste com a mesa, não endereço que se compartilha — manter dois cartões
-      custaria mais do que resolve.
+      `%ORIGEM%` é trocado no build (`vite.config.ts`): o beta anuncia o beta e a
+      produção anuncia a produção. Fixar um endereço só faria o beta apontar
+      pra uma imagem hospedada noutro deploy.
     -->
     <meta
       name="description"
@@ -32,13 +32,13 @@
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Resenha" />
     <meta property="og:locale" content="pt_BR" />
-    <meta property="og:url" content="https://resenha.dev.br/" />
+    <meta property="og:url" content="%ORIGEM%/" />
     <meta property="og:title" content="Resenha — junta a galera e abre a mesa" />
     <meta
       property="og:description"
       content="Party games no navegador. Sem app, sem cadastro — cria a sala, manda o código, joga."
     />
-    <meta property="og:image" content="https://resenha.dev.br/og.png?v=1" />
+    <meta property="og:image" content="%ORIGEM%/og.png?v=1" />
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
@@ -53,7 +53,7 @@
       name="twitter:description"
       content="Party games no navegador. Sem app, sem cadastro — cria a sala, manda o código, joga."
     />
-    <meta name="twitter:image" content="https://resenha.dev.br/og.png?v=1" />
+    <meta name="twitter:image" content="%ORIGEM%/og.png?v=1" />
     <!--
       Fontes do handoff de design. `display=swap` deixa o texto pintar de
       imediato na fonte de sistema, então a primeira pintura não espera a rede.
