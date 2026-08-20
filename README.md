@@ -18,6 +18,8 @@
 | [Enigmas Sinistros](https://resenha.dev.br/enigmas-sinistros) | Uma cena impossível. Só sim, não e indiferente pra desatar. | 2+ |
 | [Dedo na Cara](https://resenha.dev.br/dedo-na-cara) | Quem aqui é mais capaz? A mesa aponta e alguém se explica. | 3+ |
 
+Os baralhos são escritos para o projeto, com uma exceção creditada: o pacote "O Clássico" do Cartas Contra a Turma é tradução e adaptação do Cards Against Humanity, sob CC BY-NC-SA 2.0. Os detalhes estão em [CONTEUDO.md](CONTEUDO.md).
+
 Cada sala aguenta até 20 pessoas. Funciona com a turma junta no sofá, cada um com o celular na mão, e funciona igual com todo mundo em chamada de vídeo.
 
 ## Como foi feito
