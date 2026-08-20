@@ -62,6 +62,18 @@ const ROLE: string[] = [
   'Quem aqui se perde numa cidade com o mapa aberto na mão',
   'Quem aqui morre primeiro no filme de terror',
   'Quem aqui organiza a viagem inteira e não deixa ninguém opinar',
+  'Quem aqui responde "já tô saindo" ainda deitado',
+  'Quem aqui vira o churrasqueiro sem ninguém ter pedido',
+  'Quem aqui faz a playlist da viagem e briga com quem quiser trocar',
+  'Quem aqui esquece o aniversário e manda parabéns no dia seguinte',
+  'Quem aqui discute com o GPS em voz alta',
+  'Quem aqui traz o namorado novo pro rolê e some com ele a noite inteira',
+  'Quem aqui conta a mesma história de dez anos atrás toda vez que bebe',
+  'Quem aqui perde a chave de casa duas vezes no mesmo mês',
+  'Quem aqui compra o ingresso e desiste na véspera',
+  'Quem aqui aguenta menos pimenta e mesmo assim insiste em provar',
+  'Quem aqui entra na mania nova antes de todo mundo e abandona primeiro',
+  'Quem aqui fica com a bebida na mão a noite inteira sem terminar',
 ]
 
 const SEM_VERGONHA: string[] = [
@@ -85,6 +97,18 @@ const SEM_VERGONHA: string[] = [
   'Quem aqui inventa uma desculpa melhor em menos tempo',
   'Quem aqui leria as mensagens do celular do outro se ficasse sozinho com ele',
   'Quem aqui sai no soco por causa de time',
+  'Quem aqui já saiu escondido da festa pra não ter que se despedir',
+  'Quem aqui exagera a própria história até ficar irreconhecível',
+  'Quem aqui ainda usa a conta de streaming de um ex',
+  'Quem aqui já deixou um colega levar a culpa por um erro seu',
+  'Quem aqui esconde do resto da casa o que gastou no cartão',
+  'Quem aqui responde mensagem bêbado e apaga tudo de manhã',
+  'Quem aqui reclama de fofoca e sabe de todas',
+  'Quem aqui devolveria a roupa na loja depois de usar uma vez',
+  'Quem aqui já fingiu conhecer a música pra não passar vergonha',
+  'Quem aqui já mentiu a idade pra alguém que tinha acabado de conhecer',
+  'Quem aqui foi barrado em algum lugar e conta a história como vitória',
+  'Quem aqui promete parar com alguma coisa toda segunda-feira',
 ]
 
 const FIM_DO_MUNDO: string[] = [
@@ -108,6 +132,18 @@ const FIM_DO_MUNDO: string[] = [
   'Quem aqui vende o carro pra comprar cripto',
   'Quem aqui não passa de uma semana sem internet',
   'Quem aqui é o vilão do documentário sobre a gente',
+  'Quem aqui negocia com o alienígena antes de contar pra alguém',
+  'Quem aqui morre tentando salvar o cachorro',
+  'Quem aqui monta o abrigo e não deixa a mesa entrar',
+  'Quem aqui entrega a senha do cofre na primeira ameaça',
+  'Quem aqui inventa uma religião nova em três dias',
+  'Quem aqui passaria o último dia da Terra dormindo',
+  'Quem aqui usaria a máquina do tempo pra apagar uma vergonha boba',
+  'Quem aqui some com o mapa do tesouro e volta rico sozinho',
+  'Quem aqui seria clonado e a cópia sairia melhor que o original',
+  'Quem aqui viraria testemunha protegida por falar demais',
+  'Quem aqui é o cientista maluco desta turma',
+  'Quem aqui aceitaria o dinheiro pra guardar o segredo do século',
 ]
 
 /** `DEDO-22` — a lista inteira. Um pacote novo entra aqui e mais nada muda. */

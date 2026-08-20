@@ -27,7 +27,9 @@ describe('CARTAS_DEDO — conteúdo dos pacotes', () => {
 
   it('DEDO-21: cada pacote sozinho dá pra uma partida inteira', () => {
     for (const pacote of CARTAS_DEDO) {
-      expect(pacote.cartas.length).toBeGreaterThanOrEqual(15)
+      // Trinta é o piso combinado: a rodada aqui dura menos de um minuto, e um
+      // pacote curto repete carta antes de a mesa cansar do jogo.
+      expect(pacote.cartas.length).toBeGreaterThanOrEqual(30)
     }
   })
 
