@@ -364,6 +364,16 @@ describe('migração automática de host (`HOST-04`)', () => {
     const bruno = await entrar(stub, 'Bruno')
 
     ana.ws.close()
+    /*
+      Esperar o prazo aparecer antes de forçá-lo, como no teste acima. Sem isto
+      o `close` ainda está em voo quando `vencerPrazo` escreve no storage por
+      fora: o alarme migra e anuncia, o `esperarProjecao` libera na difusão
+      dele, e só então o handler do `close` termina e grava o instantâneo que
+      carregou antes de tudo — host de volta na Ana, chat sem o anúncio. A
+      última projeção de Bruno passa a ser essa, atrasada, e a asserção lê duas
+      mensagens no lugar de três.
+    */
+    await esperarSala(stub, (sala) => sala.prazos.migracaoHost !== null)
     await vencerPrazo(stub, 'migracaoHost')
     await runDurableObjectAlarm(stub)
     await esperarProjecao(bruno, (p) => p.eu.ehHost)
