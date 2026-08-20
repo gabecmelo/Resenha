@@ -123,6 +123,14 @@
 - **Date**: 2026-08-18
 - **Status**: active
 
+### AD-016
+- **Decision**: o repositório passa a distribuir **conteúdo sob licença diferente da do código**. O pacote "O Clássico" do Cartas Contra a Turma é tradução e adaptação do Cards Against Humanity (CC BY-NC-SA 2.0) e fica sob a mesma licença; todo o resto do conteúdo continua sob a licença do repositório. A separação está escrita em `CONTEUDO.md`, e o crédito viaja **no dado**, num campo `creditos` de `PacoteResumo`, aparecendo no card onde a mesa escolhe o pacote.
+- **Reason**: o CAH é aberto de propósito, e adaptar o baralho que fundou o gênero entrega em uma tarde um pacote que levaria semanas pra escrever com a mesma qualidade. As três cláusulas são compatíveis com o projeto como ele é: BY (crédito é barato), NC (não há anúncio nem venda; o Pix é doação voluntária — `resenha-monetizacao`) e SA (o pacote adaptado sai sob a mesma licença). Pôr o crédito num rodapé de README não cumpriria a atribuição: a exigência é aparecer onde a obra é oferecida.
+- **Trade-off**: a cláusula NC vira uma **amarra de produto**, não só uma nota de rodapé — no dia em que o Resenha cobrar por qualquer parte do jogo, este pacote sai do ar. E o repositório deixa de ter uma licença só: quem for redistribuir precisa ler `CONTEUDO.md`. Um teste em `shared/cartas-turma.test.ts` falha se o crédito sumir num refactor, que é o jeito de a obrigação não depender de memória.
+- **Scope**: `CONTEUDO.md`, `README.md`, `shared/cartas-turma-dados.ts` (pacote `cartas-classico` e o campo `creditos`), `shared/protocolo.ts` (`PacoteResumo.creditos`), `server/core/sala-do.ts`, `scripts/seed-pacotes.ts`, `client/src/telas/Lobby.tsx` (gaveta de pacotes).
+- **Date**: 2026-08-20
+- **Status**: active
+
 ## Handoff
 
 - **Feature `dedo-na-cara`: quinto jogo, spec antes do código.** `.specs/features/dedo-na-cara/spec.md` (23 requisitos `DEDO-01`…`DEDO-23`). Branch `feat/dedo-na-cara`, commits `359ffaf` (spec), `f03b769` (conteúdo), `e6f6bc3` (servidor), `2da0605` (seed do KV), `656b272` (telas), `3cc35c9` (lobby), `2f911c0` (página indexável).
