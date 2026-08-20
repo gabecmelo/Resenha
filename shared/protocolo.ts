@@ -189,6 +189,32 @@ export const CONFIG_ENIGMAS_PADRAO: ConfigEnigmas = {
   metaDePontos: 5,
 }
 
+export interface ConfigDedo {
+  /**
+   * `DEDO-08`, `DEDO-09` — como o dedo sobe.
+   *
+   * `secreta` guarda o voto até todo mundo apontar e abre os dedos de uma vez;
+   * `aberta` mostra cada um assim que chega. O padrão é `secreta` porque na
+   * mesa de verdade os dedos sobem juntos — quem aponta depois de ver o dedo
+   * dos outros está votando em outra coisa.
+   */
+  votacao: 'secreta' | 'aberta'
+  /** `DEDO-06` — apontar pra si mesmo. Desligado por padrão, como no jogo de mesa. */
+  autoVoto: boolean
+  /** `DEDO-17` — cartas que encerram a partida. `null` = só o host encerra. */
+  metaDePontos: number | null
+}
+
+export const CONFIG_DEDO_PADRAO: ConfigDedo = {
+  votacao: 'secreta',
+  autoVoto: false,
+  metaDePontos: 5,
+}
+
+/** `DEDO-17` — faixa da meta de cartas do Dedo na Cara. */
+export const META_DEDO_MIN = 2
+export const META_DEDO_MAX = 15
+
 /** `ENIG-24` — faixa da meta de pontos do Enigmas. */
 export const META_ENIGMAS_MIN = 2
 export const META_ENIGMAS_MAX = 15
@@ -275,6 +301,7 @@ export interface Config {
   /** `AD-014` — idem, para o Cartas Contra a Turma. */
   cartas: ConfigCartas
   enigmas: ConfigEnigmas
+  dedo: ConfigDedo
 }
 
 /** Padrões de uma sala recém-criada (`CFG-05`). */
@@ -288,6 +315,7 @@ export const CONFIG_PADRAO: Config = {
   espiao: CONFIG_ESPIAO_PADRAO,
   cartas: CONFIG_CARTAS_PADRAO,
   enigmas: CONFIG_ENIGMAS_PADRAO,
+  dedo: CONFIG_DEDO_PADRAO,
 }
 
 /**
@@ -461,6 +489,10 @@ export type Comando =
   | { t: 'trocarMao' }
   /** `ENIG-08` — a mesa manda uma pergunta escrita pra fila do narrador. */
   | { t: 'perguntarEnigma'; texto: string }
+  /** `DEDO-05` — aponta pra alguém da mesa; apontar de novo troca o dedo de lugar. */
+  | { t: 'apontar'; alvoId: JogadorId }
+  /** `DEDO-15` — vira a próxima carta depois da apuração. */
+  | { t: 'proximaCarta' }
   /**
    * `ENIG-09` — o narrador responde. `perguntaId` é `null` no modo em voz alta,
    * onde a pergunta não passou pelo servidor; ali o narrador pode anotar de que
@@ -674,6 +706,55 @@ export interface TentativaProjetada {
 }
 
 /**
+ * `DEDO-08`, `DEDO-11` — um dedo da mesa.
+ *
+ * O `alvo` é **ausente**, e não nulo, enquanto a votação secreta está aberta:
+ * a mesa sabe que a pessoa já apontou e não sabe pra onde. Quem esconde é a
+ * projeção, nunca a tela (`AD-008`).
+ */
+export interface VotoProjetado {
+  eleitor: { id: JogadorId; apelido: string }
+  alvo?: { id: JogadorId; apelido: string }
+}
+
+/**
+ * `AD-014` — projeção própria do Dedo na Cara, aninhada em
+ * `Projecao.jogo.dedo`.
+ */
+export interface ProjecaoDedo {
+  /** 1-based: qual carta da partida está na mesa. */
+  rodada: number
+  fase: 'votacao' | 'apuracao'
+  /** A pergunta. Visível a todos, sempre — não há papel secreto neste jogo. */
+  carta: string
+  /** Ecoa a config pra tela saber se anuncia "os dedos sobem juntos". */
+  votacao: 'secreta' | 'aberta'
+  /** `DEDO-06` — se o próprio nome entra na lista de alvos. */
+  autoVoto: boolean
+  /** Pra quem **eu** apontei. Só chega a mim, e sempre — inclusive na secreta. */
+  meuVoto: JogadorId | null
+  /** `DEDO-10` — quantos já apontaram e quantos a mesa espera. */
+  quantosVotaram: number
+  quantosDevemVotar: number
+  /**
+   * Os dedos. Durante a votação secreta vêm sem `alvo`; na apuração vêm
+   * completos, inclusive nas salas secretas — é a revelação que é o jogo.
+   */
+  votos: VotoProjetado[]
+  /** `DEDO-12` — quem levou a carta. Presente só na `apuracao`, e só sem empate. */
+  vencedor?: { id: JogadorId; apelido: string; votos: number }
+  /** `DEDO-13` — ninguém teve mais dedos que todo mundo. */
+  empatou: boolean
+  /** `DEDO-16` — do maior pro menor. */
+  placar: { id: JogadorId; apelido: string; pontos: number }[]
+  metaDePontos: number | null
+  /** `DEDO-18`, `DEDO-19` — quem levou a partida. Presente só na fase `encerrada`. */
+  campeoes?: { id: JogadorId; apelido: string; pontos: number }[]
+  /** Mesmo padrão dos outros jogos — visível durante a partida. */
+  pacotesSelecionados?: { id: string; nome: string; emoji: string }[]
+}
+
+/**
  * `AD-014` — projeção própria do Enigmas Sinistros, aninhada em
  * `Projecao.jogo.enigmas`. Como toda projeção, ela já vem decidida (`AD-008`):
  * `solucao` só existe na tela de quem pode ler, e a declaração pendente só
@@ -779,6 +860,8 @@ export interface Projecao {
     /** `AD-014` — presente só quando `sala.jogoId === 'cartas-contra-a-turma'`. */
     cartas?: ProjecaoCartas
     enigmas?: ProjecaoEnigmas
+    /** `AD-014` — presente só quando `sala.jogoId === 'dedo-na-cara'`. */
+    dedo?: ProjecaoDedo
   }
   /** `CHAT-04` */
   chat: MensagemChat[]

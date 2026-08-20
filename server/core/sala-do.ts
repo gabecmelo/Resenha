@@ -370,7 +370,9 @@ export class SalaDeJogo {
           const { CARTAS_TURMA } = await import('../../shared/cartas-turma-dados');
           // `ENIG-30` — mesma história: cena + solução em vez de cartas, resumo igual.
           const { ENIGMAS } = await import('../../shared/enigmas-dados');
-          this.pacotesDisponiveis = [...PACOTES, ...LOCAIS, ...CARTAS_TURMA, ...ENIGMAS].map(p => ({
+          // `DEDO-20` — cartas são frases soltas; resumo do lobby igual aos outros.
+          const { CARTAS_DEDO } = await import('../../shared/dedo-dados');
+          this.pacotesDisponiveis = [...PACOTES, ...LOCAIS, ...CARTAS_TURMA, ...ENIGMAS, ...CARTAS_DEDO].map(p => ({
             id: p.id,
             jogoId: p.jogoId,
             nome: p.nome,

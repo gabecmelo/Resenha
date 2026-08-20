@@ -86,6 +86,16 @@ export const CATALOGO_DE_JOGOS: JogoCatalogo[] = [
     minJogadores: 2,
     recomendadoJogadores: 3,
   },
+  {
+    id: 'dedo-na-cara',
+    nome: 'Dedo na Cara',
+    descricao: 'Quem aqui é mais capaz? A mesa aponta e alguém leva a fama.',
+    // Em dupla não existe: sem auto-voto cada um só tem um alvo possível, os
+    // dois se apontam e toda carta empata (`DEDO-02`). Rende mesmo de 4 pra
+    // cima, quando a votação começa a se dividir.
+    minJogadores: 3,
+    recomendadoJogadores: 4,
+  },
 ]
 
 /** O nome de exibição do jogo, ou o próprio id quando ele não está no catálogo. */
