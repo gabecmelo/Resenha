@@ -5,6 +5,7 @@ import {
   BlocoDeNotas,
   Botao,
   Chat,
+  ConviteDeApoio,
   FaixaDeFase,
   MarcadorDeJogador,
   PainelRecolhivel,
@@ -153,6 +154,9 @@ export function EspiaoEncerrada({ projecao, enviar, aoSair }: PropsDaTela) {
           )}
 
           {aguardando.length > 0 && <EntramNaProxima jogadores={aguardando} />}
+
+          {/* O pedido de apoio mora aqui: depois do que a partida produziu, antes da ação. */}
+          <ConviteDeApoio />
 
           <div className="flex flex-col gap-3 lg:hidden">
             <BlocoDeNotas texto={eu.notas} aoMudar={(texto) => enviar({ t: 'notas', texto })} />
