@@ -169,16 +169,22 @@ export function EnigmasJogo({ projecao, enviar, aoSair }: PropsDaTela) {
 
           <Historico key={enigmas.rodada} enigmas={enigmas} />
 
-          <Placar enigmas={enigmas} euId={eu.id} jogadores={jogadores} />
-
-          <div className="flex flex-col gap-3 lg:hidden">
+          {/*
+            O placar mora na coluna de apoio, e não embaixo da mesa: ali ele
+            ficava depois do histórico, que cresce, e ia parar fora da dobra
+            justo quando alguém marcava ponto. No celular a coluna vira o fim
+            da pilha e a ordem é a mesma.
+          */}
+          <div className="flex flex-col gap-4 lg:hidden">
+            <Placar enigmas={enigmas} euId={eu.id} jogadores={jogadores} />
             <PainelRecolhivel rotulo="resenha" contagem={projecao.chat.length}>
               <Chat mensagens={projecao.chat} aoEnviar={(texto) => enviar({ t: 'chat', texto })} />
             </PainelRecolhivel>
           </div>
         </div>
 
-        <div className="hidden flex-col gap-3 lg:flex">
+        <div className="hidden flex-col gap-4 lg:flex">
+          <Placar enigmas={enigmas} euId={eu.id} jogadores={jogadores} />
           <PainelRecolhivel rotulo="resenha" contagem={projecao.chat.length}>
             <Chat mensagens={projecao.chat} aoEnviar={(texto) => enviar({ t: 'chat', texto })} />
           </PainelRecolhivel>
@@ -651,7 +657,7 @@ function Historico({ enigmas }: { enigmas: ProjecaoEnigmas }) {
                     setFiltro(aba.valor)
                     tocarClique()
                   }}
-                  className={`rounded-chip px-2 py-0.5 font-mono text-compacto-apoio tracking-[0.08em] uppercase ${
+                  className={`cursor-pointer rounded-chip px-3 py-2 font-mono text-rotulo tracking-[0.08em] uppercase ${
                     ativa
                       ? 'bg-acento text-acento-contraste'
                       : 'border border-linha text-texto-3 hover:text-texto'
@@ -673,7 +679,7 @@ function Historico({ enigmas }: { enigmas: ProjecaoEnigmas }) {
         ) : (
           <ul
             ref={lista}
-            className="flex max-h-[19rem] flex-col gap-2 overflow-y-auto overscroll-contain pr-1"
+            className="flex max-h-[10.5rem] flex-col gap-2 overflow-y-auto overscroll-contain pr-1"
           >
             {visiveis.map(({ pergunta, numero }) => (
               <li
