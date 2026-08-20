@@ -7,6 +7,53 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#EFE4D2" />
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#141210" />
+
+    <!--
+      A prévia do link no WhatsApp, no Discord, no Telegram e afins.
+
+      Sem isto, colar resenha.dev.br numa conversa não mostra nada além da URL
+      crua — e o convite pra jogar quase sempre chega por link colado num grupo,
+      que é exatamente onde a prévia decide se alguém abre.
+
+      A imagem sai de `scripts/og-card.html` via `npm run og`. O `?v=` existe
+      porque os leitores de prévia cacheiam a imagem por muito tempo e ignoram
+      o cabeçalho de cache: trocar o cartão exige subir esse número, senão as
+      conversas antigas seguem mostrando a versão anterior.
+
+      `%ORIGEM%` é trocado no build (`vite.config.ts`): o beta anuncia o beta e a
+      produção anuncia a produção. Fixar um endereço só faria o beta apontar
+      pra uma imagem hospedada noutro deploy.
+    -->
+    <meta
+      name="description"
+      content="Party games no navegador pra jogar com os amigos: Quem Sou Eu?, Espião, Cartas Contra a Turma e Enigmas Sinistros. Sem instalar nada e sem cadastro — cria a sala, manda o código de 5 letras e joga."
+    />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Resenha" />
+    <meta property="og:locale" content="pt_BR" />
+    <meta property="og:url" content="%ORIGEM%/" />
+    <meta property="og:title" content="Resenha — junta a galera e abre a mesa" />
+    <meta
+      property="og:description"
+      content="Party games no navegador. Sem app, sem cadastro — cria a sala, manda o código, joga."
+    />
+    <meta property="og:image" content="%ORIGEM%/og.png?v=1" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="Cartão do Resenha: 'Junta a galera e abre a mesa', com os quatro jogos disponíveis."
+    />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Resenha — junta a galera e abre a mesa" />
+    <meta
+      name="twitter:description"
+      content="Party games no navegador. Sem app, sem cadastro — cria a sala, manda o código, joga."
+    />
+    <meta name="twitter:image" content="%ORIGEM%/og.png?v=1" />
     <!--
       Fontes do handoff de design. `display=swap` deixa o texto pintar de
       imediato na fonte de sistema, então a primeira pintura não espera a rede.

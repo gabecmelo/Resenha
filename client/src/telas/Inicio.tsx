@@ -145,133 +145,147 @@ export function Inicio({
     )
   }
 
+  // Quem chegou por link ou já digitou o código não escolhe jogo nenhum: a sala
+  // existe e o jogo é do host. Duas colunas simples bastam.
+  if (veioPorConvite) {
+    return (
+      <Shell>
+        <div className="mx-auto flex w-full max-w-[420px] flex-col gap-7 lg:max-w-none lg:flex-row lg:items-start lg:justify-center lg:gap-16 lg:pt-4">
+          <Apresentacao />
+
+          <div className="flex w-full flex-col gap-5 lg:max-w-[420px]">
+            <Convite codigo={normalizarCodigo(codigo)} />
+
+            <div className="flex flex-col gap-3.5">
+              <CampoDeTexto
+                rotulo="Como te chamam?"
+                valor={apelido}
+                aoMudar={setApelido}
+                placeholder="Seu apelido na mesa"
+                dica={`De 2 a ${MAX_APELIDO} caracteres.`}
+                limite={MAX_APELIDO}
+                autoFoco
+                erro={erroDoApelido(visivel)}
+                aoTeclarEnter={tentarEntrar}
+              />
+
+              <Botao
+                larguraTotal
+                carregando={entrando}
+                onClick={tentarEntrar}
+                motivo={motivoParaEntrar(apelido, codigo)}
+              >
+                {entrando ? 'Entrando…' : 'Entrar na sala'}
+              </Botao>
+
+              {visivel !== null && erroDoApelido(visivel) === undefined && (
+                <p className="flex gap-2 text-apoio text-acento">
+                  <span aria-hidden="true">▲</span>
+                  <span>{visivel.mensagem}</span>
+                </p>
+              )}
+
+              {/*
+                A saída existe sempre: quem digitou pode ter errado uma letra,
+                e quem veio por link pode preferir abrir a sala dele.
+              */}
+              <button
+                type="button"
+                onClick={() => setNaPorta(false)}
+                className="min-h-11 cursor-pointer self-start font-mono text-rotulo text-texto-3 uppercase underline underline-offset-4"
+              >
+                ← entrar em outra sala
+              </button>
+            </div>
+          </div>
+        </div>
+      </Shell>
+    )
+  }
+
   return (
     <Shell>
-      <div className="mx-auto flex w-full max-w-[420px] flex-col gap-7 lg:max-w-none lg:flex-row lg:items-start lg:justify-center lg:gap-16 lg:pt-4">
-        <Apresentacao />
+      {/*
+        A ordem do DOM é a do celular, e ela não muda: código, "ou", jogos,
+        criar. Quem reposiciona é a grade, e só do `lg:` pra cima — os jogos
+        sobem pra coluna da esquerda, que vivia vazia embaixo do título, e a
+        direita fica só com entrar e criar. Com quatro jogos empilhados junto do
+        formulário a página deixou de caber na janela, e abrir uma sala passou a
+        exigir rolagem: a lista cresce a cada jogo novo, o formulário não.
+      */}
+      <div className="mx-auto flex w-full max-w-[420px] flex-col gap-5 lg:grid lg:max-w-[916px] lg:grid-cols-2 lg:items-start lg:gap-x-16 lg:gap-y-7 lg:pt-4">
+        <Apresentacao className="lg:col-start-1 lg:row-start-1" />
 
-        <div className="flex w-full flex-col gap-5 lg:max-w-[420px]">
-          {veioPorConvite ? (
-            <>
-              <Convite codigo={normalizarCodigo(codigo)} />
+        {/*
+          Primeiro o código: quem já tem um veio pra usá-lo, e o caminho
+          dessa pessoa não pode ser o mais longe do polegar.
+        */}
+        <div className="flex flex-col gap-2 lg:col-start-2 lg:row-start-1">
+          <label htmlFor="codigo-da-sala" className="text-[15px] font-semibold text-texto">
+            Já tem um código?
+          </label>
+          <div className="flex gap-2">
+            <input
+              id="codigo-da-sala"
+              type="text"
+              value={codigo}
+              placeholder="·····"
+              maxLength={TAMANHO_CODIGO}
+              onChange={(evento) => setCodigo(normalizarCodigo(evento.target.value))}
+              onKeyDown={(evento) => {
+                if (evento.key === 'Enter') irParaAPorta()
+              }}
+              className="min-h-[52px] w-full min-w-0 rounded-chip border border-linha bg-superficie px-3.5 font-mono text-[22px] tracking-[0.28em] text-texto caret-acento uppercase placeholder:text-texto-apagado focus:border-controle-linha focus:outline-none"
+            />
+            <Botao onClick={irParaAPorta} motivo={motivoDoCodigo(codigo)} motivoOculto>
+              Entrar
+            </Botao>
+          </div>
+          <p className="text-apoio text-texto-3">
+            5 letras. Sem I e sem O, pra ninguém confundir com 1 e 0.
+          </p>
+          {visivel !== null && erroDoApelido(visivel) === undefined && (
+            <p className="flex gap-2 text-apoio text-acento">
+              <span aria-hidden="true">▲</span>
+              <span>{visivel.mensagem}</span>
+            </p>
+          )}
 
-              <div className="flex flex-col gap-3.5">
-                <CampoDeTexto
-                  rotulo="Como te chamam?"
-                  valor={apelido}
-                  aoMudar={setApelido}
-                  placeholder="Seu apelido na mesa"
-                  dica={`De 2 a ${MAX_APELIDO} caracteres.`}
-                  limite={MAX_APELIDO}
-                  autoFoco
-                  erro={erroDoApelido(visivel)}
-                  aoTeclarEnter={tentarEntrar}
-                />
+          {/*
+            O "ou" faz o mesmo trabalho nos dois desenhos: no celular separa o
+            código do que vem abaixo; no desktop separa, dentro da mesma coluna,
+            entrar de criar.
+          */}
+          <Separador className="mt-2.5" />
+        </div>
 
-                <Botao
-                  larguraTotal
-                  carregando={entrando}
-                  onClick={tentarEntrar}
-                  motivo={motivoParaEntrar(apelido, codigo)}
-                >
-                  {entrando ? 'Entrando…' : 'Entrar na sala'}
-                </Botao>
+        <section className="flex flex-col gap-2.5 lg:col-start-1 lg:row-start-2">
+          <h2 className="font-mono text-rotulo text-texto-3 uppercase">o que vamos jogar</h2>
+          <SeletorDeJogos jogoIdSelecionado={jogoId} aoSelecionar={setJogoId} />
+        </section>
 
-                {visivel !== null && erroDoApelido(visivel) === undefined && (
-                  <p className="flex gap-2 text-apoio text-acento">
-                    <span aria-hidden="true">▲</span>
-                    <span>{visivel.mensagem}</span>
-                  </p>
-                )}
+        <div className="flex flex-col gap-3.5 lg:col-start-2 lg:row-start-2">
+          <CampoDeTexto
+            rotulo="Como te chamam?"
+            valor={apelido}
+            aoMudar={setApelido}
+            placeholder="Seu apelido na mesa"
+            dica={`De 2 a ${MAX_APELIDO} caracteres.`}
+            limite={MAX_APELIDO}
+            erro={erroDoApelido(visivel)}
+          />
 
-                {/*
-                  A saída existe sempre: quem digitou pode ter errado uma letra,
-                  e quem veio por link pode preferir abrir a sala dele.
-                */}
-                <button
-                  type="button"
-                  onClick={() => setNaPorta(false)}
-                  className="min-h-11 cursor-pointer self-start font-mono text-rotulo text-texto-3 uppercase underline underline-offset-4"
-                >
-                  ← entrar em outra sala
-                </button>
-              </div>
-            </>
-          ) : (
-            <>
-              {/*
-                Primeiro o código: quem já tem um veio pra usá-lo, e o caminho
-                dessa pessoa não pode ser o mais longe do polegar.
-              */}
-              <div className="flex flex-col gap-2">
-                <label htmlFor="codigo-da-sala" className="text-[15px] font-semibold text-texto">
-                  Já tem um código?
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    id="codigo-da-sala"
-                    type="text"
-                    value={codigo}
-                    placeholder="·····"
-                    maxLength={TAMANHO_CODIGO}
-                    onChange={(evento) => setCodigo(normalizarCodigo(evento.target.value))}
-                    onKeyDown={(evento) => {
-                      if (evento.key === 'Enter') irParaAPorta()
-                    }}
-                    className="min-h-[52px] w-full min-w-0 rounded-chip border border-linha bg-superficie px-3.5 font-mono text-[22px] tracking-[0.28em] text-texto caret-acento uppercase placeholder:text-texto-apagado focus:border-controle-linha focus:outline-none"
-                  />
-                  <Botao onClick={irParaAPorta} motivo={motivoDoCodigo(codigo)} motivoOculto>
-                    Entrar
-                  </Botao>
-                </div>
-                <p className="text-apoio text-texto-3">
-                  5 letras. Sem I e sem O, pra ninguém confundir com 1 e 0.
-                </p>
-                {visivel !== null && erroDoApelido(visivel) === undefined && (
-                  <p className="flex gap-2 text-apoio text-acento">
-                    <span aria-hidden="true">▲</span>
-                    <span>{visivel.mensagem}</span>
-                  </p>
-                )}
-              </div>
+          <LimiteDaSala valor={limite} aoMudar={setLimite} />
 
-              <Separador />
+          <Botao larguraTotal carregando={criando} onClick={criarSala} motivo={motivoDeCriar}>
+            {criando ? 'Abrindo…' : 'Criar uma sala'}
+          </Botao>
 
-              <section className="flex flex-col gap-2.5">
-                <h2 className="font-mono text-rotulo text-texto-3 uppercase">o que vamos jogar</h2>
-                <SeletorDeJogos jogoIdSelecionado={jogoId} aoSelecionar={setJogoId} />
-              </section>
-
-              <div className="flex flex-col gap-3.5">
-                <CampoDeTexto
-                  rotulo="Como te chamam?"
-                  valor={apelido}
-                  aoMudar={setApelido}
-                  placeholder="Seu apelido na mesa"
-                  dica={`De 2 a ${MAX_APELIDO} caracteres.`}
-                  limite={MAX_APELIDO}
-                  erro={erroDoApelido(visivel)}
-                />
-
-                <LimiteDaSala valor={limite} aoMudar={setLimite} />
-
-                <Botao
-                  larguraTotal
-                  carregando={criando}
-                  onClick={criarSala}
-                  motivo={motivoDeCriar}
-                >
-                  {criando ? 'Abrindo…' : 'Criar uma sala'}
-                </Botao>
-
-                {falhaAoCriar && (
-                  <p className="flex gap-2 text-apoio text-acento">
-                    <span aria-hidden="true">▲</span>
-                    <span>Não deu para abrir a sala agora. Tente de novo.</span>
-                  </p>
-                )}
-              </div>
-            </>
+          {falhaAoCriar && (
+            <p className="flex gap-2 text-apoio text-acento">
+              <span aria-hidden="true">▲</span>
+              <span>Não deu para abrir a sala agora. Tente de novo.</span>
+            </p>
           )}
         </div>
       </div>
@@ -336,9 +350,9 @@ function erroDoApelido(erro: ErroDeSala | null): string | undefined {
   return undefined
 }
 
-function Apresentacao() {
+function Apresentacao({ className = '' }: { className?: string }) {
   return (
-    <div className="flex flex-col gap-1.5 lg:max-w-[420px] lg:pt-1">
+    <div className={`flex flex-col gap-1.5 lg:max-w-[420px] lg:pt-1 ${className}`}>
       <h1 className="font-display text-display text-balance text-texto">
         Junta a galera e abre a mesa.
       </h1>
@@ -361,9 +375,9 @@ function Convite({ codigo }: { codigo: string }) {
   )
 }
 
-function Separador() {
+function Separador({ className = '' }: { className?: string }) {
   return (
-    <span className="flex items-center gap-3">
+    <span className={`flex items-center gap-3 ${className}`}>
       <span className="h-px flex-1 bg-linha" />
       <span className="font-mono text-rotulo text-texto-3 uppercase">ou</span>
       <span className="h-px flex-1 bg-linha" />

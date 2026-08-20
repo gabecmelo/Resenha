@@ -80,6 +80,17 @@ export function SeletorDeJogos({
               <span className="text-apoio text-texto-3">{jogo.descricao}</span>
               <span className="mt-0.5 font-mono text-[12px] text-texto-3">
                 {jogo.minJogadores}+ pessoas
+                {/*
+                  O mínimo é o que o servidor aceita; o recomendado é o que a
+                  mesa quer saber. Os dois na mesma linha porque a decisão é uma
+                  só — "cabe a gente que eu tenho aqui?".
+                */}
+                {jogo.recomendadoJogadores !== undefined && (
+                  <span className="text-texto-apagado">
+                    {' '}
+                    · melhor com {jogo.recomendadoJogadores}
+                  </span>
+                )}
               </span>
             </span>
           </button>

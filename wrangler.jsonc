@@ -43,11 +43,14 @@
     "enabled": true
   },
 
-  // O wrangler desliga o endereço `.workers.dev` quando esta chave não existe,
-  // e `resenha.resenhaa.workers.dev` é o link que circulou antes do domínio
-  // próprio — deixar cair quebraria quem ainda o tem salvo. Vale trocar por
-  // `false` quando ninguém mais chegar por ele.
-  "workers_dev": true,
+  // `resenha.resenhaa.workers.dev` aposentado: o produto tem endereço próprio e
+  // dois endereços vivos dividem o que as pessoas colam no grupo, além de
+  // duplicar a origem que precisa valer no CORS e no cookie.
+  //
+  // Desligar aqui e não no painel é o que faz durar: o deploy aplica este
+  // arquivo por inteiro, então o que for mexido no painel volta atrás sozinho
+  // no push seguinte.
+  "workers_dev": false,
 
   // O staging. É um Worker **separado** de propósito: `resenha-beta` tem o
   // próprio namespace de Durable Object e o próprio KV, então uma branch que

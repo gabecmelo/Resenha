@@ -4,6 +4,7 @@ import {
   Botao,
   Carta,
   Chat,
+  ConviteDeApoio,
   FaixaDeFase,
   MarcadorDeJogador,
   PainelRecolhivel,
@@ -86,6 +87,9 @@ export function Encerrada({ projecao, enviar, aoSair }: PropsDaTela) {
 
           {/* `FIM-03` — quem chegou no meio entra na próxima sem fazer nada. */}
           {aguardando.length > 0 && <EntramNaProxima jogadores={aguardando} />}
+
+          {/* O pedido de apoio mora aqui: depois do que a partida produziu, antes da ação. */}
+          <ConviteDeApoio />
 
           <div className="flex flex-col gap-3 lg:hidden">
             <BlocoDeNotas texto={eu.notas} aoMudar={(texto) => enviar({ t: 'notas', texto })} />

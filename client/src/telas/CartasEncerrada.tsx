@@ -3,6 +3,7 @@ import {
   BarraDeAcao,
   Botao,
   Chat,
+  ConviteDeApoio,
   FaixaDeFase,
   MarcadorDeJogador,
   PainelRecolhivel,
@@ -121,6 +122,9 @@ export function CartasEncerrada({ projecao, enviar, aoSair }: PropsDaTela) {
               </p>
             )}
           </section>
+
+          {/* O pedido de apoio mora aqui: depois do que a partida produziu, antes da ação. */}
+          <ConviteDeApoio />
 
           <div className="flex flex-col gap-3 lg:hidden">
             <PainelRecolhivel rotulo="resenha" contagem={projecao.chat.length}>

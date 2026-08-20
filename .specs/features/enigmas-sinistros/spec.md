@@ -32,7 +32,7 @@ O Resenha é um hub de party games. "Quem Sou Eu?", "Espião" e "Cartas Contra a
 | Pontuação | 1 ponto pra quem desata. Placar visível, narrador rotativo, meta de pontos configurável encerra a partida. | Decisão do dono ("Ponto pra quem desata"). Cabe em `AD-015`: quem julga é uma pessoa, o sistema só conta. | y |
 | Tempo | Nenhum. Nem de pergunta, nem de enigma. | Decisão do dono ("Sem tempo, o narrador conduz"). | y |
 | Enigma impossível / mesa travada | O narrador pode **entregar** a solução: a mesa lê, ninguém pontua, e o jogo segue. | Sem relógio e com narrador rotativo, um enigma que ninguém desata travaria a partida pra sempre. Escape necessário, não pedido — registrado aqui. | n (padrão meu) |
-| Mínimo de jogadores | 3 ativos — um narrador e ao menos dois pra deduzir. | Com dois, o jogo vira conversa particular e o placar não tem disputa. Mesmo mínimo dos outros jogos do hub. | n (padrão meu) |
+| Mínimo de jogadores | 2 ativos — um narrador e ao menos um pra deduzir; o catálogo recomenda 3. | Revisto em 19/08/2026 pelo dono: em dois o jogo funciona (um lê, o outro tenta descobrir), e travar a mesa que quer jogar assim é o sistema decidindo o que é diversão. Fica o aviso na tela, não a trava. | s (dono) |
 | Uma pergunta por vez, por pessoa | Sim: quem já tem pergunta na fila espera a resposta antes de mandar outra. | Sem isso uma pessoa enfileira dez perguntas e a mesa vira monólogo. | n (padrão meu) |
 | Uma declaração por vez | Sim: enquanto o narrador não julga, ninguém mais declara. | Duas declarações pendentes exigiriam ordem de chegada visível e desempate. Simples resolve. | n (padrão meu) |
 | Tom do conteúdo | Pacotes separados por tom: um leve e dois pesados, escolhidos no lobby. | Mesmo padrão dos locais do Espião e das cartas do Cartas. | n (padrão meu) |
@@ -52,7 +52,7 @@ O Resenha é um hub de party games. "Quem Sou Eu?", "Espião" e "Cartas Contra a
 **Acceptance Criteria**:
 
 1. WHEN o host está no lobby de uma sala com jogo Enigmas Sinistros THEN o sistema SHALL permitir configurar pacote(s) de enigmas, modo de pergunta (fila ou em voz alta) e meta de pontos (padrão 5, ou "sem meta")
-2. WHEN o host clica "Começar" com menos de 3 jogadores ativos THEN o sistema SHALL recusar com o mesmo erro de jogadores insuficientes dos outros jogos, sem contar quem está aguardando
+2. WHEN o host clica "Começar" com menos de 2 jogadores ativos THEN o sistema SHALL recusar com o mesmo erro de jogadores insuficientes dos outros jogos, sem contar quem está aguardando; AND WHEN a mesa tem 2 ativos THEN o sistema SHALL deixar começar e SHALL avisar na barra de ação que o jogo rende mais a partir de 3
 3. WHEN o host clica "Começar" com jogadores e configuração válidos THEN o sistema SHALL sortear a ordem de rotação dos narradores, montar o monte com os pacotes escolhidos e virar o primeiro enigma
 4. WHEN um enigma está na mesa THEN o sistema SHALL mostrar a cena pra todos os jogadores, com o narrador nomeado
 5. WHEN um enigma está em andamento THEN o sistema SHALL entregar a solução **apenas** ao narrador, e SHALL entregá-la a todos assim que o enigma é revelado ou a partida encerra; a solução SHALL NOT trafegar pra quem ainda não pode lê-la

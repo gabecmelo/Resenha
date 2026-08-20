@@ -10,7 +10,7 @@ import {
   TEMPO_TURNO_MAX_SEG,
   TEMPO_TURNO_MIN_SEG,
 } from '../../../shared/protocolo'
-import { minJogadoresDoJogo, nomeDoJogo } from '../../../shared/jogos-catalogo'
+import { minJogadoresDoJogo, nomeDoJogo, recomendadoDoJogo } from '../../../shared/jogos-catalogo'
 import {
   BarraDeAcao,
   Botao,
@@ -49,6 +49,12 @@ export function Lobby({ projecao, enviar, aoSair }: PropsDaTela) {
   const minimoDoJogo = minJogadoresDoJogo(sala.jogoId)
   const pendencias = pendenciasParaIniciar(ativos.length, minimoDoJogo, sala.config, sala.jogoId)
 
+  // `ENIG-02` — dá pra começar abaixo do recomendado; o aviso é pra mesa saber
+  // no que está se metendo, não pra impedir.
+  const recomendado = recomendadoDoJogo(sala.jogoId)
+  const abaixoDoRecomendado =
+    recomendado !== undefined && ativos.length >= minimoDoJogo && ativos.length < recomendado
+
   const acao = (
     <AcaoDeIniciar
       souHost={eu.ehHost}
@@ -56,6 +62,7 @@ export function Lobby({ projecao, enviar, aoSair }: PropsDaTela) {
       ativos={ativos.length}
       pendencias={pendencias}
       resumo={resumoDaPartida(sala, ativos.length)}
+      recomendado={abaixoDoRecomendado ? recomendado : undefined}
       enviar={enviar}
     />
   )
@@ -427,6 +434,7 @@ function AcaoDeIniciar({
   ativos,
   pendencias,
   resumo,
+  recomendado,
   enviar,
 }: {
   souHost: boolean
@@ -434,6 +442,8 @@ function AcaoDeIniciar({
   ativos: number
   pendencias: string[]
   resumo: string
+  /** Presente só quando a mesa está abaixo do que o jogo pede pra render. */
+  recomendado: number | undefined
   enviar: PropsDaTela['enviar']
 }) {
   if (!souHost) {
@@ -468,9 +478,28 @@ function AcaoDeIniciar({
           </ul>
         </div>
       ) : (
-        <div className="flex items-center gap-2.5">
-          <span className="selo border border-pronto text-pronto">tudo pronto</span>
-          <span className="text-apoio text-texto-3">{resumo}</span>
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2.5">
+            <span className="selo border border-pronto text-pronto">tudo pronto</span>
+            <span className="text-apoio text-texto-3">{resumo}</span>
+          </div>
+          {/*
+            Pontilhado e sem selo de alerta: não é pendência, é conselho. Quem
+            quiser jogar assim clica em Começar do mesmo jeito, e o botão
+            continua dizendo com quantas pessoas.
+          */}
+          {recomendado !== undefined && (
+            <p className="flex gap-2 rounded-papel border border-dashed border-linha p-2.5 text-apoio leading-snug text-texto-2">
+              <span aria-hidden="true" className="text-texto-3">
+                ☞
+              </span>
+              <span>
+                Dá pra jogar com {ativos}, mas este jogo rende mais a partir de{' '}
+                <strong className="font-semibold text-texto">{recomendado}</strong> — com mais
+                gente perguntando, o raciocínio de um puxa o do outro.
+              </span>
+            </p>
+          )}
         </div>
       )}
 
