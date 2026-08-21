@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 11,
+  "next_id": 14,
   "lessons": [
     {
       "id": "L-001",
@@ -184,6 +184,60 @@
       ],
       "created": "2026-08-13T22:22:44Z",
       "last_seen": "2026-08-13T22:22:44Z"
+    },
+    {
+      "id": "L-011",
+      "key": "ac_gap::decisao de comportamento que um ac cobra nao mora em funcao nao exportada dentro de arquivo tsx extraia para modulo puro e importe na tela senao o ac fica sem caminho ate uma assercao",
+      "text": "Decisao de comportamento que um AC cobra nao mora em funcao nao exportada dentro de arquivo .tsx: extraia para modulo puro e importe na tela, senao o AC fica sem caminho ate uma assercao",
+      "signal": "ac_gap",
+      "scope": "client/telas",
+      "status": "candidate",
+      "features": [
+        "passa-e-joga"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "validation.md — PJ-21, PJ-22, PJ-24, PJ-29, PJ-30 em client/src/telas/passaejoga/Partida.tsx:376-475 (voltaDaFase, donoDoAparelho nao exportadas) (client/telas)"
+      ],
+      "created": "2026-08-21T18:59:55Z",
+      "last_seen": "2026-08-21T18:59:55Z"
+    },
+    {
+      "id": "L-012",
+      "key": "surviving_mutant::quando duas camadas trancam o mesmo invariante asserte cada tranca com uma entrada que so ela consegue barrar senao a segunda vira codigo sem cobertura",
+      "text": "Quando duas camadas trancam o mesmo invariante, asserte cada tranca com uma entrada que so ela consegue barrar, senao a segunda vira codigo sem cobertura",
+      "signal": "surviving_mutant",
+      "scope": "client/passaejoga",
+      "status": "candidate",
+      "features": [
+        "passa-e-joga"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "validation.md sensor M7 — client/src/passaejoga/guarda.ts:95 (client/passaejoga)"
+      ],
+      "created": "2026-08-21T19:00:04Z",
+      "last_seen": "2026-08-21T19:00:04Z"
+    },
+    {
+      "id": "L-013",
+      "key": "spec_precision_gap::ao registrar uma decisao do dono na tabela de premissas reescreva os acs que diziam o contrario no mesmo commit dois acs em desacordo deixam o verificador sem resultado esperado",
+      "text": "Ao registrar uma decisao do dono na tabela de premissas, reescreva os ACs que diziam o contrario no mesmo commit: dois ACs em desacordo deixam o verificador sem resultado esperado",
+      "signal": "spec_precision_gap",
+      "scope": "spec",
+      "status": "candidate",
+      "features": [
+        "passa-e-joga"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "validation.md — PJ-10 contradiz PJ-07 e a tabela de premissas sobre a ordem de circulacao (spec)"
+      ],
+      "created": "2026-08-21T19:00:05Z",
+      "last_seen": "2026-08-21T19:00:05Z"
     }
   ]
 }

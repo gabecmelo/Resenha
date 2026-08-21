@@ -156,7 +156,7 @@ describe('donoDoAparelho', () => {
     expect(donoDoAparelho(veja(depoisDoPrimeiro), 'j1')).toBe('j2')
   })
 
-  it('não move o aparelho enquanto o Dedo não abre a votação', () => {
+  it('não move o aparelho nas fases em que ninguém deve um gesto', () => {
     const mesa = mesaDe('quem-sou-eu', 4)
 
     expect(donoDoAparelho(veja(mesa), 'j1')).toBe('j1')

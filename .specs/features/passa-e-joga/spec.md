@@ -151,41 +151,41 @@ Quatro dos cinco jogos cabem nesse formato, porque o segredo deles é **pontual*
 
 | Requirement ID | User Story | Phase | Status |
 | --- | --- | --- | --- |
-| PJ-01 | P1: A porta de entrada | Execute | Implementing |
-| PJ-02 | P1: A porta de entrada | Execute | Implementing |
-| PJ-03 | P1: A porta de entrada | Execute | Implementing |
-| PJ-04 | P1: A porta de entrada | Execute | Implementing |
-| PJ-05 | P1: A porta de entrada | Execute | Implementing |
-| PJ-06 | P2: A mesa | Execute | Implementing |
-| PJ-07 | P2: A mesa | Execute | Implementing |
-| PJ-08 | P2: A mesa | Execute | Implementing |
-| PJ-09 | P2: A mesa | Execute | Implementing |
-| PJ-10 | P2: A mesa | Execute | Implementing |
-| PJ-11 | P3: O motor local | Execute | Implementing |
-| PJ-12 | P3: O motor local | Execute | Implementing |
-| PJ-13 | P3: O motor local | Execute | Implementing |
-| PJ-14 | P3: O motor local | Execute | Implementing |
-| PJ-15 | P3: O motor local | Execute | Implementing |
-| PJ-16 | P3: O motor local | Execute | Implementing |
-| PJ-17 | P4: A tela de passagem | Execute | Implementing |
-| PJ-18 | P4: A tela de passagem | Execute | Implementing |
-| PJ-19 | P4: A tela de passagem | Execute | Implementing |
-| PJ-20 | P4: A tela de passagem | Execute | Implementing |
-| PJ-21 | P4: A tela de passagem | Execute | Implementing |
-| PJ-22 | P5: Os quatro jogos | Execute | Implementing |
-| PJ-23 | P5: Os quatro jogos | Execute | Implementing |
-| PJ-24 | P5: Os quatro jogos | Execute | Implementing |
-| PJ-25 | P5: Os quatro jogos | Execute | Implementing |
-| PJ-26 | P5: Os quatro jogos | Execute | Implementing |
-| PJ-27 | P5: Os quatro jogos | Execute | Implementing |
-| PJ-28 | P5: Os quatro jogos | Execute | Implementing |
-| PJ-29 | P5: Os quatro jogos | Execute | Implementing |
-| PJ-30 | P5: Os quatro jogos | Execute | Implementing |
-| PJ-31 | P5: Os quatro jogos | Execute | Implementing |
-| PJ-32 | P6: O que sobrevive e o que acaba | Execute | Implementing |
-| PJ-33 | P6: O que sobrevive e o que acaba | Execute | Implementing |
-| PJ-34 | P6: O que sobrevive e o que acaba | Execute | Implementing |
-| PJ-35 | P6: O que sobrevive e o que acaba | Execute | Implementing |
+| PJ-01 | P1: A porta de entrada | Execute | Verified |
+| PJ-02 | P1: A porta de entrada | Execute | Verified |
+| PJ-03 | P1: A porta de entrada | Execute | Verified |
+| PJ-04 | P1: A porta de entrada | Execute | Verified |
+| PJ-05 | P1: A porta de entrada | Execute | Verified |
+| PJ-06 | P2: A mesa | Execute | Verified |
+| PJ-07 | P2: A mesa | Execute | Verified |
+| PJ-08 | P2: A mesa | Execute | Verified |
+| PJ-09 | P2: A mesa | Execute | Verified |
+| PJ-10 | P2: A mesa | Execute | Verified |
+| PJ-11 | P3: O motor local | Execute | Verified |
+| PJ-12 | P3: O motor local | Execute | Verified |
+| PJ-13 | P3: O motor local | Execute | Verified |
+| PJ-14 | P3: O motor local | Execute | Verified |
+| PJ-15 | P3: O motor local | Execute | Verified |
+| PJ-16 | P3: O motor local | Execute | Verified |
+| PJ-17 | P4: A tela de passagem | Execute | Verified |
+| PJ-18 | P4: A tela de passagem | Execute | Verified |
+| PJ-19 | P4: A tela de passagem | Execute | Verified |
+| PJ-20 | P4: A tela de passagem | Execute | Verified |
+| PJ-21 | P4: A tela de passagem | Execute | Verified |
+| PJ-22 | P5: Os quatro jogos | Execute | Verified |
+| PJ-23 | P5: Os quatro jogos | Execute | Verified |
+| PJ-24 | P5: Os quatro jogos | Execute | Verified |
+| PJ-25 | P5: Os quatro jogos | Execute | Verified |
+| PJ-26 | P5: Os quatro jogos | Execute | Verified |
+| PJ-27 | P5: Os quatro jogos | Execute | Verified |
+| PJ-28 | P5: Os quatro jogos | Execute | Verified |
+| PJ-29 | P5: Os quatro jogos | Execute | Verified |
+| PJ-30 | P5: Os quatro jogos | Execute | Verified |
+| PJ-31 | P5: Os quatro jogos | Execute | Verified |
+| PJ-32 | P6: O que sobrevive e o que acaba | Execute | Verified |
+| PJ-33 | P6: O que sobrevive e o que acaba | Execute | Verified |
+| PJ-34 | P6: O que sobrevive e o que acaba | Execute | Verified |
+| PJ-35 | P6: O que sobrevive e o que acaba | Execute | Verified |
 
 **ID format:** `PJ-[NUMBER]`, mapeado em ordem às ACs de P1 (01–05), P2 (06–10), P3 (11–16), P4 (17–21), P5 (22–31), P6 (32–35) acima.
 
