@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { CATALOGO_DE_JOGOS, JOGO_PADRAO, jogosJogaveis } from './jogos-catalogo'
+import { CATALOGO_DE_JOGOS, JOGO_PADRAO, jogosDoPassaEJoga, jogosJogaveis } from './jogos-catalogo'
+import { REGISTRO_DE_JOGOS } from './jogos/registro'
 
 describe('CATALOGO_DE_JOGOS', () => {
   it('lista os jogos do hub, cada um com nome, descrição e mínimo próprios (`HUB-01`)', () => {
@@ -63,3 +64,34 @@ describe('JOGO_PADRAO', () => {
     expect(CATALOGO_DE_JOGOS.some((jogo) => jogo.id === JOGO_PADRAO)).toBe(true)
   })
 })
+
+describe('jogosDoPassaEJoga', () => {
+  it('lista os quatro jogos que cabem num aparelho só (`PJ-03`)', () => {
+    expect(jogosDoPassaEJoga().map((jogo) => jogo.id)).toEqual([
+      'quem-sou-eu',
+      'espiao',
+      'enigmas-sinistros',
+      'dedo-na-cara',
+    ])
+  })
+
+  it('deixa Cartas Contra a Turma de fora — mão privada o tempo todo', () => {
+    expect(jogosDoPassaEJoga().map((jogo) => jogo.id)).not.toContain('cartas-contra-a-turma')
+    expect(jogoDoCatalogoObrigatorio('cartas-contra-a-turma').passaEJoga).toBeUndefined()
+  })
+
+  // Marcar no catálogo é promessa de tela; quem entrega é o registro. Sem este
+  // teste, marcar um jogo antes de implementá-lo abriria a porta pra uma
+  // partida local que o motor não sabe iniciar (`PJ-04`).
+  it('todo jogo marcado existe no registro compartilhado (`PJ-04`)', () => {
+    for (const jogo of jogosDoPassaEJoga()) {
+      expect(Object.keys(REGISTRO_DE_JOGOS)).toContain(jogo.id)
+    }
+  })
+})
+
+function jogoDoCatalogoObrigatorio(id: string) {
+  const jogo = CATALOGO_DE_JOGOS.find((candidato) => candidato.id === id)
+  if (jogo === undefined) throw new Error(`jogo ausente do catálogo: ${id}`)
+  return jogo
+}
