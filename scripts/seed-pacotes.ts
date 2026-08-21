@@ -24,7 +24,9 @@ const resumos: PacoteResumo[] = TODOS.map(p => ({
   jogoId: p.jogoId,
   // O crédito de licença viaja junto com o pacote: o índice do KV é o que o
   // lobby lê em produção, e sem ele a atribuição sumiria justo lá.
-  ...('creditos' in p && p.creditos !== undefined ? { creditos: p.creditos } : {})
+  ...('creditos' in p && p.creditos !== undefined ? { creditos: p.creditos } : {}),
+  // O aviso é a condição pra esse pacote existir; ele não pode ficar pra trás.
+  ...('aviso' in p && p.aviso !== undefined ? { aviso: p.aviso } : {})
 }));
 
 const isRemote = process.argv.includes('--remote');

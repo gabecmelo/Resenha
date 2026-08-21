@@ -381,7 +381,8 @@ export class SalaDeJogo {
             quantidade: p.quantidade,
             // Só os pacotes adaptados de obra alheia têm crédito; a chave não
             // vai quando não há o que creditar (`exactOptionalPropertyTypes`).
-            ...('creditos' in p && p.creditos !== undefined ? { creditos: p.creditos } : {})
+            ...('creditos' in p && p.creditos !== undefined ? { creditos: p.creditos } : {}),
+            ...('aviso' in p && p.aviso !== undefined ? { aviso: p.aviso } : {})
           }));
         }
         this.pacotesCacheTimestamp = agora;

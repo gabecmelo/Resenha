@@ -1514,6 +1514,16 @@ function GavetaDePacotes({
         <span className="font-semibold text-texto">{pacote.nome}</span>
       </span>
       <span className="text-apoio text-texto-3">{pacote.descricao}</span>
+      {/*
+        O aviso vem antes da contagem de cartas e com selo: quem está passando
+        o olho pelos pacotes precisa esbarrar nele antes de marcar, não depois.
+      */}
+      {pacote.aviso !== undefined && (
+        <span className="flex flex-col items-start gap-1.5 rounded-botao border border-dashed border-aviso p-2.5">
+          <span className="selo bg-aviso text-aviso-contraste">por conta da mesa</span>
+          <span className="text-compacto-apoio leading-snug text-texto-2">{pacote.aviso}</span>
+        </span>
+      )}
       <span className="font-mono text-compacto-apoio tracking-[0.1em] text-texto-3 uppercase">
         {pacote.quantidade} {unidade}
       </span>

@@ -22,6 +22,8 @@ export interface PacoteResumo {
   descricao: string
   /** Crédito e licença de um pacote adaptado de obra alheia; ausente no que é nosso. */
   creditos?: string
+  /** Aviso que a mesa lê antes de ligar o pacote; ausente na maioria deles. */
+  aviso?: string
   quantidade: number
   /** `HUB-01` — a qual jogo este pacote pertence, para filtrar o catálogo por sala. */
   jogoId: string
