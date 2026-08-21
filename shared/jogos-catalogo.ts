@@ -25,6 +25,19 @@ export interface JogoCatalogo {
    * `jogoId` contra `REGISTRO_DE_JOGOS` — este campo é só a promessa na tela.
    */
   emBreve?: boolean
+  /**
+   * `PJ-03`, `PJ-04` — o jogo cabe num aparelho só, passando de mão em mão.
+   * Fica de fora quem depende de mão privada permanente: Cartas Contra a Turma
+   * tem seis cartas na mão de cada um o tempo inteiro, e passar o aparelho a
+   * cada jogada mataria o jogo. A lista do Passa e Joga sai daqui — nenhuma
+   * tela do modo cita jogo por nome.
+   */
+  passaEJoga?: boolean
+}
+
+/** Os jogos que rodam num aparelho só (`PJ-03`, `PJ-04`). */
+export function jogosDoPassaEJoga(): JogoCatalogo[] {
+  return CATALOGO_DE_JOGOS.filter((jogo) => jogo.passaEJoga === true && jogo.emBreve !== true)
 }
 
 /** Os jogos que dá para escolher agora — o "em breve" fica de fora. */
@@ -63,6 +76,7 @@ export const CATALOGO_DE_JOGOS: JogoCatalogo[] = [
     nome: 'Quem Sou Eu?',
     descricao: 'Você não sabe sua carta. Pergunte, deduza, chute.',
     minJogadores: 2,
+    passaEJoga: true,
   },
   {
     id: 'espiao',
@@ -73,6 +87,7 @@ export const CATALOGO_DE_JOGOS: JogoCatalogo[] = [
     // é o que faz o jogo durar (`ESP-02`).
     minJogadores: 3,
     recomendadoJogadores: 4,
+    passaEJoga: true,
   },
   {
     id: 'cartas-contra-a-turma',
@@ -93,6 +108,7 @@ export const CATALOGO_DE_JOGOS: JogoCatalogo[] = [
     // Deixa jogar, avisa que fica melhor em três (`ENIG-02`).
     minJogadores: 2,
     recomendadoJogadores: 3,
+    passaEJoga: true,
   },
   {
     id: 'dedo-na-cara',
@@ -103,6 +119,7 @@ export const CATALOGO_DE_JOGOS: JogoCatalogo[] = [
     // cima, quando a votação começa a se dividir.
     minJogadores: 3,
     recomendadoJogadores: 4,
+    passaEJoga: true,
   },
 ]
 

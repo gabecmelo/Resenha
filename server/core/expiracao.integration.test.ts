@@ -1,7 +1,7 @@
 import { SELF, env, runInDurableObject } from 'cloudflare:test'
 import { describe, expect, it } from 'vitest'
 import type { Comando, EstadoSala, Mensagem } from '../../shared/protocolo'
-import type { EstadoQuemSouEu } from '../games/quem-sou-eu/regras'
+import type { EstadoQuemSouEu } from '../../shared/jogos/quem-sou-eu/regras'
 import { carregar, salvar } from './estado'
 import { FOLGA_DO_ALARME_MS } from './prazos'
 import { SALA_OCIOSA_MS, SALA_VAZIA_MS } from './sala-do'

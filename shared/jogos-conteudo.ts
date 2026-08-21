@@ -384,6 +384,89 @@ export const CONTEUDO_DOS_JOGOS: ConteudoDoJogo[] = [
   },
 ]
 
+/**
+ * O mesmo conteúdo de uma página, menos o jogo.
+ *
+ * O Passa e Joga não é um jogo: é o modo em que quatro deles cabem num aparelho
+ * só. Tudo o mais que a página precisa — resumo, passos, perguntas — é igual, e
+ * por isso o tipo é o de sempre sem o `jogoId`, em vez de um tipo paralelo que
+ * teria de ser mantido em dia junto com o outro.
+ */
+export type ConteudoDeModo = Omit<ConteudoDoJogo, 'jogoId'>
+
+/** `PJ-05` — a página indexável do modo de um aparelho só. */
+export const CONTEUDO_DO_PASSA_E_JOGA: ConteudoDeModo = {
+  // Doze letras, e não cinco: `/ABCDE` é código de sala, e a Cloudflare serve
+  // arquivo antes de chamar o Worker.
+  slug: 'passa-e-joga',
+  titulo: 'Passa e Joga: party games num celular só, sem link e sem código',
+  h1: 'Um celular só, passando de mão em mão',
+  resumo:
+    'Quatro jogos do Resenha rodam num aparelho só. Ninguém entra em link, ninguém digita código: o celular dá a volta na mesa e a tela guarda o que é segredo.',
+  descricao:
+    'O Passa e Joga é o modo de um aparelho só do Resenha. Diga quem está jogando e comece: o celular passa de mão em mão e a tela protege o segredo de cada um. Quem Sou Eu?, Espião, Enigmas Sinistros e Dedo na Cara, de graça e sem cadastro.',
+  jogadores: 'De 2 a 12 pessoas, num aparelho só',
+  duracao: 'De 10 a 30 minutos',
+  abertura:
+    'Numa festa, oito pessoas entrando num link custa mais tempo do que a primeira rodada do jogo — e sempre tem alguém sem bateria, sem dados ou sem paciência. O Passa e Joga tira isso do caminho: um aparelho só, o de quem organiza, e a mesa inteira jogando nele.',
+  contexto:
+    'São os mesmos jogos e as mesmas regras da sala online, rodando dentro do navegador em vez de num servidor. Como não há sala, também não há convite, código nem chat — e não há internet a perder: dá para jogar uma partida inteira do começo ao fim com o celular fora de sinal.',
+  passos: [
+    {
+      titulo: 'Escolha o jogo',
+      texto:
+        'Na tela inicial, "Jogar num celular só". A lista traz os jogos que cabem num aparelho — Quem Sou Eu?, Espião, Enigmas Sinistros e Dedo na Cara.',
+    },
+    {
+      titulo: 'Diga quem está jogando',
+      texto:
+        'Digite os nomes na ordem da roda, do jeito que a mesa está sentada. É essa ordem que o aparelho segue quando precisa circular, então ele anda de vizinho pra vizinho em vez de atravessar a mesa.',
+    },
+    {
+      titulo: 'Passe o aparelho quando a tela pedir',
+      texto:
+        'Quando a rodada tem segredo — o papel do Espião, a carta que você escreve, o voto —, a tela nomeia quem deve estar com o celular e não mostra nada até essa pessoa tocar. Depois é "esconder e passar", e o próximo recebe uma tela limpa.',
+    },
+    {
+      titulo: 'Deixe o celular na mesa quando o relógio correr',
+      texto:
+        'Fora das voltas de segredo o aparelho fica parado, servindo de relógio e painel. As perguntas correm em voz alta entre quem quiser — quem anda é a pergunta, não o celular.',
+    },
+  ],
+  faq: [
+    {
+      pergunta: 'Precisa de internet?',
+      resposta:
+        'Só para abrir a página na primeira vez. A partida roda inteira dentro do navegador, sem servidor e sem sala, então ela vai do começo ao fim mesmo se o sinal cair no meio.',
+    },
+    {
+      pergunta: 'Como ninguém vê o segredo dos outros num aparelho só?',
+      resposta:
+        'Antes de mostrar qualquer coisa privada, a tela diz de quem é a vez e não monta nada do conteúdo. Só depois do toque de quem recebeu é que o segredo aparece, e o caminho adiante é um só: esconder e passar.',
+    },
+    {
+      pergunta: 'E se alguém apertar o botão de voltar ou o celular apagar?',
+      resposta:
+        'A partida é guardada no próprio aparelho e volta no mesmo ponto ao reabrir. Se ela tinha um segredo à vista, reabre na tela de passagem daquela pessoa — nunca no conteúdo revelado.',
+    },
+    {
+      pergunta: 'Por que Cartas Contra a Turma não está no modo?',
+      resposta:
+        'Porque lá cada pessoa segura seis cartas privadas o tempo inteiro, e não só num instante da rodada. Passar o aparelho a cada jogada mataria o jogo. Ele continua na sala online, como sempre.',
+    },
+    {
+      pergunta: 'Quantas pessoas cabem?',
+      resposta:
+        'Até 12, e o mínimo é o mesmo que o jogo escolhido pede na sala online. Acima de 12 a fila de passagem fica mais longa que a própria rodada.',
+    },
+    {
+      pergunta: 'Dá para jogar de novo sem redigitar os nomes?',
+      resposta:
+        'Dá. No fim da partida o botão "jogar de novo" recomeça com a mesma mesa, na mesma ordem da roda e com as mesmas cores. O que zera é o placar.',
+    },
+  ],
+}
+
 /** O conteúdo daquele jogo, ou `undefined` para um id fora da lista. */
 export function conteudoDoJogo(jogoId: string): ConteudoDoJogo | undefined {
   return CONTEUDO_DOS_JOGOS.find((conteudo) => conteudo.jogoId === jogoId)

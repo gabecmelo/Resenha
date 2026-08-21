@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { MAX_JOGADORES, MIN_JOGADORES, TAMANHO_CODIGO } from '../../../shared/protocolo'
 import { JOGO_PADRAO } from '../../../shared/jogos-catalogo'
-import { Botao, CampoDeTexto, SeletorDeJogos, Shell } from '../componentes'
+import { Botao, CampoDeTexto, Modal, SeletorDeJogos, Shell } from '../componentes'
+import { tocarClique } from '../sons'
 import type { ErroDeSala } from '../estado/conexao'
 import {
   LIMITE_PADRAO,
@@ -290,9 +291,69 @@ export function Inicio({
               <span>Não deu para abrir a sala agora. Tente de novo.</span>
             </p>
           )}
+
+          <PortaDoPassaEJoga />
         </div>
       </div>
     </Shell>
+  )
+}
+
+/** `PJ-05` — o endereço próprio do modo, o mesmo que a página indexável usa. */
+const CAMINHO_DO_PASSA_E_JOGA = '/?modo=passa-e-joga'
+
+/**
+ * `PJ-01`, `PJ-02` — o segundo caminho, abaixo de "Criar uma sala".
+ *
+ * Fica **abaixo** de propósito: criar sala é o que serve pra mesa espalhada, e
+ * é o caminho que já funciona. Este é pra quando todo mundo está na mesma sala
+ * e entrar num link custa mais tempo do que a primeira rodada.
+ *
+ * Secundário, não primário: são dois produtos diferentes na mesma porta, e o
+ * peso visual é quem diz qual é o caminho de sempre. O `(?)` é pontilhado
+ * porque é consultivo — ninguém precisa dele pra decidir.
+ */
+function PortaDoPassaEJoga() {
+  const [explicando, setExplicando] = useState(false)
+
+  return (
+    <div className="flex flex-col gap-3.5">
+      <Separador className="mt-1" />
+
+      <div className="flex items-center gap-2">
+        <Botao
+          variante="secundario"
+          larguraTotal
+          onClick={() => window.location.assign(CAMINHO_DO_PASSA_E_JOGA)}
+        >
+          Jogar num celular só
+        </Botao>
+        <button
+          type="button"
+          aria-label="O que é jogar num celular só?"
+          onClick={() => {
+            tocarClique()
+            setExplicando(true)
+          }}
+          className="flex h-11 w-11 flex-none cursor-pointer items-center justify-center rounded-pilula border border-dashed border-linha font-mono text-[16px] text-texto-3 hover:border-acento hover:text-acento"
+        >
+          ?
+        </button>
+      </div>
+
+      {explicando && (
+        <Modal
+          titulo="Jogar num celular só"
+          rotuloCancelar="Entendi"
+          aoCancelar={() => setExplicando(false)}
+        >
+          <p className="text-corpo text-texto-2">
+            Um aparelho só, passando de mão em mão na mesa — sem link, sem código e sem cada
+            um entrar no seu celular.
+          </p>
+        </Modal>
+      )}
+    </div>
   )
 }
 

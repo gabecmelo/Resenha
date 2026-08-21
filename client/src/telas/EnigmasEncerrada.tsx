@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import type { Projecao } from '../../../shared/protocolo'
 import {
   BarraDeAcao,
   Botao,
@@ -12,7 +13,7 @@ import {
 } from '../componentes'
 import { tocarAcertou } from '../sons'
 import { nomeDoJogo } from '../../../shared/jogos-catalogo'
-import type { PropsDaTela } from './tela'
+import { DE_NOVO_NO_APARELHO, molduraDaSala, type PropsDaTela } from './tela'
 
 /**
  * O placar final (`ENIG-25`, `ENIG-26`) — visível pra todo mundo, inclusive pra
@@ -23,7 +24,8 @@ import type { PropsDaTela } from './tela'
  * o que reclamar. Empate no topo não é desempatado — dois campeões é uma
  * resposta melhor que um critério inventado (`ENIG-26`).
  */
-export function EnigmasEncerrada({ projecao, enviar, aoSair }: PropsDaTela) {
+export function EnigmasEncerrada({ projecao, enviar, aoSair, modo = 'sala' }: PropsDaTela) {
+  const local = modo === 'local'
   const { sala, eu, jogadores } = projecao
   const enigmas = projecao.jogo?.enigmas
   const ativos = jogadores.filter((jogador) => jogador.situacao === 'ativo')
@@ -41,7 +43,7 @@ export function EnigmasEncerrada({ projecao, enviar, aoSair }: PropsDaTela) {
 
   return (
     <Shell
-      codigo={sala.codigo}
+      {...molduraDaSala(sala.codigo)}
       titulo={nomeDoJogo(sala.jogoId)}
       faixa={
         <FaixaDeFase
@@ -127,16 +129,12 @@ export function EnigmasEncerrada({ projecao, enviar, aoSair }: PropsDaTela) {
           <ConviteDeApoio />
 
           <div className="flex flex-col gap-3 lg:hidden">
-            <PainelRecolhivel rotulo="resenha" contagem={projecao.chat.length}>
-              <Chat mensagens={projecao.chat} aoEnviar={(texto) => enviar({ t: 'chat', texto })} />
-            </PainelRecolhivel>
+            <Resenha projecao={projecao} enviar={enviar} local={local} />
           </div>
         </div>
 
         <div className="hidden flex-col gap-3 lg:flex">
-          <PainelRecolhivel rotulo="resenha" contagem={projecao.chat.length}>
-            <Chat mensagens={projecao.chat} aoEnviar={(texto) => enviar({ t: 'chat', texto })} />
-          </PainelRecolhivel>
+          <Resenha projecao={projecao} enviar={enviar} local={local} />
         </div>
       </div>
 
@@ -145,13 +143,21 @@ export function EnigmasEncerrada({ projecao, enviar, aoSair }: PropsDaTela) {
         {eu.ehHost ? (
           <>
             <Botao larguraTotal onClick={() => enviar({ t: 'novaPartida' })}>
-              {aguardando.length > 0
-                ? `Voltar ao lobby com ${ativos.length + aguardando.length}`
-                : 'Voltar ao lobby'}
+              {local
+                ? DE_NOVO_NO_APARELHO.rotulo
+                : aguardando.length > 0
+                  ? `Voltar ao lobby com ${ativos.length + aguardando.length}`
+                  : 'Voltar ao lobby'}
             </Botao>
             <p className="text-apoio text-texto-3">
-              Mesma mesa, ninguém precisa entrar de novo. O placar zera na próxima — este aqui
-              acabou de virar história.
+              {local ? (
+                DE_NOVO_NO_APARELHO.explicacao
+              ) : (
+                <>
+                  Mesma mesa, ninguém precisa entrar de novo. O placar zera na próxima — este aqui
+                  acabou de virar história.
+                </>
+              )}
             </p>
           </>
         ) : (
@@ -167,6 +173,28 @@ export function EnigmasEncerrada({ projecao, enviar, aoSair }: PropsDaTela) {
         )}
       </BarraDeAcao>
     </Shell>
+  )
+}
+
+/**
+ * A conversa da sala. Num aparelho só ela não existe: a mesa está na mesma
+ * sala, e um campo de recado que ninguém do outro lado vai ler é pior que
+ * campo nenhum (`PJ-21`).
+ */
+function Resenha({
+  projecao,
+  enviar,
+  local,
+}: {
+  projecao: Projecao
+  enviar: PropsDaTela['enviar']
+  local: boolean
+}) {
+  if (local) return null
+  return (
+    <PainelRecolhivel rotulo="resenha" contagem={projecao.chat.length}>
+      <Chat mensagens={projecao.chat} aoEnviar={(texto) => enviar({ t: 'chat', texto })} />
+    </PainelRecolhivel>
   )
 }
 

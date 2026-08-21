@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import type {
   Cor,
   Dificuldade,
+  JogadorId,
+  Projecao,
   ProjecaoEnigmas,
   RespostaDoNarrador,
 } from '../../../shared/protocolo'
@@ -22,7 +24,7 @@ import type { FiltroDoHistorico } from '../estado/historico-de-enigmas'
 import { contarPorAba, linhasDoHistorico } from '../estado/historico-de-enigmas'
 import { tocarAcertou, tocarClique, tocarSuaVez, tocarVezOutro } from '../sons'
 import { nomeDoJogo } from '../../../shared/jogos-catalogo'
-import type { PropsDaTela } from './tela'
+import { molduraDaSala, type PropsDaTela } from './tela'
 
 /**
  * A tela do enigma (`ENIG-04`…`ENIG-20`).
@@ -40,7 +42,8 @@ import type { PropsDaTela } from './tela'
  * Nada aqui decide quem narra, quem pode ler a solução ou se a declaração
  * acertou: tudo isso chega pronto na projeção (`AD-008`).
  */
-export function EnigmasJogo({ projecao, enviar, aoSair }: PropsDaTela) {
+export function EnigmasJogo({ projecao, enviar, enviarComo, aoSair, modo = 'sala' }: PropsDaTela) {
+  const local = modo === 'local'
   const { sala, eu, jogadores } = projecao
   const enigmas = projecao.jogo?.enigmas
   const [menuDeHost, setMenuDeHost] = useState(false)
@@ -93,7 +96,7 @@ export function EnigmasJogo({ projecao, enviar, aoSair }: PropsDaTela) {
 
   return (
     <Shell
-      codigo={sala.codigo}
+      {...molduraDaSala(sala.codigo)}
       titulo={nomeDoJogo(sala.jogoId)}
       faixa={
         <FaixaDeFase
@@ -167,6 +170,18 @@ export function EnigmasJogo({ projecao, enviar, aoSair }: PropsDaTela) {
             />
           )}
 
+          <QuemDesatou
+            enigmas={enigmas}
+            jogadores={jogadores}
+            local={local}
+            aoRegistrar={(jogadorId) => {
+              // Duas mãos no mesmo gesto: a versão é de quem falou, o veredito é
+              // de quem narra. Só assim o ponto cai na conta certa (`ENIG-16`).
+              enviarComo?.(jogadorId, { t: 'declararSolucao', texto: 'Contou em voz alta.' })
+              enviar({ t: 'julgarDeclaracao', acertou: true })
+            }}
+          />
+
           <Historico key={enigmas.rodada} enigmas={enigmas} />
 
           {/*
@@ -177,17 +192,13 @@ export function EnigmasJogo({ projecao, enviar, aoSair }: PropsDaTela) {
           */}
           <div className="flex flex-col gap-4 lg:hidden">
             <Placar enigmas={enigmas} euId={eu.id} jogadores={jogadores} />
-            <PainelRecolhivel rotulo="resenha" contagem={projecao.chat.length}>
-              <Chat mensagens={projecao.chat} aoEnviar={(texto) => enviar({ t: 'chat', texto })} />
-            </PainelRecolhivel>
+            <Resenha projecao={projecao} enviar={enviar} local={local} />
           </div>
         </div>
 
         <div className="hidden flex-col gap-4 lg:flex">
           <Placar enigmas={enigmas} euId={eu.id} jogadores={jogadores} />
-          <PainelRecolhivel rotulo="resenha" contagem={projecao.chat.length}>
-            <Chat mensagens={projecao.chat} aoEnviar={(texto) => enviar({ t: 'chat', texto })} />
-          </PainelRecolhivel>
+          <Resenha projecao={projecao} enviar={enviar} local={local} />
         </div>
       </div>
 
@@ -347,6 +358,80 @@ const SELO_DE_DIFICULDADE: Record<Dificuldade, { rotulo: string; pintura: string
   facil: { rotulo: 'fácil', pintura: 'border border-linha text-texto-3' },
   medio: { rotulo: 'médio', pintura: 'border border-linha text-texto-3' },
   dificil: { rotulo: 'difícil', pintura: 'bg-acento text-acento-contraste' },
+}
+
+/**
+ * A conversa da sala. Num aparelho só ela não existe: a mesa está na mesma
+ * sala, e um campo de recado que ninguém do outro lado vai ler é pior que
+ * campo nenhum (`PJ-21`).
+ */
+function Resenha({
+  projecao,
+  enviar,
+  local,
+}: {
+  projecao: Projecao
+  enviar: PropsDaTela['enviar']
+  local: boolean
+}) {
+  if (local) return null
+  return (
+    <PainelRecolhivel rotulo="resenha" contagem={projecao.chat.length}>
+      <Chat mensagens={projecao.chat} aoEnviar={(texto) => enviar({ t: 'chat', texto })} />
+    </PainelRecolhivel>
+  )
+}
+
+/**
+ * `PJ-23` — quem desatou, num aparelho só.
+ *
+ * Numa sala, quem acha que sabe escreve a versão dele e o narrador julga. Aqui
+ * a versão é contada **em voz alta**, com o celular na mão de quem narra: não
+ * há o que escrever nem pra quem mandar. O que sobra é o veredito, e ele é do
+ * narrador — o sistema continua sem avaliar resposta nenhuma (`AD-003`).
+ *
+ * Só aparece pra quem narra, e só enquanto o enigma está de pé.
+ */
+function QuemDesatou({
+  enigmas,
+  jogadores,
+  local,
+  aoRegistrar,
+}: {
+  enigmas: ProjecaoEnigmas
+  jogadores: Projecao['jogadores']
+  local: boolean
+  aoRegistrar(jogadorId: JogadorId): void
+}) {
+  if (!local || !enigmas.souNarrador || enigmas.fase !== 'enigma') return null
+
+  const mesa = jogadores.filter(
+    (jogador) => jogador.situacao === 'ativo' && jogador.id !== enigmas.narrador.id,
+  )
+
+  return (
+    <section className="flex flex-col gap-2.5 rounded-papel border border-dashed border-linha p-3.5">
+      <div className="flex flex-col gap-1">
+        <h2 className="font-mono text-rotulo text-texto-3 uppercase">alguém desatou?</h2>
+        <p className="text-apoio leading-snug text-texto-3">
+          Quando a versão contada bater com a sua solução, toque no nome. Só você decide isso.
+        </p>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {mesa.map((jogador) => (
+          <button
+            key={jogador.id}
+            type="button"
+            onClick={() => aoRegistrar(jogador.id)}
+            className="flex min-h-11 cursor-pointer items-center gap-2 rounded-chip border border-controle-linha px-3 text-apoio font-semibold text-texto"
+          >
+            <MarcadorDeJogador apelido={jogador.apelido} cor={jogador.cor} />
+            {jogador.apelido}
+          </button>
+        ))}
+      </div>
+    </section>
+  )
 }
 
 /** A cena — o único papel que toda a mesa lê igual, do começo ao fim. */

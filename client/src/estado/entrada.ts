@@ -36,6 +36,20 @@ export function jogoDaUrl(busca: string): string | null {
   return jogo === undefined || jogo.emBreve === true ? null : jogo.id
 }
 
+/**
+ * `PJ-05` — o modo pedido pela busca da URL (`/?modo=passa-e-joga`).
+ *
+ * O endereço do Passa e Joga é uma busca, e não um caminho, pelo mesmo motivo
+ * de `/?jogo=espiao`: a Cloudflare serve arquivo antes de chamar o Worker, e
+ * `/passa-e-joga` é a página indexável do modo, não uma rota do SPA.
+ *
+ * Só o valor conhecido vale. Qualquer outro devolve `null` e o app abre no
+ * Início — uma busca desconhecida não pode deixar a pessoa numa tela vazia.
+ */
+export function modoDaUrl(busca: string): 'passa-e-joga' | null {
+  return new URLSearchParams(busca).get('modo') === 'passa-e-joga' ? 'passa-e-joga' : null
+}
+
 /** `SALA-03` */
 export const MIN_APELIDO = 2
 export const MAX_APELIDO = 16
