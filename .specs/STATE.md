@@ -141,6 +141,22 @@
 
 ## Handoff
 
+- **Feature em andamento AGORA: `passa-e-joga`** — modo de um aparelho só, passando de mão em mão numa festa. Branch **`feat/passa-e-joga`**, ramificada de `main` em `de88520`. **Pausada a pedido do dono no meio do Lote 1** (ele foi dormir; retomar no dia seguinte).
+  - **Fases do skill concluídas**: Specify (`ea73483`, `5b95a89`), Design (`1fe0a29`), Tasks (`6ed00a4`). Spec com 35 requisitos `PJ-01`…`PJ-35`; `tasks.md` com 23 tasks em 5 fases, as três checagens pré-aprovação passando.
+  - **Arquitetura** (registrada como `AD-017` acima): os módulos de jogo saem de `server/games/` para `shared/jogos/` e o navegador roda a partida **sem servidor**. `aplicar()` foi extraída de `despacho.ts` para `shared/jogos/aplicar.ts` e devolve `EventoDeJogo[]` em vez de escrever no chat. O motor local **não** usa `despachar()` — monta o `ContextoDeSala` com `autorId = mesa.aparelhoCom` e chama `reduzir` direto.
+  - **Execução**: o dono escolheu sub-agentes por lote. 4 lotes previstos: (Fase 1+2 = T1–T9), (Fase 3 = T10–T15), (Fase 4 = T16–T20), (Fase 5 = T21–T23). O worker do Lote 1 foi interrompido no meio da T6.
+  - **O que já está commitado** (T1–T5, cinco commits; o worker fez a T2 antes da T1, o que não quebra dependência nenhuma):
+    - `16037dd` (T2) — `shared/jogos/contrato.ts`: `AvisoDeSala`, `EntradaDoJogo`, `JogoDaSala`, `ComandoDeJogo`. `despacho.ts` reexporta.
+    - `315ba7d` (T1) — `server/games/` → `shared/jogos/`. `registro.ts` continua sendo o único arquivo que nomeia jogos (`AD-013`).
+    - `d1d6b31` (T3) — parte pura de `prazos.ts` em `shared/jogos/prazos.ts`; `reagendar` e `FOLGA_DO_ALARME_MS` **ficaram** em `server/core/` (`AD-010`).
+    - `c55ad2f` (T4) — `shared/jogos/aplicar.ts` + testes.
+    - `ddda7a1` (T5) — `client/src/passaejoga/passagem.ts` + `passagem.test.ts` (a fila de passagem).
+  - **Estado verificado agora, no HEAD**: `npm run test:unit` **920 testes, 37 arquivos, verdes** (a linha de base era 894/34; T4 e T5 somaram 26). `npm run test:integration` **88, verdes**. Nada quebrado pela parada.
+  - **In-progress**: `client/src/passaejoga/motor.ts` — arquivo **não commitado e incompleto**, escrito pelo worker até a interrupção. É a T6. Ao retomar, **não presumir que está pronto**: leia-o inteiro e decida entre terminar ou reescrever do zero a partir do `design.md`. `passagem.ts` e `passagem.test.ts` aparecem como untracked no `git status` mas **já estão no commit `ddda7a1`** (é ruído do CRLF do Windows, não trabalho perdido).
+  - **Próximo passo ao retomar**: redespachar o Lote 1 a partir da **T6** (T6–T9: motor local, prazo pelo relógio, o pronto retido do Espião, a guarda no `localStorage`), com o mesmo briefing de regras da casa. Depois os lotes 2, 3 e 4, e então o Verifier — que é obrigatório e não se pergunta.
+  - **Pontos que o worker precisa saber e que não estão nas tasks**: sem prettier neste repo; commits em português sem trailer de agente; `npm run lint` tem 2 warnings pré-existentes de `react-hooks/exhaustive-deps` em `Jogo.tsx` (0 erros é o critério); nenhuma linha de regra de jogo pode mudar de comportamento nesta feature.
+
+
 - **Feature `dedo-na-cara`: quinto jogo, spec antes do código.** `.specs/features/dedo-na-cara/spec.md` (23 requisitos `DEDO-01`…`DEDO-23`). Branch `feat/dedo-na-cara`, commits `359ffaf` (spec), `f03b769` (conteúdo), `e6f6bc3` (servidor), `2da0605` (seed do KV), `656b272` (telas), `3cc35c9` (lobby), `2f911c0` (página indexável).
   - **Desenho**: gênero "quem é mais provável" — a carta é uma pergunta que a mesa inteira lê ao mesmo tempo e todo mundo aponta pra alguém. Sem narrador e sem relógio. Maioria simples e estrita entrega a carta; empate no topo não pontua ninguém. As quatro decisões vieram do dono por `AskUserQuestion`: nome, votação secreta **ou** aberta (configurável), ninguém narra, e auto-voto proibido por padrão mas liberável.
   - **Conteúdo é nosso**: a mecânica do gênero não é protegida, mas o nome e as cartas da Buró são. Nenhuma carta saiu de baralho comercial; as 60 são originais, e a regra editorial ("toda carta começa em 'Quem aqui'", "a carta boa tem mais de um candidato óbvio", "nada que humilhe de verdade") está escrita no topo de `shared/dedo-dados.ts`.
