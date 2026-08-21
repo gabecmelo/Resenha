@@ -111,42 +111,13 @@ export function Lobby({ projecao, enviar, aoSair }: PropsDaTela) {
                     Quem escolhe é {host?.apelido ?? 'o host'}, que criou a sala.
                   </p>
                 )}
-                {sala.jogoId === 'cartas-contra-a-turma' ? (
-                  <RegrasCartas
-                    config={sala.config}
-                    pacotesDisponiveis={sala.pacotesDisponiveis}
-                    souHost={eu.ehHost}
-                    enviar={enviar}
-                  />
-                ) : sala.jogoId === 'enigmas-sinistros' ? (
-                  <RegrasEnigmas
-                    config={sala.config}
-                    pacotesDisponiveis={sala.pacotesDisponiveis}
-                    souHost={eu.ehHost}
-                    enviar={enviar}
-                  />
-                ) : sala.jogoId === 'dedo-na-cara' ? (
-                  <RegrasDedo
-                    config={sala.config}
-                    pacotesDisponiveis={sala.pacotesDisponiveis}
-                    souHost={eu.ehHost}
-                    enviar={enviar}
-                  />
-                ) : sala.jogoId === 'espiao' ? (
-                  <RegrasEspiao
-                    config={sala.config}
-                    pacotesDisponiveis={sala.pacotesDisponiveis}
-                    souHost={eu.ehHost}
-                    enviar={enviar}
-                  />
-                ) : (
-                  <Regras
-                    config={sala.config}
-                    pacotesDisponiveis={sala.pacotesDisponiveis}
-                    souHost={eu.ehHost}
-                    enviar={enviar}
-                  />
-                )}
+                <RegrasDoJogo
+                  jogoId={sala.jogoId}
+                  config={sala.config}
+                  pacotesDisponiveis={sala.pacotesDisponiveis}
+                  souHost={eu.ehHost}
+                  enviar={enviar}
+                />
               </div>
             ) : (
               <Chat mensagens={projecao.chat} aoEnviar={(texto) => enviar({ t: 'chat', texto })} />
@@ -637,6 +608,49 @@ function JogoDaSala({
 // Regras da partida (`CFG-01`…`CFG-06`)
 // ---------------------------------------------------------------------------
 
+/**
+ * As regras **daquele** jogo (`AD-013`, `AD-014`): um bloco por jogo, escolhido
+ * pelo `jogoId` e por mais nada.
+ *
+ * Vive aqui, exportado, porque a mesa do Passa e Joga oferece as mesmas
+ * configurações (`PJ-09`) — e duas listas de regras para o mesmo jogo
+ * divergiriam na primeira opção nova. O que muda num aparelho só é `local`:
+ * as opções que descrevem coordenação entre aparelhos somem, porque lá elas
+ * não são escolha de ninguém.
+ */
+export function RegrasDoJogo({
+  jogoId,
+  config,
+  pacotesDisponiveis,
+  souHost,
+  local = false,
+  enviar,
+}: {
+  jogoId: string
+  config: Config
+  pacotesDisponiveis: PacoteResumo[] | undefined
+  souHost: boolean
+  local?: boolean
+  enviar: PropsDaTela['enviar']
+}) {
+  const comuns = { config, pacotesDisponiveis, souHost, local, enviar }
+
+  if (jogoId === 'cartas-contra-a-turma') {
+    return (
+      <RegrasCartas
+        config={config}
+        pacotesDisponiveis={pacotesDisponiveis}
+        souHost={souHost}
+        enviar={enviar}
+      />
+    )
+  }
+  if (jogoId === 'enigmas-sinistros') return <RegrasEnigmas {...comuns} />
+  if (jogoId === 'dedo-na-cara') return <RegrasDedo {...comuns} />
+  if (jogoId === 'espiao') return <RegrasEspiao {...comuns} />
+  return <Regras {...comuns} />
+}
+
 const OPCOES_DE_ORDEM = [
   { valor: 'sorteada' as const, rotulo: 'Sorteada' },
   { valor: 'entrada' as const, rotulo: 'Ordem de entrada' },
@@ -667,11 +681,13 @@ function Regras({
   config,
   pacotesDisponiveis,
   souHost,
+  local = false,
   enviar,
 }: {
   config: Config
   pacotesDisponiveis: PacoteResumo[] | undefined
   souHost: boolean
+  local?: boolean
   enviar: PropsDaTela['enviar']
 }) {
   const [folha, setFolha] = useState<string | null>(null)
@@ -722,12 +738,15 @@ function Regras({
         </>
       )}
 
-      <LinhaDeRegra
-        rotulo="Ordem dos turnos"
-        dica="Ordem de entrada: quem entrou primeiro na sala joga primeiro."
-        valor={rotuloDe(OPCOES_DE_ORDEM, config.ordemTurnos)}
-        aoAbrir={abrir('ordem')}
-      />
+      {/* `PJ-09` — num aparelho só a ordem dos turnos é a ordem da roda. */}
+      {!local && (
+        <LinhaDeRegra
+          rotulo="Ordem dos turnos"
+          dica="Ordem de entrada: quem entrou primeiro na sala joga primeiro."
+          valor={rotuloDe(OPCOES_DE_ORDEM, config.ordemTurnos)}
+          aoAbrir={abrir('ordem')}
+        />
+      )}
       <LinhaDeRegra
         rotulo="Tempo por turno"
         dica="Tempo máximo que um jogador tem pra adivinhar a carta na sua vez."
@@ -1075,11 +1094,13 @@ function RegrasEnigmas({
   config,
   pacotesDisponiveis,
   souHost,
+  local = false,
   enviar,
 }: {
   config: Config
   pacotesDisponiveis: PacoteResumo[] | undefined
   souHost: boolean
+  local?: boolean
   enviar: PropsDaTela['enviar']
 }) {
   const [folha, setFolha] = useState<string | null>(null)
@@ -1104,12 +1125,15 @@ function RegrasEnigmas({
             setModalPacotesAberto(true)
           }}
       />
-      <LinhaDeRegra
-        rotulo="Como perguntar"
-        dica="Na fila, a pergunta é escrita e fica no histórico. Em voz alta, o app só registra as respostas do narrador."
-        valor={rotuloDe(OPCOES_MODO_PERGUNTA, config.enigmas.modoPergunta)}
-        aoAbrir={abrir('modoPergunta')}
-      />
+      {/* `PJ-09` — a fila de perguntas pressupõe um aparelho por pessoa. */}
+      {!local && (
+        <LinhaDeRegra
+          rotulo="Como perguntar"
+          dica="Na fila, a pergunta é escrita e fica no histórico. Em voz alta, o app só registra as respostas do narrador."
+          valor={rotuloDe(OPCOES_MODO_PERGUNTA, config.enigmas.modoPergunta)}
+          aoAbrir={abrir('modoPergunta')}
+        />
+      )}
       <LinhaDeRegra
         rotulo="Meta de pontos"
         dica="Quem desatar mais enigmas leva. Sem meta, a partida só acaba quando o host encerra."
@@ -1181,11 +1205,13 @@ function RegrasDedo({
   config,
   pacotesDisponiveis,
   souHost,
+  local = false,
   enviar,
 }: {
   config: Config
   pacotesDisponiveis: PacoteResumo[] | undefined
   souHost: boolean
+  local?: boolean
   enviar: PropsDaTela['enviar']
 }) {
   const [folha, setFolha] = useState<string | null>(null)
@@ -1210,12 +1236,15 @@ function RegrasDedo({
           setModalPacotesAberto(true)
         }}
       />
-      <LinhaDeRegra
-        rotulo="Os dedos"
-        dica="Escondidos, ninguém vê pra quem o outro apontou até fechar. À vista, dá pra mudar de ideia junto — e é outro jogo."
-        valor={rotuloDe(OPCOES_DE_VOTACAO, config.dedo.votacao)}
-        aoAbrir={abrir('votacaoDedo')}
-      />
+      {/* `PJ-09` — num aparelho só o dedo é sempre à vista: a mesa vê a tela. */}
+      {!local && (
+        <LinhaDeRegra
+          rotulo="Os dedos"
+          dica="Escondidos, ninguém vê pra quem o outro apontou até fechar. À vista, dá pra mudar de ideia junto — e é outro jogo."
+          valor={rotuloDe(OPCOES_DE_VOTACAO, config.dedo.votacao)}
+          aoAbrir={abrir('votacaoDedo')}
+        />
+      )}
       <LinhaDeRegra
         rotulo="Apontar pra si mesmo"
         dica="No jogo original não pode. Liberar faz a mesa assumir a carta na cara dura, o que às vezes é mais engraçado."
@@ -1306,11 +1335,13 @@ function RegrasEspiao({
   config,
   pacotesDisponiveis,
   souHost,
+  local = false,
   enviar,
 }: {
   config: Config
   pacotesDisponiveis: PacoteResumo[] | undefined
   souHost: boolean
+  local?: boolean
   enviar: PropsDaTela['enviar']
 }) {
   const [folha, setFolha] = useState<string | null>(null)
@@ -1356,12 +1387,15 @@ function RegrasEspiao({
         valor={config.espiao.espioesSeVeem ? 'Sim' : 'Não'}
         aoAbrir={abrir('seVeem')}
       />
-      <LinhaDeRegra
-        rotulo="Visibilidade do voto"
-        dica="Tempo real mostra a contagem enquanto a votação está aberta; oculta só revela ao fechar."
-        valor={rotuloDe(OPCOES_VISIBILIDADE_VOTO, config.espiao.visibilidadeVoto)}
-        aoAbrir={abrir('voto')}
-      />
+      {/* `PJ-09` — voto em tempo real num aparelho só entregaria quem já votou. */}
+      {!local && (
+        <LinhaDeRegra
+          rotulo="Visibilidade do voto"
+          dica="Tempo real mostra a contagem enquanto a votação está aberta; oculta só revela ao fechar."
+          valor={rotuloDe(OPCOES_VISIBILIDADE_VOTO, config.espiao.visibilidadeVoto)}
+          aoAbrir={abrir('voto')}
+        />
+      )}
       <LinhaDeRegra
         rotulo="Tempo de rodada"
         dica="Tempo até a votação abrir automaticamente."
