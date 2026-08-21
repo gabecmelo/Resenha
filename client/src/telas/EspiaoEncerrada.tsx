@@ -4,11 +4,10 @@ import {
   BarraDeAcao,
   BlocoDeNotas,
   Botao,
-  Chat,
   ConviteDeApoio,
   FaixaDeFase,
   MarcadorDeJogador,
-  PainelRecolhivel,
+  PainelDaResenha,
   ResultadoDaVotacao,
   Shell,
   TiraDePacotes,
@@ -160,23 +159,14 @@ export function EspiaoEncerrada({ projecao, enviar, aoSair, modo = 'sala' }: Pro
 
           <div className="flex flex-col gap-3 lg:hidden">
             <BlocoDeNotas texto={eu.notas} aoMudar={(texto) => enviar({ t: 'notas', texto })} />
-            {/* Sem sala não há chat: o painel viveria vazio pra sempre. */}
-            {modo === 'sala' && (
-              <PainelRecolhivel rotulo="resenha" contagem={projecao.chat.length}>
-                <Chat mensagens={projecao.chat} aoEnviar={(texto) => enviar({ t: 'chat', texto })} />
-              </PainelRecolhivel>
-            )}
+            <PainelDaResenha projecao={projecao} enviar={enviar} modo={modo} />
           </div>
         </div>
 
         <div className="hidden flex-col gap-3 lg:flex">
           {/* `NOTA-01` — o bloco continua disponível até a próxima partida limpar tudo. */}
           <BlocoDeNotas texto={eu.notas} aoMudar={(texto) => enviar({ t: 'notas', texto })} />
-          {modo === 'sala' && (
-            <PainelRecolhivel rotulo="resenha" contagem={projecao.chat.length}>
-              <Chat mensagens={projecao.chat} aoEnviar={(texto) => enviar({ t: 'chat', texto })} />
-            </PainelRecolhivel>
-          )}
+          <PainelDaResenha projecao={projecao} enviar={enviar} modo={modo} />
         </div>
       </div>
 

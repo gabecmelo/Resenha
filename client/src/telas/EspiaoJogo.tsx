@@ -6,11 +6,10 @@ import {
   BlocoDeNotas,
   Botao,
   CampoDeTexto,
-  Chat,
   FaixaDeFase,
   MarcadorDeJogador,
   Modal,
-  PainelRecolhivel,
+  PainelDaResenha,
   RelogioDaFaixa,
   ResultadoDaVotacao,
   Shell,
@@ -253,23 +252,14 @@ export function EspiaoJogo({ projecao, enviar, aoSair, modo = 'sala' }: PropsDaT
 
           <div className="flex flex-col gap-3 lg:hidden">
             <BlocoDeNotas texto={eu.notas} aoMudar={(texto) => enviar({ t: 'notas', texto })} />
-            {/* Sem sala não há chat: o painel viveria vazio pra sempre. */}
-            {modo === 'sala' && (
-              <PainelRecolhivel rotulo="resenha" contagem={projecao.chat.length}>
-                <Chat mensagens={projecao.chat} aoEnviar={(texto) => enviar({ t: 'chat', texto })} />
-              </PainelRecolhivel>
-            )}
+            <PainelDaResenha projecao={projecao} enviar={enviar} modo={modo} />
           </div>
         </div>
 
         <div className="hidden flex-col gap-3 lg:flex">
           {/* `NOTA-01`, `NOTA-02` — só o dono vê; a projeção nunca traz as de outro. */}
           <BlocoDeNotas texto={eu.notas} aoMudar={(texto) => enviar({ t: 'notas', texto })} />
-          {modo === 'sala' && (
-            <PainelRecolhivel rotulo="resenha" contagem={projecao.chat.length}>
-              <Chat mensagens={projecao.chat} aoEnviar={(texto) => enviar({ t: 'chat', texto })} />
-            </PainelRecolhivel>
-          )}
+          <PainelDaResenha projecao={projecao} enviar={enviar} modo={modo} />
         </div>
       </div>
 
