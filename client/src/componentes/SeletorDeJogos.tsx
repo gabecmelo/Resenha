@@ -1,11 +1,17 @@
 import { useState } from 'react'
-import { CATALOGO_DE_JOGOS } from '../../../shared/jogos-catalogo'
+import { CATALOGO_DE_JOGOS, type JogoCatalogo } from '../../../shared/jogos-catalogo'
 import { conteudoDoJogo } from '../../../shared/jogos-conteudo'
 import { tocarClique } from '../sons'
 import { ModalComoJogar } from './ModalComoJogar'
 
 export interface PropsDoSeletorDeJogos {
   jogoIdSelecionado: string
+  /**
+   * Quais jogos listar. O catálogo inteiro por padrão; o Passa e Joga passa só
+   * os que cabem num aparelho (`PJ-03`). Continua sendo o catálogo quem diz
+   * quais são — a lista chega pronta, nenhum jogo é citado por nome aqui.
+   */
+  jogos?: JogoCatalogo[]
   /**
    * Mostra a lista inteira, mas nada nela escolhe: o card vira papel, sem
    * clique de seleção. O "como jogar" continua de pé.
@@ -32,6 +38,7 @@ export interface PropsDoSeletorDeJogos {
  */
 export function SeletorDeJogos({
   jogoIdSelecionado,
+  jogos = CATALOGO_DE_JOGOS,
   somenteLeitura = false,
   aoSelecionar,
 }: PropsDoSeletorDeJogos) {
@@ -39,7 +46,7 @@ export function SeletorDeJogos({
 
   return (
     <div className="flex w-full flex-col gap-1.5">
-      {CATALOGO_DE_JOGOS.map((jogo) => {
+      {jogos.map((jogo) => {
         if (jogo.emBreve === true) {
           return (
             <div
