@@ -110,6 +110,16 @@ describe('o segredo à vista (`PJ-20`)', () => {
     expect(deposito.getItem(CHAVE_DA_MESA)).not.toContain('revelado')
   })
 
+  it('ignora um `revelado` gravado, venha ele de onde vier', () => {
+    // A outra tranca é o `guardar`, que nunca escreve o campo. Esta prova a
+    // tranca da leitura sozinha: um depósito adulterado à mão, ou salvo por
+    // uma versão que ainda gravava o campo, não reabre o segredo à vista.
+    const deposito = depositoEmMemoria()
+    deposito.setItem(CHAVE_DA_MESA, JSON.stringify(comSegredoARevelado))
+
+    expect(ler(deposito)?.passagem?.revelado).toBe(false)
+  })
+
   it('mantém a passagem nula das fases sem segredo (`PJ-21`)', () => {
     const deposito = depositoEmMemoria()
 
