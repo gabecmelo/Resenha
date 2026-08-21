@@ -1,4 +1,4 @@
-import type { Comando, Projecao } from '../../../shared/protocolo'
+import type { Comando, JogadorId, Projecao } from '../../../shared/protocolo'
 
 /**
  * O que toda tela recebe.
@@ -26,6 +26,15 @@ export interface PropsDaTela {
    * uma que finge ser uma só.
    */
   modo?: 'sala' | 'local'
+  /**
+   * Um comando em nome de outra pessoa que não a que está com o aparelho.
+   *
+   * Só existe no modo local, e por um motivo só: no Enigmas em voz alta quem
+   * desatou contou a versão **falando**, e o celular está — e continua — na mão
+   * de quem narra (`PJ-23`). O gesto é de quem falou; o toque é de quem ouviu.
+   * Registrar em nome do narrador seria mentir pro placar.
+   */
+  enviarComo?(autorId: JogadorId, comando: Comando): void
 }
 
 /**

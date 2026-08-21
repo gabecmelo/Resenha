@@ -92,17 +92,18 @@ export function Partida({
     o aparelho preso numa volta que o jogo já encerrou. Como as duas condições
     olham `mesa.passagem`, rodar de novo não faz nada — o efeito é idempotente.
   */
+  const volta = voltaDaFase(projecao, mesa.aparelhoCom)
+
   useEffect(() => {
-    const fila = filaDaVolta(projecao)
-    if (fila === null) {
+    if (volta === null) {
       if (mesa.passagem !== null) aoMudar({ ...mesa, passagem: null })
       return
     }
-    if (mesa.passagem === null) {
-      const nova = criarPassagem(fila)
-      aoMudar({ ...mesa, passagem: nova, aparelhoCom: deQuemE(nova) ?? mesa.aparelhoCom })
-    }
-  }, [projecao, mesa, aoMudar])
+    // O aparelho **não** troca de mão ao abrir a volta, só ao revelar: entre
+    // um anúncio e o toque de quem recebeu, quem projeta ainda é quem estava
+    // com o celular — e o anúncio não mostra nada de ninguém.
+    if (mesa.passagem === null) aoMudar({ ...mesa, passagem: criarPassagem(volta.fila) })
+  }, [volta, mesa, aoMudar])
 
   /*
     Fora das voltas de segredo o aparelho fica na mesa, mas ainda é de alguém:
@@ -136,13 +137,47 @@ export function Partida({
     aoMudar(resultado.valor)
   }
 
+  /**
+   * Um comando de outra pessoa que não a que está segurando o celular.
+   *
+   * Existe por causa do Enigmas em voz alta (`PJ-23`): quem desatou contou a
+   * versão dele **falando**, e o aparelho estava — e continua — na mão de quem
+   * narra. O gesto é de quem falou; o toque é de quem ouviu. Registrar em nome
+   * do narrador seria mentir pro placar.
+   *
+   * O aparelho não muda de dono por causa disso: ele volta pra mesma mão.
+   */
+  const enviarComo = (autorId: JogadorId, comando: Comando) => {
+    if (!eDoJogo(comando)) return
+    const antes = ultima.current
+    const resultado = despacharNoMotor({ ...antes, aparelhoCom: autorId }, comando, ambiente())
+    if (!resultado.ok) {
+      setRecusa(FRASE_DA_RECUSA[resultado.erro] ?? 'Essa não deu pra fazer agora.')
+      return
+    }
+    setRecusa(null)
+    ultima.current = { ...resultado.valor, aparelhoCom: antes.aparelhoCom }
+    aoMudar(ultima.current)
+  }
+
   const passagem = mesa.passagem
   const emVolta = passagem !== null && !acabou(passagem)
   const deQuem = passagem === null ? null : deQuemE(passagem)
 
+  /*
+    O toque de quem recebeu: o aparelho passa a ser dele **e** o conteúdo
+    aparece, no mesmo despacho.
+
+    Quando a volta não tem o que esconder — a entrega do aparelho ao próximo
+    narrador dos Enigmas (`PJ-24`) —, o mesmo toque já encerra a volta: ele fica
+    com o celular até o fim do enigma, e uma barra de "esconder e passar" ali
+    seria um caminho que não leva a lugar nenhum.
+  */
   const abrirOSegredo = () => {
     if (passagem === null) return
-    aoMudar({ ...mesa, passagem: revelar(passagem) })
+    const dono = deQuemE(passagem) ?? mesa.aparelhoCom
+    const aberta = volta?.escondeAoPassar === false ? avancar(passagem) : revelar(passagem)
+    aoMudar({ ...mesa, passagem: aberta, aparelhoCom: dono })
   }
 
   /*
@@ -153,12 +188,7 @@ export function Partida({
   */
   const esconderEPassar = () => {
     if (passagem === null) return
-    const adiante = avancar(passagem)
-    aoMudar({
-      ...mesa,
-      passagem: adiante,
-      aparelhoCom: deQuemE(adiante) ?? mesa.aparelhoCom,
-    })
+    aoMudar({ ...mesa, passagem: avancar(passagem) })
   }
 
   if (emVolta && !passagem.revelado && deQuem !== null) {
@@ -170,7 +200,7 @@ export function Partida({
           jogador={jogador}
           posicao={passagem.posicao + 1}
           total={passagem.fila.length}
-          instrucao={INSTRUCAO_DA_VOLTA[projecao.sala.fase] ?? 'É a vez dele no aparelho.'}
+          instrucao={volta?.instrucao ?? 'É a vez dele no aparelho.'}
           aoRevelar={abrirOSegredo}
           aoSair={aoSair}
         />
@@ -180,7 +210,7 @@ export function Partida({
 
   return (
     <>
-      <TelaDoJogo projecao={projecao} enviar={enviar} aoSair={aoSair} />
+      <TelaDoJogo projecao={projecao} enviar={enviar} enviarComo={enviarComo} aoSair={aoSair} />
 
       {emVolta && passagem.revelado && (
         <BarraDePassar rotulo="Esconder e passar" aoPassar={esconderEPassar} />
@@ -199,13 +229,15 @@ export function Partida({
 function TelaDoJogo({
   projecao,
   enviar,
+  enviarComo,
   aoSair,
 }: {
   projecao: Projecao
   enviar(comando: Comando): void
+  enviarComo(autorId: JogadorId, comando: Comando): void
   aoSair(): void
 }) {
-  const props = { projecao, enviar, aoSair, modo: 'local' as const }
+  const props = { projecao, enviar, enviarComo, aoSair, modo: 'local' as const }
 
   switch (projecao.sala.fase) {
     case 'lobby':
@@ -246,18 +278,54 @@ function TelaDoJogo({
   }
 }
 
+/** Uma volta do aparelho: por quem ele passa, o que se diz, e se ele volta. */
+interface VoltaDoAparelho {
+  /** Na ordem da roda (`PJ-07`). */
+  fila: JogadorId[]
+  /** O que a pessoa vai fazer ao revelar. Nunca o segredo em si. */
+  instrucao: string
+  /**
+   * `false` quando o aparelho **fica** com quem o recebeu — a entrega ao
+   * próximo narrador dos Enigmas. Aí a volta acaba no toque, sem "esconder e
+   * passar": o enigma inteiro é dele.
+   */
+  escondeAoPassar: boolean
+}
+
 /**
- * Quando a fase tem segredo por jogador, e de quem é a volta (`PJ-21`).
+ * Quando o aparelho precisa circular, e por quem (`PJ-21`).
  *
- * A escrita é o caso claro: cada um escreve a carta de alguém sem ninguém ver
- * (`PJ-29`). As fases sem segredo devolvem `null` e o aparelho fica numa tela
- * só, parado na mesa.
+ * As fases sem segredo devolvem `null` e o aparelho fica numa tela só, parado
+ * na mesa — é o caso do Dedo na Cara inteiro e dos Enigmas depois da cena
+ * aberta.
  */
-function filaDaVolta(projecao: Projecao): JogadorId[] | null {
-  if (projecao.sala.fase !== 'escrita') return null
-  return projecao.jogadores
-    .filter((jogador) => jogador.situacao === 'ativo')
-    .map((jogador) => jogador.id)
+function voltaDaFase(projecao: Projecao, aparelhoCom: JogadorId): VoltaDoAparelho | null {
+  // `PJ-29` — cada um escreve a carta de alguém sem ninguém ver.
+  if (projecao.sala.fase === 'escrita') {
+    return {
+      fila: projecao.jogadores
+        .filter((jogador) => jogador.situacao === 'ativo')
+        .map((jogador) => jogador.id),
+      instrucao: 'Ele vai escrever uma carta que ninguém mais pode ver.',
+      escondeAoPassar: true,
+    }
+  }
+
+  /*
+    `PJ-24` — o narrador mudou e o aparelho ainda está na mão do anterior. A
+    entrega vem **antes** de a solução nova aparecer: sem ela, o enigma
+    seguinte nasceria aberto na tela de quem acabou de narrar.
+  */
+  const enigmas = projecao.jogo?.enigmas
+  if (enigmas !== undefined && enigmas.narrador.id !== aparelhoCom) {
+    return {
+      fila: [enigmas.narrador.id],
+      instrucao: 'Ele narra este enigma — a solução é só dele.',
+      escondeAoPassar: false,
+    }
+  }
+
+  return null
 }
 
 /**
@@ -279,10 +347,6 @@ function donoDoAparelho(projecao: Projecao, atual: JogadorId): JogadorId {
     (jogador) => jogador.situacao === 'ativo' && !jaApontaram.has(jogador.id),
   )
   return proximo?.id ?? atual
-}
-
-const INSTRUCAO_DA_VOLTA: Partial<Record<Projecao['sala']['fase'], string>> = {
-  escrita: 'Ele vai escrever uma carta que ninguém mais pode ver.',
 }
 
 /** `PJ-13` — a recusa vira frase e some; a partida segue de pé atrás dela. */
