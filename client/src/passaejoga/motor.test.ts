@@ -49,6 +49,16 @@ function mesaDe(jogoId: string, quantos = minJogadoresDoJogo(jogoId), amb = ambi
   return resultado.valor
 }
 
+/** O "Quem Sou Eu?" já na fase de jogo: todo mundo escreveu e a mesa começou. */
+function quemSouEuEmJogo(quantos: number, amb = ambiente()): MesaLocal {
+  let mesa = mesaDe('quem-sou-eu', quantos, amb)
+  for (const jogador of mesa.sala.jogadores) {
+    mesa = passar({ ...mesa, aparelhoCom: jogador.id }, { t: 'escreverCarta', texto: `carta de ${jogador.apelido}` }, amb)
+    mesa = passar({ ...mesa, aparelhoCom: jogador.id }, { t: 'marcarPronto', pronto: true }, amb)
+  }
+  return passar({ ...mesa, aparelhoCom: 'j1' }, { t: 'comecar' }, amb)
+}
+
 function passar(mesa: MesaLocal, comando: ComandoDeJogo, amb = ambiente()): MesaLocal {
   const resultado = enviar(mesa, comando, amb)
   if (!resultado.ok) throw new Error(`comando recusado: ${resultado.erro}`)
@@ -244,6 +254,30 @@ describe('projetar', () => {
     const naMaoDoSegundo = projetar({ ...mesa, aparelhoCom: 'j2' })
 
     expect([naMaoDoPrimeiro.eu.alvo?.id, naMaoDoSegundo.eu.alvo?.id]).toEqual(['j2', 'j1'])
+  })
+
+  /*
+   * `hostId` não é só permissão: o "Quem Sou Eu?" o usa pra descobrir quem
+   * confirma uma declaração. A projeção lê `sala.hostId` e o reducer lê
+   * `ctx.hostId` — se o motor entregasse valores diferentes aos dois, a tela
+   * diria que só um pode confirmar e o reducer aceitaria de mais gente. Este
+   * teste compara as duas respostas em vez de confiar em qualquer uma delas.
+   */
+  it('a tela e a regra concordam sobre quem confirma uma declaração (`AD-008`)', () => {
+    const amb = ambiente()
+    let mesa = quemSouEuEmJogo(3, amb)
+    mesa = passar({ ...mesa, aparelhoCom: 'j1' }, { t: 'declararDescobri' }, amb)
+
+    const daTela = mesa.sala.jogadores
+      .filter((j) => projetar({ ...mesa, aparelhoCom: j.id }).eu.souConfirmador)
+      .map((j) => j.id)
+    const daRegra = mesa.sala.jogadores
+      .filter(
+        (j) => enviar({ ...mesa, aparelhoCom: j.id }, { t: 'responderDeclaracao', aceita: true }, amb).ok,
+      )
+      .map((j) => j.id)
+
+    expect(daRegra).toEqual(daTela)
   })
 
   it('esconde o local exatamente de quem é o espião (`PJ-16`)', () => {

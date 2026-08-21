@@ -201,8 +201,9 @@ function despachar(
   // Sem partida montada não há comando de jogo que faça sentido.
   if (mesa.sala.jogo === null) return { ok: false, erro: 'FASE_INVALIDA' }
 
-  const ctx = contextoDe(mesa.sala, autorId)
-  const resultado = jogo.reduzir(mesa.sala.jogo, ctx, comando, ambiente)
+  const daVez = salaDaVez(mesa)
+  const ctx = contextoDe(daVez, autorId)
+  const resultado = jogo.reduzir(daVez.jogo, ctx, comando, ambiente)
   if (!resultado.ok) return { ok: false, erro: resultado.erro }
 
   // O comando foi aceito, mas fica guardado em vez de aplicado: a mesa ainda
@@ -211,7 +212,7 @@ function despachar(
     return { ok: true, valor: { ...mesa, prontoRetido: { comando, autorId }, eventos: [] } }
   }
 
-  const sala = structuredClone(mesa.sala)
+  const sala = structuredClone(daVez)
   const eventos = aplicar(sala, resultado)
   return { ok: true, valor: { ...mesa, sala, eventos } }
 }
@@ -247,7 +248,8 @@ function ligariaORelogioCedoDemais<E>(
 export function projetar(mesa: MesaLocal): Projecao {
   const jogo = jogoDaMesa(mesa)
   if (jogo === null) throw new Error(`jogo fora do registro: ${mesa.jogoId}`)
-  return jogo.projetar(mesa.sala.jogo, mesa.sala, mesa.aparelhoCom)
+  const daVez = salaDaVez(mesa)
+  return jogo.projetar(daVez.jogo, daVez, mesa.aparelhoCom)
 }
 
 // ---------------------------------------------------------------------------
@@ -259,16 +261,28 @@ function jogoDaMesa(mesa: MesaLocal): JogoDaSala<unknown> | null {
 }
 
 /**
- * O contexto que o jogo recebe. `hostId` é **quem está com o aparelho**, e não
- * `sala.hostId`: num aparelho só não há host, e os comandos que na sala online
- * exigiriam autoridade (`encerrar`, `novaPartida`, `proximaCarta`) são da mesa
- * — que é justamente quem segura o celular. Ler `sala.hostId` aqui deixaria só
- * o primeiro da roda encerrar a partida.
+ * A sala como o jogo deve vê-la: **o host é quem está com o aparelho**.
+ *
+ * Num aparelho só não existe host — os comandos que na sala online exigiriam
+ * autoridade (`encerrar`, `novaPartida`, `proximaCarta`) são da mesa, e a mesa
+ * é quem segura o celular. Mas `hostId` não é só permissão: o "Quem Sou Eu?"
+ * o usa para descobrir **quem confirma** uma declaração, e a projeção lê
+ * `sala.hostId` enquanto o reducer lê `ctx.hostId`. Se os dois discordassem, a
+ * tela diria que só o vizinho pode confirmar e o reducer aceitaria de mais
+ * gente — projeção e regra divergindo, que é justamente o que `AD-008` proíbe.
+ *
+ * Por isso o ajuste é na sala inteira, e não só no contexto: os dois lados
+ * leem o mesmo `hostId`, e ele acompanha o aparelho.
  */
+function salaDaVez(mesa: MesaLocal): EstadoSala {
+  if (mesa.sala.hostId === mesa.aparelhoCom) return mesa.sala
+  return { ...mesa.sala, hostId: mesa.aparelhoCom }
+}
+
 function contextoDe(sala: EstadoSala, autorId: JogadorId): ContextoDeSala {
   return {
     fase: sala.fase,
-    hostId: autorId,
+    hostId: sala.hostId,
     config: sala.config,
     jogadores: sala.jogadores,
     prazoTurno: sala.prazos.turno,
