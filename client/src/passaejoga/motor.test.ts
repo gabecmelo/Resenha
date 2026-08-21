@@ -2,8 +2,9 @@ import { describe, expect, it } from 'vitest'
 import type { Ambiente, Config } from '../../../shared/protocolo'
 import { CONFIG_PADRAO } from '../../../shared/protocolo'
 import { minJogadoresDoJogo } from '../../../shared/jogos-catalogo'
-import { type MesaLocal, cobrarPrazos, enviar, iniciar, projetar } from './motor'
+import { type MesaLocal, cobrarPrazos, comecarRodada, enviar, iniciar, projetar } from './motor'
 import type { ComandoDeJogo } from '../../../shared/jogos/contrato'
+import { acabou, avancar, criarPassagem, deQuemE } from './passagem'
 
 const AGORA = 1_700_000_000_000
 
@@ -356,5 +357,109 @@ describe('cobrarPrazos', () => {
 
     expect(depois.sala.prazos.turno).toBeNull()
     expect(depois.sala.jogo).toEqual(travada.sala.jogo)
+  })
+})
+
+describe('o pronto retido do Espião', () => {
+  /**
+   * A volta de revelação: cada um revela o papel e faz "esconder e passar" — o
+   * `marcarPronto` sai com o aparelho ainda na mão de quem revelou, e só então
+   * a fila anda.
+   */
+  function voltaDeRevelacao(amb = ambiente(), quantos = 3): MesaLocal {
+    let mesa = mesaDe('espiao', quantos, amb)
+    mesa = { ...mesa, passagem: criarPassagem(mesa.sala.jogadores.map((j) => j.id)) }
+
+    while (!acabou(mesa.passagem!)) {
+      const de = deQuemE(mesa.passagem!)!
+      mesa = passar({ ...mesa, aparelhoCom: de }, { t: 'marcarPronto', pronto: true }, amb)
+      mesa = { ...mesa, passagem: avancar(mesa.passagem!) }
+    }
+    return mesa
+  }
+
+  it('conta os prontos de quem já revelou, enquanto o aparelho anda (`PJ-25`)', () => {
+    const amb = ambiente()
+    let mesa = mesaDe('espiao', 3, amb)
+    mesa = { ...mesa, passagem: criarPassagem(['j1', 'j2', 'j3']) }
+    mesa = passar({ ...mesa, aparelhoCom: 'j1' }, { t: 'marcarPronto', pronto: true }, amb)
+
+    expect(projetar({ ...mesa, aparelhoCom: 'j1' }).jogo!.espiao!.prontos).toBe(1)
+  })
+
+  it('o último "esconder e passar" não liga o relógio (`PJ-26`)', () => {
+    const mesa = voltaDeRevelacao()
+
+    const espiao = projetar({ ...mesa, aparelhoCom: 'j1' }).jogo!.espiao!
+    expect(espiao.rodadaIniciada).toBe(false)
+    expect(mesa.sala.prazos.turno).toBeNull()
+  })
+
+  it('segura o pronto do último, e só o dele (`PJ-26`)', () => {
+    const mesa = voltaDeRevelacao()
+
+    expect(mesa.prontoRetido).toEqual({
+      comando: { t: 'marcarPronto', pronto: true },
+      autorId: 'j3',
+    })
+    expect(projetar({ ...mesa, aparelhoCom: 'j1' }).jogo!.espiao!.prontos).toBe(2)
+  })
+
+  it('o comando de começar dispara o pronto retido e a rodada começa (`PJ-26`)', () => {
+    const mesa = voltaDeRevelacao()
+
+    const comecada = comecarRodada(mesa, ambiente(AGORA + 90_000))
+
+    expect(comecada.ok && projetar({ ...comecada.valor, aparelhoCom: 'j1' }).jogo!.espiao!).toEqual(
+      expect.objectContaining({ rodadaIniciada: true, prontos: 3 }),
+    )
+  })
+
+  it('o relógio nasce no toque em começar, não no último papel escondido (`PJ-26`)', () => {
+    const mesa = voltaDeRevelacao()
+
+    const comecada = comecarRodada(mesa, ambiente(AGORA + 90_000))
+
+    expect(comecada.ok && comecada.valor.sala.prazos.turno).toBe(AGORA + 90_000 + 300_000)
+  })
+
+  it('não fica nada retido depois de começar (`PJ-26`)', () => {
+    const comecada = comecarRodada(voltaDeRevelacao(), ambiente(AGORA + 90_000))
+
+    expect(comecada.ok && comecada.valor.prontoRetido).toBeNull()
+  })
+
+  it('sem pronto retido, começar não inventa uma rodada (`PJ-26`)', () => {
+    expect(comecarRodada(mesaDe('espiao', 3), ambiente())).toEqual({
+      ok: false,
+      erro: 'COMANDO_INVALIDO',
+    })
+  })
+
+  it('quem começa perguntando sai da projeção, sem sorteio novo do motor (`PJ-27`)', () => {
+    const mesa = voltaDeRevelacao()
+    const antes = projetar({ ...mesa, aparelhoCom: 'j1' }).jogo!.espiao!.comecaPerguntando.id
+
+    const comecada = comecarRodada(mesa, ambiente(AGORA + 90_000))
+
+    expect(
+      comecada.ok &&
+        projetar({ ...comecada.valor, aparelhoCom: 'j1' }).jogo!.espiao!.comecaPerguntando.id,
+    ).toBe(antes)
+  })
+
+  it('não segura o fechamento da votação, com o relógio já correndo (`PJ-28`)', () => {
+    const amb = ambiente()
+    let mesa = espiaoEmRodada(amb)
+    mesa = passar(mesa, { t: 'abrirVotacao' }, amb)
+    mesa = { ...mesa, passagem: criarPassagem(['j1', 'j2', 'j3']) }
+
+    for (const votante of ['j1', 'j2', 'j3']) {
+      mesa = passar({ ...mesa, aparelhoCom: votante }, { t: 'votar', alvoId: 'j2' }, amb)
+      mesa = { ...mesa, passagem: avancar(mesa.passagem!) }
+    }
+
+    expect(mesa.prontoRetido).toBeNull()
+    expect(projetar({ ...mesa, aparelhoCom: 'j1' }).jogo!.espiao!.resultadoVotacao).toBeDefined()
   })
 })

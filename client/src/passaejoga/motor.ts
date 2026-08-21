@@ -21,6 +21,7 @@ import type {
   JogadorId,
   Projecao,
   Resultado,
+  ResultadoReducer,
 } from '../../../shared/protocolo'
 import { CONFIG_PADRAO, CORES } from '../../../shared/protocolo'
 import type { PacoteCompleto } from '../../../shared/pacotes-dados'
@@ -30,7 +31,7 @@ import type { ComandoDeJogo, EntradaDoJogo, JogoDaSala } from '../../../shared/j
 import { REGISTRO_DE_JOGOS } from '../../../shared/jogos/registro'
 import { aplicar } from '../../../shared/jogos/aplicar'
 import { TIPOS_DE_PRAZO, definir, vencidos } from '../../../shared/jogos/prazos'
-import type { Passagem } from './passagem'
+import { type Passagem, acabou } from './passagem'
 
 /**
  * Formato da mesa guardada. Mudou de número, a mesa antiga é descartada em
@@ -51,8 +52,19 @@ export interface MesaLocal {
   aparelhoCom: JogadorId
   /** A volta de segredo em curso, ou `null` na fase que não tem (`PJ-21`). */
   passagem: Passagem | null
+  /**
+   * O comando segurado pelo motor até a mesa mandar começar (`PJ-26`), ou
+   * `null` quando não há nada retido.
+   */
+  prontoRetido: ProntoRetido | null
   /** Os anúncios do último despacho. Sem chat, é o que a tela tem pra dizer. */
   eventos: EventoDeJogo[]
+}
+
+/** O comando retido e de quem ele é — o aparelho já terá trocado de mão. */
+export interface ProntoRetido {
+  comando: EntradaDoJogo
+  autorId: JogadorId
 }
 
 /**
@@ -96,6 +108,7 @@ export function iniciar(
       sala,
       aparelhoCom: sala.jogadores[0]!.id,
       passagem: null,
+      prontoRetido: null,
       eventos: rodada.eventos ?? [],
     },
   }
@@ -112,7 +125,30 @@ export function enviar(
   comando: ComandoDeJogo,
   ambiente: Ambiente,
 ): Resultado<MesaLocal> {
-  return despachar(mesa, comando, ambiente)
+  return despachar(mesa, comando, ambiente, mesa.aparelhoCom, true)
+}
+
+/**
+ * A tela de "todos prontos?": solta o pronto retido e a rodada começa (`PJ-26`).
+ *
+ * O prazo nasce **deste** instante, e não daquele em que o último jogador
+ * escondeu o papel — é a diferença entre o relógio começar com a mesa reunida e
+ * começar com o aparelho ainda dando a volta.
+ *
+ * O comando é redespachado em nome de quem o enviou, não de quem está com o
+ * aparelho agora: o pronto continua sendo o dele.
+ */
+export function comecarRodada(mesa: MesaLocal, ambiente: Ambiente): Resultado<MesaLocal> {
+  const retido = mesa.prontoRetido
+  if (retido === null) return { ok: false, erro: 'COMANDO_INVALIDO' }
+
+  return despachar(
+    { ...mesa, prontoRetido: null },
+    retido.comando,
+    ambiente,
+    retido.autorId,
+    false,
+  )
 }
 
 /**
@@ -143,7 +179,13 @@ export function cobrarPrazos(mesa: MesaLocal, ambiente: Ambiente): MesaLocal {
   definir(sala, 'turno', null)
   const semPrazo: MesaLocal = { ...mesa, sala }
 
-  const resultado = despachar(semPrazo, { t: 'venceuPrazoTurno' }, ambiente)
+  const resultado = despachar(
+    semPrazo,
+    { t: 'venceuPrazoTurno' },
+    ambiente,
+    mesa.aparelhoCom,
+    false,
+  )
   return resultado.ok ? resultado.valor : semPrazo
 }
 
@@ -151,19 +193,49 @@ function despachar(
   mesa: MesaLocal,
   comando: EntradaDoJogo,
   ambiente: Ambiente,
+  autorId: JogadorId,
+  reter: boolean,
 ): Resultado<MesaLocal> {
   const jogo = jogoDaMesa(mesa)
   if (jogo === null) return { ok: false, erro: 'JOGO_INVALIDO' }
   // Sem partida montada não há comando de jogo que faça sentido.
   if (mesa.sala.jogo === null) return { ok: false, erro: 'FASE_INVALIDA' }
 
-  const ctx = contextoDe(mesa.sala, mesa.aparelhoCom)
+  const ctx = contextoDe(mesa.sala, autorId)
   const resultado = jogo.reduzir(mesa.sala.jogo, ctx, comando, ambiente)
   if (!resultado.ok) return { ok: false, erro: resultado.erro }
+
+  // O comando foi aceito, mas fica guardado em vez de aplicado: a mesa ainda
+  // não se reuniu (`PJ-26`).
+  if (reter && ligariaORelogioCedoDemais(mesa, resultado)) {
+    return { ok: true, valor: { ...mesa, prontoRetido: { comando, autorId }, eventos: [] } }
+  }
 
   const sala = structuredClone(mesa.sala)
   const eventos = aplicar(sala, resultado)
   return { ok: true, valor: { ...mesa, sala, eventos } }
+}
+
+/**
+ * O relógio não pode começar a correr com o aparelho ainda dando a volta
+ * (`PJ-26`, `PJ-27`).
+ *
+ * A condição não cita jogo nenhum, de propósito (`AD-013`): é "este comando ia
+ * ligar um relógio que ainda não existia, e há uma volta de segredo em curso".
+ * A votação do Espião também acontece com o aparelho circulando, mas lá o
+ * relógio já corre — `sala.prazos.turno` não é nulo —, e por isso o fechamento
+ * da votação passa direto em vez de ficar retido.
+ *
+ * Nada disso mora em `regras.ts`: para o jogo, o último pronto simplesmente
+ * ainda não chegou.
+ */
+function ligariaORelogioCedoDemais<E>(
+  mesa: MesaLocal,
+  resultado: Extract<ResultadoReducer<E>, { ok: true }>,
+): boolean {
+  if (mesa.passagem === null || acabou(mesa.passagem)) return false
+  if (mesa.sala.prazos.turno !== null) return false
+  return typeof resultado.prazos.turno === 'number'
 }
 
 /**
