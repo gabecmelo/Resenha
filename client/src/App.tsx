@@ -5,6 +5,8 @@ import { criarSessao, reentradaAutomatica } from './estado/sessao'
 import { CartasEncerrada } from './telas/CartasEncerrada'
 import { CartasJogo } from './telas/CartasJogo'
 import { Encerrada } from './telas/Encerrada'
+import { DedoEncerrada } from './telas/DedoEncerrada'
+import { DedoJogo } from './telas/DedoJogo'
 import { EnigmasEncerrada } from './telas/EnigmasEncerrada'
 import { EnigmasJogo } from './telas/EnigmasJogo'
 import { EspiaoAguardando } from './telas/EspiaoAguardando'
@@ -157,6 +159,9 @@ function Sala({
       if (projecao.sala.jogoId === 'cartas-contra-a-turma') {
         return <CartasJogo projecao={projecao} enviar={enviar} aoSair={deixarSala} />
       }
+      if (projecao.sala.jogoId === 'dedo-na-cara') {
+        return <DedoJogo projecao={projecao} enviar={enviar} aoSair={deixarSala} />
+      }
       if (projecao.sala.jogoId === 'enigmas-sinistros') {
         return <EnigmasJogo projecao={projecao} enviar={enviar} aoSair={deixarSala} />
       }
@@ -171,6 +176,9 @@ function Sala({
     case 'encerrada':
       if (projecao.sala.jogoId === 'cartas-contra-a-turma') {
         return <CartasEncerrada projecao={projecao} enviar={enviar} aoSair={deixarSala} />
+      }
+      if (projecao.sala.jogoId === 'dedo-na-cara') {
+        return <DedoEncerrada projecao={projecao} enviar={enviar} aoSair={deixarSala} />
       }
       if (projecao.sala.jogoId === 'enigmas-sinistros') {
         return <EnigmasEncerrada projecao={projecao} enviar={enviar} aoSair={deixarSala} />

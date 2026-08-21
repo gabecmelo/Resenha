@@ -63,6 +63,7 @@ export function Lobby({ projecao, enviar, aoSair }: PropsDaTela) {
       pendencias={pendencias}
       resumo={resumoDaPartida(sala, ativos.length)}
       recomendado={abaixoDoRecomendado ? recomendado : undefined}
+      jogoId={sala.jogoId}
       enviar={enviar}
     />
   )
@@ -124,6 +125,13 @@ export function Lobby({ projecao, enviar, aoSair }: PropsDaTela) {
                     souHost={eu.ehHost}
                     enviar={enviar}
                   />
+                ) : sala.jogoId === 'dedo-na-cara' ? (
+                  <RegrasDedo
+                    config={sala.config}
+                    pacotesDisponiveis={sala.pacotesDisponiveis}
+                    souHost={eu.ehHost}
+                    enviar={enviar}
+                  />
                 ) : sala.jogoId === 'espiao' ? (
                   <RegrasEspiao
                     config={sala.config}
@@ -153,6 +161,23 @@ export function Lobby({ projecao, enviar, aoSair }: PropsDaTela) {
 }
 
 /**
+ * Por que vale esperar mais uma pessoa — a razão muda com o jogo.
+ *
+ * O conselho é o mesmo em todos ("dá, mas rende mais a partir de N"); o que
+ * não pode ser o mesmo é o motivo, que é a única parte que ensina alguma coisa
+ * sobre o jogo que a mesa escolheu.
+ */
+const MOTIVO_PADRAO_DO_RECOMENDADO =
+  'com mais gente na mesa, a partida ganha ritmo.'
+
+const MOTIVO_DO_RECOMENDADO: Record<string, string> = {
+  'enigmas-sinistros': 'com mais gente perguntando, o raciocínio de um puxa o do outro.',
+  'dedo-na-cara': 'com pouca gente a votação quase não se divide, e quase toda carta empata.',
+  espiao: 'com pouca gente, cada pergunta já é quase uma acusação e o espião não tem onde se esconder.',
+  'cartas-contra-a-turma': 'com pouca gente o juiz escolhe entre duas cartas, e aí quase não há julgamento.',
+}
+
+/**
  * Tudo que trava o começo, não só o primeiro impedimento. A barra lista os dois
  * quando são dois — descobrir que falta gente, resolver, e só então descobrir
  * que falta pacote é o jeito mais fácil de irritar quem está organizando.
@@ -174,6 +199,10 @@ function pendenciasParaIniciar(
   // `ENIG-32` — mesma história do Cartas: o jogo não existe sem enigma.
   if (jogoId === 'enigmas-sinistros' && config.pacoteIds.length === 0) {
     lista.push('Escolha ao menos um pacote de enigmas.')
+  }
+  // `DEDO-21` — sem carta não há pergunta pra mesa apontar.
+  if (jogoId === 'dedo-na-cara' && config.pacoteIds.length === 0) {
+    lista.push('Escolha ao menos um pacote de cartas.')
   }
   if (config.modoPacote === 'pacote' && config.pacoteIds.length === 0) {
     lista.push('Escolha ao menos um pacote.')
@@ -435,6 +464,7 @@ function AcaoDeIniciar({
   pendencias,
   resumo,
   recomendado,
+  jogoId,
   enviar,
 }: {
   souHost: boolean
@@ -444,6 +474,7 @@ function AcaoDeIniciar({
   resumo: string
   /** Presente só quando a mesa está abaixo do que o jogo pede pra render. */
   recomendado: number | undefined
+  jogoId: string
   enviar: PropsDaTela['enviar']
 }) {
   if (!souHost) {
@@ -495,8 +526,8 @@ function AcaoDeIniciar({
               </span>
               <span>
                 Dá pra jogar com {ativos}, mas este jogo rende mais a partir de{' '}
-                <strong className="font-semibold text-texto">{recomendado}</strong> — com mais
-                gente perguntando, o raciocínio de um puxa o do outro.
+                <strong className="font-semibold text-texto">{recomendado}</strong> —{' '}
+                {MOTIVO_DO_RECOMENDADO[jogoId] ?? MOTIVO_PADRAO_DO_RECOMENDADO}
               </span>
             </p>
           )}
@@ -1145,6 +1176,132 @@ const PRESETS_DE_META_ENIGMAS: ReadonlyArray<{ valor: number | null; rotulo: str
   { valor: 8, rotulo: '8 enigmas' },
 ]
 
+/** `DEDO-06`, `DEDO-09`, `DEDO-17` — as regras do Dedo na Cara. */
+function RegrasDedo({
+  config,
+  pacotesDisponiveis,
+  souHost,
+  enviar,
+}: {
+  config: Config
+  pacotesDisponiveis: PacoteResumo[] | undefined
+  souHost: boolean
+  enviar: PropsDaTela['enviar']
+}) {
+  const [folha, setFolha] = useState<string | null>(null)
+  const [modalPacotesAberto, setModalPacotesAberto] = useState(false)
+  const [pacoteIdsRascunho, setPacoteIdsRascunho] = useState<string[]>(config.pacoteIds)
+
+  const pacotesSelecionados =
+    pacotesDisponiveis?.filter((p) => config.pacoteIds.includes(p.id)) ?? []
+
+  const abrir = (nome: string) => (souHost ? () => setFolha(nome) : undefined)
+  const mudarDedo = (parcial: Partial<Config['dedo']>) =>
+    enviar({ t: 'configurar', config: { dedo: { ...config.dedo, ...parcial } } })
+
+  return (
+    <div className="flex flex-col">
+      <LinhaDeRegra
+        rotulo="Pacotes de cartas"
+        dica="O tom da mesa mora aqui: o rolê pra jogar com qualquer um, os outros dois pra quem já se conhece."
+        valor={resumoDePacotes(pacotesSelecionados)}
+        aoAbrir={() => {
+          setPacoteIdsRascunho(config.pacoteIds)
+          setModalPacotesAberto(true)
+        }}
+      />
+      <LinhaDeRegra
+        rotulo="Os dedos"
+        dica="Escondidos, ninguém vê pra quem o outro apontou até fechar. À vista, dá pra mudar de ideia junto — e é outro jogo."
+        valor={rotuloDe(OPCOES_DE_VOTACAO, config.dedo.votacao)}
+        aoAbrir={abrir('votacaoDedo')}
+      />
+      <LinhaDeRegra
+        rotulo="Apontar pra si mesmo"
+        dica="No jogo original não pode. Liberar faz a mesa assumir a carta na cara dura, o que às vezes é mais engraçado."
+        valor={rotuloDe(OPCOES_DE_AUTO_VOTO, config.dedo.autoVoto)}
+        aoAbrir={abrir('autoVotoDedo')}
+      />
+      <LinhaDeRegra
+        rotulo="Meta de pontos"
+        dica="Cada carta levada vale 1. Sem meta, a partida só acaba quando o host encerra."
+        valor={rotuloDe(PRESETS_DE_META_DEDO, config.dedo.metaDePontos)}
+        aoAbrir={abrir('metaDedo')}
+      />
+
+      {folha === 'votacaoDedo' && (
+        <FolhaDeEscolha
+          titulo="Os dedos"
+          descricao="Na apuração todos os dedos abrem de qualquer jeito — o que muda é o que se vê antes disso."
+          opcoes={OPCOES_DE_VOTACAO}
+          atual={config.dedo.votacao}
+          aoEscolher={(votacao) => mudarDedo({ votacao })}
+          aoFechar={() => setFolha(null)}
+        />
+      )}
+
+      {folha === 'autoVotoDedo' && (
+        <FolhaDeEscolha
+          titulo="Apontar pra si mesmo"
+          descricao="Vale pra mesa inteira, não só pra quem pediu."
+          opcoes={OPCOES_DE_AUTO_VOTO}
+          atual={config.dedo.autoVoto}
+          aoEscolher={(autoVoto) => mudarDedo({ autoVoto })}
+          aoFechar={() => setFolha(null)}
+        />
+      )}
+
+      {folha === 'metaDedo' && (
+        <FolhaDeEscolha
+          titulo="Meta de pontos"
+          descricao="Quem levar mais cartas na cara ganha. A partida acaba na carta em que a meta cair."
+          opcoes={PRESETS_DE_META_DEDO}
+          atual={config.dedo.metaDePontos}
+          aoEscolher={(metaDePontos) => mudarDedo({ metaDePontos })}
+          aoFechar={() => setFolha(null)}
+        />
+      )}
+
+      {modalPacotesAberto && (
+        <GavetaDePacotes
+          titulo="Pacotes de cartas"
+          descricao="Pode escolher mais de um — as cartas se somam. O tom vem escrito na descrição."
+          unidade="cartas"
+          disponiveis={pacotesDisponiveis}
+          rascunho={souHost ? pacoteIdsRascunho : config.pacoteIds}
+          somenteLeitura={!souHost}
+          aoAlternar={setPacoteIdsRascunho}
+          aoConfirmar={() => {
+            enviar({ t: 'configurar', config: { pacoteIds: pacoteIdsRascunho } })
+            setModalPacotesAberto(false)
+          }}
+          aoFechar={() => setModalPacotesAberto(false)}
+        />
+      )}
+    </div>
+  )
+}
+
+/** `DEDO-09` — o sigilo protege a decisão, nunca o resultado. */
+const OPCOES_DE_VOTACAO: ReadonlyArray<{ valor: 'secreta' | 'aberta'; rotulo: string }> = [
+  { valor: 'secreta', rotulo: 'Escondidos até fechar' },
+  { valor: 'aberta', rotulo: 'À vista o tempo todo' },
+]
+
+/** `DEDO-06` — o padrão é o do jogo original: dedo é pros outros. */
+const OPCOES_DE_AUTO_VOTO: ReadonlyArray<{ valor: boolean; rotulo: string }> = [
+  { valor: false, rotulo: 'Não pode' },
+  { valor: true, rotulo: 'Pode assumir' },
+]
+
+const PRESETS_DE_META_DEDO: ReadonlyArray<{ valor: number | null; rotulo: string }> = [
+  { valor: null, rotulo: 'Sem meta' },
+  { valor: 3, rotulo: '3 cartas' },
+  { valor: 5, rotulo: '5 cartas' },
+  { valor: 8, rotulo: '8 cartas' },
+  { valor: 12, rotulo: '12 cartas' },
+]
+
 function RegrasEspiao({
   config,
   pacotesDisponiveis,
@@ -1357,9 +1514,29 @@ function GavetaDePacotes({
         <span className="font-semibold text-texto">{pacote.nome}</span>
       </span>
       <span className="text-apoio text-texto-3">{pacote.descricao}</span>
+      {/*
+        O aviso vem antes da contagem de cartas e com selo: quem está passando
+        o olho pelos pacotes precisa esbarrar nele antes de marcar, não depois.
+      */}
+      {pacote.aviso !== undefined && (
+        <span className="flex flex-col items-start gap-1.5 rounded-botao border border-dashed border-aviso p-2.5">
+          <span className="selo bg-aviso text-aviso-contraste">por conta da mesa</span>
+          <span className="text-compacto-apoio leading-snug text-texto-2">{pacote.aviso}</span>
+        </span>
+      )}
       <span className="font-mono text-compacto-apoio tracking-[0.1em] text-texto-3 uppercase">
         {pacote.quantidade} {unidade}
       </span>
+      {/*
+        Crédito de licença, quando o conteúdo do pacote é adaptado de obra
+        alheia. Fica no card, e não num rodapé de página: a exigência é
+        aparecer onde a obra é oferecida, e é aqui que a mesa escolhe.
+      */}
+      {pacote.creditos !== undefined && (
+        <span className="border-t border-dashed border-linha pt-2 text-compacto-apoio leading-snug text-texto-apagado">
+          {pacote.creditos}
+        </span>
+      )}
     </>
   )
 

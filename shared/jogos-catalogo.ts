@@ -68,13 +68,21 @@ export const CATALOGO_DE_JOGOS: JogoCatalogo[] = [
     id: 'espiao',
     nome: 'Espião',
     descricao: 'Todos sabem o local. Menos um. Descubra quem.',
+    // Em três, cada pergunta é quase uma acusação e uma votação errada já
+    // decide a partida. De quatro pra cima o espião tem onde se esconder, que
+    // é o que faz o jogo durar (`ESP-02`).
     minJogadores: 3,
+    recomendadoJogadores: 4,
   },
   {
     id: 'cartas-contra-a-turma',
     nome: 'Cartas Contra a Turma',
     descricao: 'Uma frase no meio da mesa e a pior resposta possível ganha.',
+    // Em três, o juiz escolhe entre duas cartas e o julgamento quase não
+    // existe. De quatro pra cima a pilha fica grande o bastante pra ter
+    // disputa de verdade (`CCT-02`).
     minJogadores: 3,
+    recomendadoJogadores: 4,
   },
   {
     id: 'enigmas-sinistros',
@@ -85,6 +93,16 @@ export const CATALOGO_DE_JOGOS: JogoCatalogo[] = [
     // Deixa jogar, avisa que fica melhor em três (`ENIG-02`).
     minJogadores: 2,
     recomendadoJogadores: 3,
+  },
+  {
+    id: 'dedo-na-cara',
+    nome: 'Dedo na Cara',
+    descricao: 'Quem aqui é mais capaz? A mesa aponta e alguém leva a fama.',
+    // Em dupla não existe: sem auto-voto cada um só tem um alvo possível, os
+    // dois se apontam e toda carta empata (`DEDO-02`). Rende mesmo de 4 pra
+    // cima, quando a votação começa a se dividir.
+    minJogadores: 3,
+    recomendadoJogadores: 4,
   },
 ]
 

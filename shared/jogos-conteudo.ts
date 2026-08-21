@@ -316,6 +316,72 @@ export const CONTEUDO_DOS_JOGOS: ConteudoDoJogo[] = [
       },
     ],
   },
+
+  {
+    jogoId: 'dedo-na-cara',
+    slug: 'dedo-na-cara',
+    titulo: 'Dedo na Cara online — quem aqui é mais capaz de fazer isso?',
+    h1: 'Dedo na Cara online',
+    resumo:
+      'Uma pergunta cai na mesa e todo mundo aponta ao mesmo tempo. Quem levar mais dedos leva a carta — e a obrigação de se explicar.',
+    descricao:
+      'Jogue Dedo na Cara online e de graça no navegador: cartas de "quem aqui" que a mesa responde apontando o dedo. Sem app e sem cadastro, a partir de 3 pessoas.',
+    jogadores: 'A partir de 3, melhor com 4 ou mais',
+    duracao: 'De 15 a 40 minutos, e para quando quiser',
+    abertura:
+      'Dedo na Cara é o jogo do "quem aqui": uma pergunta aparece para a mesa inteira — quem some do rolê sem avisar, quem chega sempre atrasado — e todo mundo aponta para alguém ao mesmo tempo. Quem receber mais dedos leva a carta e, mais importante, tem que se explicar.',
+    contexto:
+      'É um jogo sobre a turma, não sobre as cartas: a mesma pergunta rende coisas completamente diferentes em dois grupos. Por isso ele funciona melhor com gente que já se conhece — e por isso quase sempre a rodada acaba em história, que é o que realmente se joga aqui.',
+    passos: [
+      {
+        titulo: 'Abra a sala',
+        texto:
+          'Crie a sala e mande o código de 5 letras. São necessárias 3 pessoas; de 4 para cima é onde o jogo rende, porque a votação começa a se dividir de verdade.',
+      },
+      {
+        titulo: 'A carta é de todo mundo',
+        texto:
+          'Não existe narrador: a pergunta aparece igual em todas as telas ao mesmo tempo. Ninguém precisa ler nada em voz alta para a partida andar.',
+      },
+      {
+        titulo: 'Aponte',
+        texto:
+          'Cada um escolhe uma pessoa da mesa. Por padrão os dedos ficam escondidos até o último apontar, para que ninguém vote atrás do voto do outro — mas dá para deixar tudo à vista na configuração da sala.',
+      },
+      {
+        titulo: 'A contagem e a explicação',
+        texto:
+          'Quando todos apontam, os dedos abrem de uma vez. Quem tiver mais dedos que qualquer outro leva a carta e marca um ponto; empatou no topo, ninguém pontua. Aí começa a parte boa, que é a mesa cobrando explicação.',
+      },
+    ],
+    faq: [
+      {
+        pergunta: 'Quantas pessoas precisam para jogar?',
+        resposta:
+          'A partir de 3. Em dupla o jogo não existe: cada um só teria um alvo possível e toda carta terminaria empatada. De 4 pessoas para cima é onde ele fica bom.',
+      },
+      {
+        pergunta: 'Posso apontar para mim mesmo?',
+        resposta:
+          'Por padrão não, como no jogo de mesa. O host pode liberar na configuração da sala — aí dá para assumir a carta na cara dura, o que às vezes é mais engraçado que negar.',
+      },
+      {
+        pergunta: 'Os outros veem para quem eu apontei?',
+        resposta:
+          'Só depois que todo mundo apontar, na configuração padrão. Enquanto a votação está aberta, o alvo do seu dedo nem sai do servidor. Se a sala preferir, dá para jogar com os dedos à vista o tempo todo.',
+      },
+      {
+        pergunta: 'O jogo tem fim?',
+        resposta:
+          'Tem se você quiser: dá para definir uma meta de cartas e a partida acaba quando alguém bater. Sem meta, ela segue até o host encerrar.',
+      },
+      {
+        pergunta: 'Dá para jogar por chamada de vídeo?',
+        resposta:
+          'Dá, e funciona bem: a carta aparece igual em todas as telas e o dedo é apontado no app. O que a chamada precisa carregar é só a discussão depois da contagem, que é o jogo de verdade.',
+      },
+    ],
+  },
 ]
 
 /** O conteúdo daquele jogo, ou `undefined` para um id fora da lista. */

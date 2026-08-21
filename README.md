@@ -16,6 +16,9 @@
 | [Espião](https://resenha.dev.br/espiao) | Todos sabem o local. Menos um. Descubra quem. | 3+ |
 | [Cartas Contra a Turma](https://resenha.dev.br/cartas-contra-a-turma) | Uma frase no meio da mesa e a pior resposta possível ganha. | 3+ |
 | [Enigmas Sinistros](https://resenha.dev.br/enigmas-sinistros) | Uma cena impossível. Só sim, não e indiferente pra desatar. | 2+ |
+| [Dedo na Cara](https://resenha.dev.br/dedo-na-cara) | Quem aqui é mais capaz? A mesa aponta e alguém se explica. | 3+ |
+
+Dois pacotes são de humor negro e vêm desligados, com aviso na tela: quem liga é o host, por conta e risco da mesa. O porquê está em [CONTEUDO.md](CONTEUDO.md). Os baralhos são escritos para o projeto, com uma exceção creditada: o pacote "O Clássico" do Cartas Contra a Turma é tradução e adaptação do Cards Against Humanity, sob CC BY-NC-SA 2.0. Os detalhes estão em [CONTEUDO.md](CONTEUDO.md).
 
 Cada sala aguenta até 20 pessoas. Funciona com a turma junta no sofá, cada um com o celular na mão, e funciona igual com todo mundo em chamada de vídeo.
 

@@ -8,6 +8,7 @@ describe('CATALOGO_DE_JOGOS', () => {
       'espiao',
       'cartas-contra-a-turma',
       'enigmas-sinistros',
+      'dedo-na-cara',
     ])
     for (const jogo of CATALOGO_DE_JOGOS) {
       expect(jogo.nome.length).toBeGreaterThan(0)
@@ -26,6 +27,7 @@ describe('CATALOGO_DE_JOGOS', () => {
       'espiao',
       'cartas-contra-a-turma',
       'enigmas-sinistros',
+      'dedo-na-cara',
     ])
     const emBreve = CATALOGO_DE_JOGOS.filter((jogo) => jogo.emBreve === true).map((jogo) => jogo.id)
     expect(emBreve).toEqual([])

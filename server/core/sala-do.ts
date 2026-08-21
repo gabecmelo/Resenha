@@ -370,13 +370,19 @@ export class SalaDeJogo {
           const { CARTAS_TURMA } = await import('../../shared/cartas-turma-dados');
           // `ENIG-30` — mesma história: cena + solução em vez de cartas, resumo igual.
           const { ENIGMAS } = await import('../../shared/enigmas-dados');
-          this.pacotesDisponiveis = [...PACOTES, ...LOCAIS, ...CARTAS_TURMA, ...ENIGMAS].map(p => ({
+          // `DEDO-20` — cartas são frases soltas; resumo do lobby igual aos outros.
+          const { CARTAS_DEDO } = await import('../../shared/dedo-dados');
+          this.pacotesDisponiveis = [...PACOTES, ...LOCAIS, ...CARTAS_TURMA, ...ENIGMAS, ...CARTAS_DEDO].map(p => ({
             id: p.id,
             jogoId: p.jogoId,
             nome: p.nome,
             descricao: p.descricao,
             emoji: p.emoji,
-            quantidade: p.quantidade
+            quantidade: p.quantidade,
+            // Só os pacotes adaptados de obra alheia têm crédito; a chave não
+            // vai quando não há o que creditar (`exactOptionalPropertyTypes`).
+            ...('creditos' in p && p.creditos !== undefined ? { creditos: p.creditos } : {}),
+            ...('aviso' in p && p.aviso !== undefined ? { aviso: p.aviso } : {})
           }));
         }
         this.pacotesCacheTimestamp = agora;
