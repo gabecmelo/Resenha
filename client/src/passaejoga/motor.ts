@@ -26,10 +26,10 @@ import { CONFIG_PADRAO, CORES } from '../../../shared/protocolo'
 import type { PacoteCompleto } from '../../../shared/pacotes-dados'
 import { PACOTES } from '../../../shared/pacotes-dados'
 import { LOCAIS } from '../../../shared/locais-dados'
-import type { ComandoDeJogo, JogoDaSala } from '../../../shared/jogos/contrato'
+import type { ComandoDeJogo, EntradaDoJogo, JogoDaSala } from '../../../shared/jogos/contrato'
 import { REGISTRO_DE_JOGOS } from '../../../shared/jogos/registro'
 import { aplicar } from '../../../shared/jogos/aplicar'
-import { TIPOS_DE_PRAZO, definir } from '../../../shared/jogos/prazos'
+import { TIPOS_DE_PRAZO, definir, vencidos } from '../../../shared/jogos/prazos'
 import type { Passagem } from './passagem'
 
 /**
@@ -110,6 +110,46 @@ export function iniciar(
 export function enviar(
   mesa: MesaLocal,
   comando: ComandoDeJogo,
+  ambiente: Ambiente,
+): Resultado<MesaLocal> {
+  return despachar(mesa, comando, ambiente)
+}
+
+/**
+ * O vencimento derivado do relógio (`PJ-14`).
+ *
+ * Na sala online quem acorda o jogo é o alarme do Durable Object; no navegador
+ * não há alarme, e **contar** o tempo seria contar errado: uma aba em segundo
+ * plano não recebe temporizador confiável. Por isso o vencimento é derivado —
+ * compara-se o instante absoluto do prazo com o relógio de agora. Quem chama é
+ * a batida de um segundo e o `visibilitychange`.
+ *
+ * **Nenhum `setTimeout` mora neste módulo**, de nenhuma duração: se um dia
+ * aparecer um aqui, o prazo volta a ser contado em vez de derivado, e dez
+ * minutos de tela apagada passam a valer menos que dez minutos.
+ *
+ * O prazo é limpo **antes** de o aviso ser despachado, como o `alarm()` do
+ * `core` faz: é o que faz um salto de dez minutos disparar uma vez só, e não
+ * uma vez por segundo perdido — e o que impede um aviso recusado de voltar a
+ * vencer na batida seguinte.
+ *
+ * Recebe o `Ambiente` inteiro, e não só `agora`, porque o aviso passa pelo
+ * mesmo `reduzir` dos comandos, e ele exige a aleatoriedade injetada.
+ */
+export function cobrarPrazos(mesa: MesaLocal, ambiente: Ambiente): MesaLocal {
+  if (!vencidos(mesa.sala, ambiente.agora).includes('turno')) return mesa
+
+  const sala = structuredClone(mesa.sala)
+  definir(sala, 'turno', null)
+  const semPrazo: MesaLocal = { ...mesa, sala }
+
+  const resultado = despachar(semPrazo, { t: 'venceuPrazoTurno' }, ambiente)
+  return resultado.ok ? resultado.valor : semPrazo
+}
+
+function despachar(
+  mesa: MesaLocal,
+  comando: EntradaDoJogo,
   ambiente: Ambiente,
 ): Resultado<MesaLocal> {
   const jogo = jogoDaMesa(mesa)

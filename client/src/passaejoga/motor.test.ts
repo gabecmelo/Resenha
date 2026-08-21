@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Ambiente, Config } from '../../../shared/protocolo'
 import { CONFIG_PADRAO } from '../../../shared/protocolo'
 import { minJogadoresDoJogo } from '../../../shared/jogos-catalogo'
-import { type MesaLocal, enviar, iniciar, projetar } from './motor'
+import { type MesaLocal, cobrarPrazos, enviar, iniciar, projetar } from './motor'
 import type { ComandoDeJogo } from '../../../shared/jogos/contrato'
 
 const AGORA = 1_700_000_000_000
@@ -285,5 +285,76 @@ describe('uma partida inteira, sem rede (`PJ-15`)', () => {
     const fim = projetar(mesa)
     expect(fim.sala.fase).toBe('encerrada')
     expect(fim.jogo!.dedo!.placar[0]).toEqual({ id: 'j2', apelido: 'Bruno', pontos: 1 })
+  })
+})
+
+/** A rodada do Espião já correndo, com o relógio dos cinco minutos de pé. */
+function espiaoEmRodada(amb = ambiente()): MesaLocal {
+  let mesa = mesaDe('espiao', 3, amb)
+  for (const jogador of mesa.sala.jogadores) {
+    mesa = passar({ ...mesa, aparelhoCom: jogador.id }, { t: 'marcarPronto', pronto: true }, amb)
+  }
+  return mesa
+}
+
+const PRAZO_DA_RODADA = AGORA + 300_000
+
+describe('cobrarPrazos', () => {
+  it('não mexe na mesa quando não há prazo nenhum ativo (`PJ-14`)', () => {
+    const mesa = mesaDe('dedo-na-cara', 3)
+
+    expect(cobrarPrazos(mesa, ambiente(AGORA + 600_000))).toBe(mesa)
+  })
+
+  it('não antecipa um prazo que ainda não venceu (`PJ-14`)', () => {
+    const mesa = espiaoEmRodada()
+
+    expect(cobrarPrazos(mesa, ambiente(PRAZO_DA_RODADA - 1))).toBe(mesa)
+  })
+
+  it('dispara o vencimento quando o relógio alcança o prazo (`PJ-14`)', () => {
+    const mesa = espiaoEmRodada()
+
+    const depois = cobrarPrazos(mesa, ambiente(PRAZO_DA_RODADA))
+
+    expect(projetar(depois).jogo!.espiao!.votacaoAberta).toBeDefined()
+    expect(depois.sala.prazos.turno).toBe(PRAZO_DA_RODADA + 60_000)
+  })
+
+  it('dispara uma vez só: cobrar de novo com o mesmo agora não dispara segunda (`PJ-14`)', () => {
+    const mesa = espiaoEmRodada()
+
+    const uma = cobrarPrazos(mesa, ambiente(PRAZO_DA_RODADA))
+    const duas = cobrarPrazos(uma, ambiente(PRAZO_DA_RODADA))
+
+    expect(duas).toBe(uma)
+  })
+
+  it('dez minutos de tela apagada valem um disparo, não um por segundo (`PJ-14`)', () => {
+    const mesa = espiaoEmRodada()
+
+    const depois = cobrarPrazos(mesa, ambiente(PRAZO_DA_RODADA + 600_000))
+
+    // Um disparo por segundo perdido teria fechado a votação final e acabado a
+    // partida; ela precisa estar aberta, esperando a mesa votar.
+    expect(projetar(depois).jogo!.espiao!.votacaoAberta).toBeDefined()
+    expect(depois.sala.fase).toBe('jogo')
+  })
+
+  it('limpa o prazo mesmo quando o jogo recusa o aviso, sem travar a partida (`PJ-14`)', () => {
+    const rodada = espiaoEmRodada()
+    const travada: MesaLocal = {
+      ...rodada,
+      sala: {
+        ...rodada.sala,
+        fase: 'encerrada',
+        prazos: { ...rodada.sala.prazos, turno: PRAZO_DA_RODADA },
+      },
+    }
+
+    const depois = cobrarPrazos(travada, ambiente(PRAZO_DA_RODADA))
+
+    expect(depois.sala.prazos.turno).toBeNull()
+    expect(depois.sala.jogo).toEqual(travada.sala.jogo)
   })
 })
