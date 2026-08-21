@@ -82,7 +82,7 @@ Quatro dos cinco jogos cabem nesse formato, porque o segredo deles é **pontual*
 7. WHEN o sistema pede os nomes THEN o sistema SHALL orientar a mesa a digitá-los **na ordem da roda**, e SHALL usar essa ordem como a ordem de passagem — assim, nas voltas em que o aparelho circula, ele só anda de vizinho pra vizinho
 8. WHEN a lista de nomes tem menos que o mínimo do jogo, ou tem nome repetido ou vazio THEN o sistema SHALL impedir o começo e dizer o que falta
 9. WHEN a mesa está montada THEN o sistema SHALL oferecer as configurações **daquele jogo** que fazem sentido num aparelho (pacotes, dificuldade, meta, tempos, nº de espiões) e SHALL omitir as que descrevem coordenação entre aparelhos
-10. WHEN a partida começa THEN o sistema SHALL sortear as cores dos jogadores e a ordem de circulação do aparelho, sem pedir nada disso a ninguém
+10. WHEN a partida começa THEN o sistema SHALL sortear as cores dos jogadores sem pedir escolha a ninguém, e SHALL manter a ordem de circulação do aparelho como a mesa a digitou (`PJ-07`) — a roda é física, e sortear a ordem faria o aparelho atravessar a mesa
 
 ### P3: O motor local
 
