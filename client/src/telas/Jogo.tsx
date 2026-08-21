@@ -40,7 +40,7 @@ const MESA_CHEIA = 8
 
 type Ficha = Projecao['jogadores'][number]
 
-export function Jogo({ projecao, enviar, aoSair }: PropsDaTela) {
+export function Jogo({ projecao, enviar, aoSair, modo = 'sala' }: PropsDaTela) {
   const { sala, eu, jogadores } = projecao
   const jogo = projecao.jogo
   const ativos = jogadores.filter((jogador) => jogador.situacao === 'ativo')
@@ -156,6 +156,8 @@ export function Jogo({ projecao, enviar, aoSair }: PropsDaTela) {
     >
       <div className="flex flex-col gap-5 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,330px)] lg:items-start lg:gap-6">
         <div className="flex flex-col gap-5">
+          {modo === 'local' && <CartaNaTesta jogadores={jogadores} vezDe={jogo?.vezDe ?? null} />}
+
           <TiraDePacotes pacotes={sala.pacotesSelecionados} />
 
           {eu.situacao !== 'ativo' && <Espectador />}
@@ -202,18 +204,23 @@ export function Jogo({ projecao, enviar, aoSair }: PropsDaTela) {
 
           <div className="flex flex-col gap-3 lg:hidden">
             <BlocoDeNotas texto={eu.notas} aoMudar={(texto) => enviar({ t: 'notas', texto })} />
-            <PainelRecolhivel rotulo="resenha" contagem={projecao.chat.length}>
-              <Chat mensagens={projecao.chat} aoEnviar={(texto) => enviar({ t: 'chat', texto })} />
-            </PainelRecolhivel>
+            {/* Sem sala não há chat: o painel viveria vazio pra sempre. */}
+            {modo === 'sala' && (
+              <PainelRecolhivel rotulo="resenha" contagem={projecao.chat.length}>
+                <Chat mensagens={projecao.chat} aoEnviar={(texto) => enviar({ t: 'chat', texto })} />
+              </PainelRecolhivel>
+            )}
           </div>
         </div>
 
         <div className="hidden flex-col gap-3 lg:flex">
           {/* `NOTA-01`, `NOTA-02` — só o dono vê; a projeção nunca traz as de outro. */}
           <BlocoDeNotas texto={eu.notas} aoMudar={(texto) => enviar({ t: 'notas', texto })} />
-          <PainelRecolhivel rotulo="resenha" contagem={projecao.chat.length}>
-            <Chat mensagens={projecao.chat} aoEnviar={(texto) => enviar({ t: 'chat', texto })} />
-          </PainelRecolhivel>
+          {modo === 'sala' && (
+            <PainelRecolhivel rotulo="resenha" contagem={projecao.chat.length}>
+              <Chat mensagens={projecao.chat} aoEnviar={(texto) => enviar({ t: 'chat', texto })} />
+            </PainelRecolhivel>
+          )}
         </div>
       </div>
 
@@ -511,6 +518,43 @@ function Mesa({
 // ---------------------------------------------------------------------------
 // As três visões de uma declaração pendente (`DESC-01`…`DESC-05`)
 // ---------------------------------------------------------------------------
+
+/**
+ * A carta de quem está na vez, em letra grande (`PJ-30`).
+ *
+ * É o papel na testa, com a tela no lugar do papel: quem está na vez segura o
+ * aparelho virado pra fora, e a mesa lê. Por isso o texto é o maior da tela e
+ * não divide espaço com mais nada — do outro lado da mesa, "quase legível" é
+ * ilegível.
+ *
+ * O que impede a própria pessoa de ler não é esta tela: é o motor, que mantém
+ * o aparelho com o vizinho justamente pra que a projeção venha com a carta
+ * dela à mostra. Aqui só se aumenta a fonte.
+ */
+function CartaNaTesta({
+  jogadores,
+  vezDe,
+}: {
+  jogadores: Projecao['jogadores']
+  vezDe: JogadorId | null
+}) {
+  const daVez = jogadores.find((jogador) => jogador.id === vezDe)
+  if (daVez === undefined || daVez.carta === undefined) return null
+
+  return (
+    <section className="flex flex-col items-center gap-3 rounded-papel border-2 border-controle-linha bg-superficie p-5 text-center shadow-botao">
+      <span className="font-mono text-rotulo text-texto-3 uppercase">
+        vire o aparelho pra mesa · {daVez.apelido} não pode ver
+      </span>
+      <p className="font-display text-[clamp(2rem,11vw,3.5rem)] leading-[1.05] text-balance text-texto">
+        {daVez.carta}
+      </p>
+      <span className="text-apoio leading-snug text-texto-3">
+        A mesa responde sim ou não. Quem está com a carta pergunta.
+      </span>
+    </section>
+  )
+}
 
 /** Quem declarou: a carta continua selada até alguém responder. */
 function AguardandoConfirmacao() {

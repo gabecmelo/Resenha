@@ -30,7 +30,7 @@ import type { PropsDaTela } from './tela'
 /** `ESCR-03` */
 const CARTA_MAX = 60
 
-export function Escrita({ projecao, enviar, aoSair }: PropsDaTela) {
+export function Escrita({ projecao, enviar, aoSair, modo = 'sala' }: PropsDaTela) {
   const { sala, eu, jogadores } = projecao
   const prontos = projecao.jogo?.prontos ?? 0
   const total = projecao.jogo?.total ?? 0
@@ -135,18 +135,23 @@ export function Escrita({ projecao, enviar, aoSair }: PropsDaTela) {
 
           <div className="flex flex-col gap-3 lg:hidden">
             <BlocoDeNotas texto={eu.notas} aoMudar={(texto) => enviar({ t: 'notas', texto })} />
-            <PainelRecolhivel rotulo="resenha" contagem={projecao.chat.length}>
-              <Chat mensagens={projecao.chat} aoEnviar={(texto) => enviar({ t: 'chat', texto })} />
-            </PainelRecolhivel>
+            {/* Sem sala não há chat: o painel viveria vazio pra sempre. */}
+            {modo === 'sala' && (
+              <PainelRecolhivel rotulo="resenha" contagem={projecao.chat.length}>
+                <Chat mensagens={projecao.chat} aoEnviar={(texto) => enviar({ t: 'chat', texto })} />
+              </PainelRecolhivel>
+            )}
           </div>
         </div>
 
         <div className="hidden flex-col gap-3 lg:flex">
           {/* `NOTA-01` — o bloco já existe na escrita. */}
           <BlocoDeNotas texto={eu.notas} aoMudar={(texto) => enviar({ t: 'notas', texto })} />
-          <PainelRecolhivel rotulo="resenha" contagem={projecao.chat.length}>
-            <Chat mensagens={projecao.chat} aoEnviar={(texto) => enviar({ t: 'chat', texto })} />
-          </PainelRecolhivel>
+          {modo === 'sala' && (
+            <PainelRecolhivel rotulo="resenha" contagem={projecao.chat.length}>
+              <Chat mensagens={projecao.chat} aoEnviar={(texto) => enviar({ t: 'chat', texto })} />
+            </PainelRecolhivel>
+          )}
         </div>
       </div>
 

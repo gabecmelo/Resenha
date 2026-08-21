@@ -437,6 +437,23 @@ function ativos(projecao: Projecao): JogadorId[] {
  * Nada aqui escolhe alvo nenhum (`AD-003`): só diz de quem é o próximo toque.
  */
 function donoDoAparelho(projecao: Projecao, atual: JogadorId): JogadorId {
+  /*
+    `PJ-30` — no "Quem Sou Eu?" o aparelho **não** pode ficar com quem está na
+    vez. A carta de alguém é escondida exatamente de quem a carrega, então a
+    projeção de quem está jogando a vez esconderia justo a carta que a mesa
+    precisa ler. O celular fica com o vizinho e é virado pra fora: é o mesmo
+    gesto do jogo de papel na testa.
+  */
+  if (projecao.sala.jogoId === 'quem-sou-eu' && projecao.sala.fase === 'jogo') {
+    const vezDe = projecao.jogo?.vezDe
+    if (vezDe !== undefined && vezDe !== null && atual === vezDe) {
+      const roda = ativos(projecao)
+      const depois = roda[(roda.indexOf(vezDe) + 1) % roda.length]
+      if (depois !== undefined) return depois
+    }
+    return atual
+  }
+
   const dedo = projecao.jogo?.dedo
   if (dedo === undefined || dedo.fase !== 'votacao') return atual
 
