@@ -104,6 +104,18 @@ export function Partida({
     }
   }, [projecao, mesa, aoMudar])
 
+  /*
+    Fora das voltas de segredo o aparelho fica na mesa, mas ainda é de alguém:
+    é `aparelhoCom` que decide de quem é o comando (`PJ-16`). Quando o jogo
+    espera um gesto de cada um — o dedo do Dedo na Cara —, quem "está com o
+    aparelho" é o próximo que ainda não fez o seu.
+  */
+  useEffect(() => {
+    if (mesa.passagem !== null) return
+    const dono = donoDoAparelho(projecao, mesa.aparelhoCom)
+    if (dono !== mesa.aparelhoCom) aoMudar({ ...mesa, aparelhoCom: dono })
+  }, [projecao, mesa, aoMudar])
+
   const enviar = (comando: Comando) => {
     if (comando.t === 'sair') {
       aoSair()
@@ -193,42 +205,44 @@ function TelaDoJogo({
   enviar(comando: Comando): void
   aoSair(): void
 }) {
+  const props = { projecao, enviar, aoSair, modo: 'local' as const }
+
   switch (projecao.sala.fase) {
     case 'lobby':
     case 'escrita':
-      return <Escrita projecao={projecao} enviar={enviar} aoSair={aoSair} />
+      return <Escrita {...props} />
     case 'jogo':
       if (projecao.sala.jogoId === 'cartas-contra-a-turma') {
-        return <CartasJogo projecao={projecao} enviar={enviar} aoSair={aoSair} />
+        return <CartasJogo {...props} />
       }
       if (projecao.sala.jogoId === 'dedo-na-cara') {
-        return <DedoJogo projecao={projecao} enviar={enviar} aoSair={aoSair} />
+        return <DedoJogo {...props} />
       }
       if (projecao.sala.jogoId === 'enigmas-sinistros') {
-        return <EnigmasJogo projecao={projecao} enviar={enviar} aoSair={aoSair} />
+        return <EnigmasJogo {...props} />
       }
       if (projecao.sala.jogoId === 'espiao') {
         return projecao.jogo?.espiao?.rodadaIniciada ? (
-          <EspiaoJogo projecao={projecao} enviar={enviar} aoSair={aoSair} />
+          <EspiaoJogo {...props} />
         ) : (
-          <EspiaoAguardando projecao={projecao} enviar={enviar} aoSair={aoSair} />
+          <EspiaoAguardando {...props} />
         )
       }
-      return <Jogo projecao={projecao} enviar={enviar} aoSair={aoSair} />
+      return <Jogo {...props} />
     case 'encerrada':
       if (projecao.sala.jogoId === 'cartas-contra-a-turma') {
-        return <CartasEncerrada projecao={projecao} enviar={enviar} aoSair={aoSair} />
+        return <CartasEncerrada {...props} />
       }
       if (projecao.sala.jogoId === 'dedo-na-cara') {
-        return <DedoEncerrada projecao={projecao} enviar={enviar} aoSair={aoSair} />
+        return <DedoEncerrada {...props} />
       }
       if (projecao.sala.jogoId === 'enigmas-sinistros') {
-        return <EnigmasEncerrada projecao={projecao} enviar={enviar} aoSair={aoSair} />
+        return <EnigmasEncerrada {...props} />
       }
       if (projecao.sala.jogoId === 'espiao') {
-        return <EspiaoEncerrada projecao={projecao} enviar={enviar} aoSair={aoSair} />
+        return <EspiaoEncerrada {...props} />
       }
-      return <Encerrada projecao={projecao} enviar={enviar} aoSair={aoSair} />
+      return <Encerrada {...props} />
   }
 }
 
@@ -244,6 +258,27 @@ function filaDaVolta(projecao: Projecao): JogadorId[] | null {
   return projecao.jogadores
     .filter((jogador) => jogador.situacao === 'ativo')
     .map((jogador) => jogador.id)
+}
+
+/**
+ * De quem é o aparelho quando ele está parado na mesa (`PJ-22`).
+ *
+ * O Dedo na Cara é o caso que precisa disso: o aparelho não circula, mas cada
+ * um aponta o seu dedo tocando na mesma tela. Quem está "com o aparelho" é o
+ * próximo que ainda não apontou — sem isso, o primeiro toque seria o único que
+ * conta e a contagem nunca fecharia.
+ *
+ * Nada aqui escolhe alvo nenhum (`AD-003`): só diz de quem é o próximo toque.
+ */
+function donoDoAparelho(projecao: Projecao, atual: JogadorId): JogadorId {
+  const dedo = projecao.jogo?.dedo
+  if (dedo === undefined || dedo.fase !== 'votacao') return atual
+
+  const jaApontaram = new Set(dedo.votos.map((voto) => voto.eleitor.id))
+  const proximo = projecao.jogadores.find(
+    (jogador) => jogador.situacao === 'ativo' && !jaApontaram.has(jogador.id),
+  )
+  return proximo?.id ?? atual
 }
 
 const INSTRUCAO_DA_VOLTA: Partial<Record<Projecao['sala']['fase'], string>> = {

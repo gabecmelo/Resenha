@@ -128,7 +128,13 @@ describe('iniciar', () => {
       ordemTurnos: mesa.sala.config.ordemTurnos,
       modoPergunta: mesa.sala.config.enigmas.modoPergunta,
       visibilidadeVoto: mesa.sala.config.espiao.visibilidadeVoto,
-    }).toEqual({ ordemTurnos: 'entrada', modoPergunta: 'voz', visibilidadeVoto: 'oculta' })
+      votacaoDoDedo: mesa.sala.config.dedo.votacao,
+    }).toEqual({
+      ordemTurnos: 'entrada',
+      modoPergunta: 'voz',
+      visibilidadeVoto: 'oculta',
+      votacaoDoDedo: 'aberta',
+    })
   })
 
   it('ignora quem tentar reabrir a coordenação pela config', () => {
@@ -141,6 +147,7 @@ describe('iniciar', () => {
         ordemTurnos: 'sorteada',
         espiao: { ...CONFIG_PADRAO.espiao, visibilidadeVoto: 'tempoReal' },
         enigmas: { ...CONFIG_PADRAO.enigmas, modoPergunta: 'fila' },
+        dedo: { ...CONFIG_PADRAO.dedo, votacao: 'secreta' },
       },
       ambiente(),
     )
@@ -150,8 +157,14 @@ describe('iniciar', () => {
         ordemTurnos: resultado.valor.sala.config.ordemTurnos,
         modoPergunta: resultado.valor.sala.config.enigmas.modoPergunta,
         visibilidadeVoto: resultado.valor.sala.config.espiao.visibilidadeVoto,
+        votacaoDoDedo: resultado.valor.sala.config.dedo.votacao,
       },
-    ).toEqual({ ordemTurnos: 'entrada', modoPergunta: 'voz', visibilidadeVoto: 'oculta' })
+    ).toEqual({
+      ordemTurnos: 'entrada',
+      modoPergunta: 'voz',
+      visibilidadeVoto: 'oculta',
+      votacaoDoDedo: 'aberta',
+    })
   })
 
   it('mantém a configuração do jogo que a mesa escolheu', () => {

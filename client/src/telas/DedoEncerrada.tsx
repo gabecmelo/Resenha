@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import type { Projecao } from '../../../shared/protocolo'
 import {
   BarraDeAcao,
   Botao,
@@ -12,7 +13,7 @@ import {
 } from '../componentes'
 import { tocarAcertou } from '../sons'
 import { nomeDoJogo } from '../../../shared/jogos-catalogo'
-import type { PropsDaTela } from './tela'
+import { molduraDaSala, type PropsDaTela } from './tela'
 
 /**
  * O placar final (`DEDO-18`, `DEDO-19`) — visível pra todo mundo, inclusive pra
@@ -23,7 +24,8 @@ import type { PropsDaTela } from './tela'
  * topo não é desempatado — dois campeões é uma resposta melhor que um critério
  * inventado (`DEDO-19`).
  */
-export function DedoEncerrada({ projecao, enviar, aoSair }: PropsDaTela) {
+export function DedoEncerrada({ projecao, enviar, aoSair, modo = 'sala' }: PropsDaTela) {
+  const local = modo === 'local'
   const { sala, eu, jogadores } = projecao
   const dedo = projecao.jogo?.dedo
   const ativos = jogadores.filter((jogador) => jogador.situacao === 'ativo')
@@ -41,7 +43,7 @@ export function DedoEncerrada({ projecao, enviar, aoSair }: PropsDaTela) {
 
   return (
     <Shell
-      codigo={sala.codigo}
+      {...molduraDaSala(sala.codigo)}
       titulo={nomeDoJogo(sala.jogoId)}
       faixa={
         <FaixaDeFase
@@ -127,16 +129,12 @@ export function DedoEncerrada({ projecao, enviar, aoSair }: PropsDaTela) {
           <ConviteDeApoio />
 
           <div className="flex flex-col gap-3 lg:hidden">
-            <PainelRecolhivel rotulo="resenha" contagem={projecao.chat.length}>
-              <Chat mensagens={projecao.chat} aoEnviar={(texto) => enviar({ t: 'chat', texto })} />
-            </PainelRecolhivel>
+            <Resenha projecao={projecao} enviar={enviar} local={local} />
           </div>
         </div>
 
         <div className="hidden flex-col gap-3 lg:flex">
-          <PainelRecolhivel rotulo="resenha" contagem={projecao.chat.length}>
-            <Chat mensagens={projecao.chat} aoEnviar={(texto) => enviar({ t: 'chat', texto })} />
-          </PainelRecolhivel>
+          <Resenha projecao={projecao} enviar={enviar} local={local} />
         </div>
       </div>
 
@@ -167,6 +165,28 @@ export function DedoEncerrada({ projecao, enviar, aoSair }: PropsDaTela) {
         )}
       </BarraDeAcao>
     </Shell>
+  )
+}
+
+/**
+ * A conversa da sala. Num aparelho só ela não existe: a mesa está na mesma
+ * sala, e um campo de recado que ninguém do outro lado vai ler é pior que
+ * campo nenhum (`PJ-21`).
+ */
+function Resenha({
+  projecao,
+  enviar,
+  local,
+}: {
+  projecao: Projecao
+  enviar: PropsDaTela['enviar']
+  local: boolean
+}) {
+  if (local) return null
+  return (
+    <PainelRecolhivel rotulo="resenha" contagem={projecao.chat.length}>
+      <Chat mensagens={projecao.chat} aoEnviar={(texto) => enviar({ t: 'chat', texto })} />
+    </PainelRecolhivel>
   )
 }
 

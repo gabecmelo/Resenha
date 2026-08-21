@@ -295,6 +295,10 @@ function contextoDe(sala: EstadoSala, autorId: JogadorId): ContextoDeSala {
  * e por isso são fixadas em vez de oferecidas: a ordem de turnos é a ordem da
  * roda, a fila de perguntas dos Enigmas pressupõe aparelhos separados, e voto
  * "em tempo real" num aparelho só entregaria o voto de quem votou antes.
+ *
+ * O dedo do Dedo na Cara é o caso inverso e cai na mesma regra: esconder não
+ * esconde de ninguém quando a mesa inteira está olhando pra mesma tela. Fica à
+ * vista, e a opção some do formulário (`PJ-09`).
  */
 function configLocal(parcial: Partial<Config>): Config {
   return {
@@ -304,7 +308,7 @@ function configLocal(parcial: Partial<Config>): Config {
     espiao: { ...CONFIG_PADRAO.espiao, ...parcial.espiao, visibilidadeVoto: 'oculta' },
     enigmas: { ...CONFIG_PADRAO.enigmas, ...parcial.enigmas, modoPergunta: 'voz' },
     cartas: { ...CONFIG_PADRAO.cartas, ...parcial.cartas },
-    dedo: { ...CONFIG_PADRAO.dedo, ...parcial.dedo },
+    dedo: { ...CONFIG_PADRAO.dedo, ...parcial.dedo, votacao: 'aberta' },
   }
 }
 

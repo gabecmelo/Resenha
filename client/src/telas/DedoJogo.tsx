@@ -13,7 +13,7 @@ import {
 } from '../componentes'
 import { tocarAcertou, tocarClique, tocarSuaVez } from '../sons'
 import { nomeDoJogo } from '../../../shared/jogos-catalogo'
-import type { PropsDaTela } from './tela'
+import { molduraDaSala, type PropsDaTela } from './tela'
 
 /**
  * A tela do Dedo na Cara (`DEDO-03`…`DEDO-17`).
@@ -31,8 +31,14 @@ import type { PropsDaTela } from './tela'
  * Nada aqui decide quem levou a carta nem esconde dedo nenhum: numa sala
  * secreta o alvo dos outros nem chega na projeção (`AD-008`, `DEDO-08`).
  */
-export function DedoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
+export function DedoJogo({ projecao, enviar, aoSair, modo = 'sala' }: PropsDaTela) {
   const { sala, eu, jogadores } = projecao
+  /*
+    `PJ-22` — num aparelho só a tela não fala com "você": ela fala com a mesa,
+    e a mesa precisa saber de quem é o dedo agora. Quem segura o celular muda a
+    cada toque, então o nome tem que estar escrito.
+  */
+  const local = modo === 'local'
   const dedo = projecao.jogo?.dedo
   const [menuDeHost, setMenuDeHost] = useState(false)
   const [confirmandoEncerrar, setConfirmandoEncerrar] = useState(false)
@@ -55,6 +61,7 @@ export function DedoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
 
   const ativos = jogadores.filter((jogador) => jogador.situacao === 'ativo')
   const souEspectador = eu.situacao !== 'ativo'
+  const quemAponta = jogadores.find((jogador) => jogador.id === eu.id)?.apelido ?? 'quem está com o aparelho'
   const faltam = Math.max(0, dedo.quantosDevemVotar - dedo.quantosVotaram)
 
   const apontar = (alvoId: JogadorId) => {
@@ -64,7 +71,7 @@ export function DedoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
 
   return (
     <Shell
-      codigo={sala.codigo}
+      {...molduraDaSala(sala.codigo)}
       titulo={nomeDoJogo(sala.jogoId)}
       faixa={
         <FaixaDeFase
@@ -79,13 +86,17 @@ export function DedoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
               : dedo.vencedor?.id === eu.id
                 ? `Foi você, com ${contarDedos(dedo.vencedor.votos)}. Boa sorte se explicando.`
                 : `${dedo.vencedor?.apelido} levou a carta com ${contarDedos(dedo.vencedor?.votos ?? 0)}.`
-            : souEspectador
-              ? 'Você entrou no meio — assista esta e entra na próxima partida.'
-              : dedo.meuVoto === null
-                ? 'Aponte pra alguém. A contagem fecha quando o último apontar.'
-                : faltam === 0
-                  ? 'Todos apontaram. Contando os dedos…'
-                  : `Seu dedo está de pé. ${faltam === 1 ? 'Falta 1' : `Faltam ${faltam}`}.`}
+            : local
+              ? `Vez de ${quemAponta} apontar. ${
+                  faltam === 1 ? 'Falta 1 dedo' : `Faltam ${faltam} dedos`
+                }.`
+              : souEspectador
+                ? 'Você entrou no meio — assista esta e entra na próxima partida.'
+                : dedo.meuVoto === null
+                  ? 'Aponte pra alguém. A contagem fecha quando o último apontar.'
+                  : faltam === 0
+                    ? 'Todos apontaram. Contando os dedos…'
+                    : `Seu dedo está de pé. ${faltam === 1 ? 'Falta 1' : `Faltam ${faltam}`}.`}
         </FaixaDeFase>
       }
       aoSair={aoSair}
@@ -106,17 +117,13 @@ export function DedoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
 
           <div className="flex flex-col gap-4 lg:hidden">
             <Placar dedo={dedo} euId={eu.id} jogadores={jogadores} />
-            <PainelRecolhivel rotulo="resenha" contagem={projecao.chat.length}>
-              <Chat mensagens={projecao.chat} aoEnviar={(texto) => enviar({ t: 'chat', texto })} />
-            </PainelRecolhivel>
+            <Resenha projecao={projecao} enviar={enviar} local={local} />
           </div>
         </div>
 
         <div className="hidden flex-col gap-4 lg:flex">
           <Placar dedo={dedo} euId={eu.id} jogadores={jogadores} />
-          <PainelRecolhivel rotulo="resenha" contagem={projecao.chat.length}>
-            <Chat mensagens={projecao.chat} aoEnviar={(texto) => enviar({ t: 'chat', texto })} />
-          </PainelRecolhivel>
+          <Resenha projecao={projecao} enviar={enviar} local={local} />
         </div>
       </div>
 
@@ -198,6 +205,28 @@ export function DedoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
         />
       )}
     </Shell>
+  )
+}
+
+/**
+ * A conversa da sala. Num aparelho só ela não existe: a mesa está na mesma
+ * sala, e um campo de recado que ninguém do outro lado vai ler é pior que
+ * campo nenhum (`PJ-21`).
+ */
+function Resenha({
+  projecao,
+  enviar,
+  local,
+}: {
+  projecao: Projecao
+  enviar: PropsDaTela['enviar']
+  local: boolean
+}) {
+  if (local) return null
+  return (
+    <PainelRecolhivel rotulo="resenha" contagem={projecao.chat.length}>
+      <Chat mensagens={projecao.chat} aoEnviar={(texto) => enviar({ t: 'chat', texto })} />
+    </PainelRecolhivel>
   )
 }
 
