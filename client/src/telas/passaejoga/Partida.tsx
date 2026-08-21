@@ -7,7 +7,13 @@ import type {
   Projecao,
 } from '../../../../shared/protocolo'
 import type { ComandoDeJogo } from '../../../../shared/jogos/contrato'
-import { type MesaLocal, cobrarPrazos, enviar as despacharNoMotor, projetar } from '../../passaejoga/motor'
+import {
+  type MesaLocal,
+  cobrarPrazos,
+  comecarRodada,
+  enviar as despacharNoMotor,
+  projetar,
+} from '../../passaejoga/motor'
 import { acabou, avancar, criarPassagem, deQuemE, revelar } from '../../passaejoga/passagem'
 import { CartasEncerrada } from '../CartasEncerrada'
 import { CartasJogo } from '../CartasJogo'
@@ -16,11 +22,11 @@ import { DedoJogo } from '../DedoJogo'
 import { Encerrada } from '../Encerrada'
 import { EnigmasEncerrada } from '../EnigmasEncerrada'
 import { EnigmasJogo } from '../EnigmasJogo'
-import { EspiaoAguardando } from '../EspiaoAguardando'
 import { EspiaoEncerrada } from '../EspiaoEncerrada'
 import { EspiaoJogo } from '../EspiaoJogo'
 import { Escrita } from '../Escrita'
 import { Jogo } from '../Jogo'
+import { EspiaoPapel, EspiaoTodosProntos } from './EspiaoVolta'
 import { BarraDePassar, Passagem } from './Passagem'
 
 /**
@@ -188,7 +194,34 @@ export function Partida({
   */
   const esconderEPassar = () => {
     if (passagem === null) return
-    aoMudar({ ...mesa, passagem: avancar(passagem) })
+
+    let base = ultima.current
+    const comando = volta?.comandoAoEsconder
+    if (comando !== undefined) {
+      const resultado = despacharNoMotor(base, comando, ambiente())
+      // Recusa aqui não trava a volta: o aparelho tem que andar de qualquer
+      // jeito, e um pronto repetido não muda nada na rodada.
+      if (resultado.ok) base = resultado.valor
+    }
+
+    ultima.current = { ...base, passagem: avancar(passagem) }
+    aoMudar(ultima.current)
+  }
+
+  /*
+    `PJ-26` — o único gatilho do relógio. O último pronto ficou retido no motor
+    justamente pra que a rodada não começasse com o aparelho ainda circulando;
+    aqui a mesa já se reuniu e alguém toca.
+  */
+  const comecar = () => {
+    const resultado = comecarRodada(ultima.current, ambiente())
+    if (!resultado.ok) {
+      setRecusa(FRASE_DA_RECUSA[resultado.erro] ?? 'Essa não deu pra fazer agora.')
+      return
+    }
+    setRecusa(null)
+    ultima.current = resultado.valor
+    aoMudar(resultado.valor)
   }
 
   if (emVolta && !passagem.revelado && deQuem !== null) {
@@ -210,7 +243,14 @@ export function Partida({
 
   return (
     <>
-      <TelaDoJogo projecao={projecao} enviar={enviar} enviarComo={enviarComo} aoSair={aoSair} />
+      <TelaDoJogo
+        projecao={projecao}
+        enviar={enviar}
+        enviarComo={enviarComo}
+        aoSair={aoSair}
+        prontosRetidos={mesa.prontoRetido !== null}
+        aoComecarRodada={comecar}
+      />
 
       {emVolta && passagem.revelado && (
         <BarraDePassar rotulo="Esconder e passar" aoPassar={esconderEPassar} />
@@ -231,11 +271,15 @@ function TelaDoJogo({
   enviar,
   enviarComo,
   aoSair,
+  prontosRetidos,
+  aoComecarRodada,
 }: {
   projecao: Projecao
   enviar(comando: Comando): void
   enviarComo(autorId: JogadorId, comando: Comando): void
   aoSair(): void
+  prontosRetidos: boolean
+  aoComecarRodada(): void
 }) {
   const props = { projecao, enviar, enviarComo, aoSair, modo: 'local' as const }
 
@@ -254,10 +298,18 @@ function TelaDoJogo({
         return <EnigmasJogo {...props} />
       }
       if (projecao.sala.jogoId === 'espiao') {
-        return projecao.jogo?.espiao?.rodadaIniciada ? (
-          <EspiaoJogo {...props} />
+        if (projecao.jogo?.espiao?.rodadaIniciada === true) return <EspiaoJogo {...props} />
+        /*
+          `PJ-25`, `PJ-26` — antes da rodada o modo local não tem espera: tem a
+          volta. Ou alguém está com o papel aberto na mão, ou o aparelho já deu
+          a volta inteira e falta só a mesa mandar começar. `EspiaoAguardando`,
+          que é a tela de esperar os outros marcarem no próprio celular, não
+          descreve nenhum dos dois.
+        */
+        return prontosRetidos ? (
+          <EspiaoTodosProntos projecao={projecao} aoComecar={aoComecarRodada} aoSair={aoSair} />
         ) : (
-          <EspiaoAguardando {...props} />
+          <EspiaoPapel projecao={projecao} aoSair={aoSair} />
         )
       }
       return <Jogo {...props} />
@@ -290,6 +342,15 @@ interface VoltaDoAparelho {
    * passar": o enigma inteiro é dele.
    */
   escondeAoPassar: boolean
+  /**
+   * O que sai em nome de quem está escondendo, **antes** de o aparelho andar.
+   *
+   * É a volta de revelação do Espião (`PJ-25`): esconder o papel é o mesmo
+   * gesto que dizer "vi o meu". A ordem importa — o motor só retém o último
+   * pronto enquanto a volta ainda não acabou, e é essa retenção que impede o
+   * relógio de começar com o celular na mão de alguém (`PJ-26`).
+   */
+  comandoAoEsconder?: ComandoDeJogo
 }
 
 /**
@@ -303,10 +364,37 @@ function voltaDaFase(projecao: Projecao, aparelhoCom: JogadorId): VoltaDoAparelh
   // `PJ-29` — cada um escreve a carta de alguém sem ninguém ver.
   if (projecao.sala.fase === 'escrita') {
     return {
-      fila: projecao.jogadores
-        .filter((jogador) => jogador.situacao === 'ativo')
-        .map((jogador) => jogador.id),
+      fila: ativos(projecao),
       instrucao: 'Ele vai escrever uma carta que ninguém mais pode ver.',
+      escondeAoPassar: true,
+    }
+  }
+
+  /*
+    `PJ-25` — a volta de revelação: cada um lê o próprio papel antes de a
+    rodada existir. Esconder o papel é o mesmo gesto que marcar pronto, e por
+    isso o comando viaja junto da volta em vez de virar mais um botão.
+  */
+  const espiao = projecao.jogo?.espiao
+  if (espiao !== undefined && !espiao.rodadaIniciada) {
+    return {
+      fila: ativos(projecao),
+      instrucao: 'Ele vai ver o papel dele — o local, ou que é o espião.',
+      escondeAoPassar: true,
+      comandoAoEsconder: { t: 'marcarPronto', pronto: true },
+    }
+  }
+
+  /*
+    `PJ-28` — a votação também é segredo, e num aparelho só o "voto oculto" da
+    sala é literalmente a tela de passagem: um de cada vez, e o próximo não vê
+    o que o anterior marcou.
+  */
+  const votacao = espiao?.votacaoAberta
+  if (votacao !== undefined && votacao.quantosVotaram < votacao.total) {
+    return {
+      fila: ativos(projecao),
+      instrucao: 'Ele vai votar sem ninguém ver.',
       escondeAoPassar: true,
     }
   }
@@ -326,6 +414,13 @@ function voltaDaFase(projecao: Projecao, aparelhoCom: JogadorId): VoltaDoAparelh
   }
 
   return null
+}
+
+/** A roda, na ordem em que a mesa digitou os nomes (`PJ-07`). */
+function ativos(projecao: Projecao): JogadorId[] {
+  return projecao.jogadores
+    .filter((jogador) => jogador.situacao === 'ativo')
+    .map((jogador) => jogador.id)
 }
 
 /**

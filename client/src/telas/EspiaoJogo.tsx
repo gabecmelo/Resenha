@@ -41,7 +41,7 @@ import type { PropsDaTela } from './tela'
 /** A partir daqui a votação ganha busca e atalho — é o caso de 20 em 360px. */
 const MESA_GRANDE = 10
 
-export function EspiaoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
+export function EspiaoJogo({ projecao, enviar, aoSair, modo = 'sala' }: PropsDaTela) {
   const { sala, eu, jogadores } = projecao
   const espiao = projecao.jogo?.espiao
   const ativos = jogadores.filter((jogador) => jogador.situacao === 'ativo')
@@ -201,13 +201,23 @@ export function EspiaoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
             </section>
           )}
 
-          <PapelDoJogador
-            souEspiao={espiao.souEspiao}
-            local={espiao.local}
-            outrosEspioes={outrosEspioes}
-            aberto={papelAberto}
-            aoAlternar={() => setPapelAberto((estava) => !estava)}
-          />
+          {/*
+            `PJ-27` — num aparelho só o papel **não** aparece aqui. Com o
+            relógio correndo o celular fica parado no meio da mesa, à vista de
+            todo mundo: um painel com o nome do local seria o espião lendo a
+            resposta. O papel teve a hora dele, na volta de revelação, e ela
+            passou. Recolhido por padrão não bastaria — continuaria a um toque
+            de qualquer um.
+          */}
+          {modo === 'sala' && (
+            <PapelDoJogador
+              souEspiao={espiao.souEspiao}
+              local={espiao.local}
+              outrosEspioes={outrosEspioes}
+              aberto={papelAberto}
+              aoAlternar={() => setPapelAberto((estava) => !estava)}
+            />
+          )}
 
           {resultado !== undefined ? (
             apurando ? (
@@ -243,18 +253,23 @@ export function EspiaoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
 
           <div className="flex flex-col gap-3 lg:hidden">
             <BlocoDeNotas texto={eu.notas} aoMudar={(texto) => enviar({ t: 'notas', texto })} />
-            <PainelRecolhivel rotulo="resenha" contagem={projecao.chat.length}>
-              <Chat mensagens={projecao.chat} aoEnviar={(texto) => enviar({ t: 'chat', texto })} />
-            </PainelRecolhivel>
+            {/* Sem sala não há chat: o painel viveria vazio pra sempre. */}
+            {modo === 'sala' && (
+              <PainelRecolhivel rotulo="resenha" contagem={projecao.chat.length}>
+                <Chat mensagens={projecao.chat} aoEnviar={(texto) => enviar({ t: 'chat', texto })} />
+              </PainelRecolhivel>
+            )}
           </div>
         </div>
 
         <div className="hidden flex-col gap-3 lg:flex">
           {/* `NOTA-01`, `NOTA-02` — só o dono vê; a projeção nunca traz as de outro. */}
           <BlocoDeNotas texto={eu.notas} aoMudar={(texto) => enviar({ t: 'notas', texto })} />
-          <PainelRecolhivel rotulo="resenha" contagem={projecao.chat.length}>
-            <Chat mensagens={projecao.chat} aoEnviar={(texto) => enviar({ t: 'chat', texto })} />
-          </PainelRecolhivel>
+          {modo === 'sala' && (
+            <PainelRecolhivel rotulo="resenha" contagem={projecao.chat.length}>
+              <Chat mensagens={projecao.chat} aoEnviar={(texto) => enviar({ t: 'chat', texto })} />
+            </PainelRecolhivel>
+          )}
         </div>
       </div>
 
