@@ -9,7 +9,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 ---
 
 **Design**: `.specs/features/passa-e-joga/design.md`
-**Status**: Draft
+**Status**: Concluída — T1 a T23 implementadas e commitadas na branch `feat/passa-e-joga`
 
 **Linha de base antes da primeira task:** 894 testes unitários (34 arquivos) e 88 de integração, verdes. Toda contagem esperada abaixo parte daí.
 
@@ -104,12 +104,12 @@ T21 → T22 → T23
 
 **Done when**:
 
-- [ ] `server/games/` não existe mais e nada importa de lá
-- [ ] `shared/jogos/registro.ts` continua sendo o único arquivo que nomeia jogos concretos (`AD-013`)
-- [ ] Nenhum arquivo em `shared/jogos/` importa de `server/`
-- [ ] Nenhum diff de lógica: o `git diff -M` mostra só renomeação e linhas de import
-- [ ] Portão passa: `npm run typecheck && npm run lint && npm run test:unit && npm run test:integration && npm run build`
-- [ ] Contagem: 894 unitários e 88 de integração — os mesmos de antes, nenhum a menos
+- [x] `server/games/` não existe mais e nada importa de lá
+- [x] `shared/jogos/registro.ts` continua sendo o único arquivo que nomeia jogos concretos (`AD-013`)
+- [x] Nenhum arquivo em `shared/jogos/` importa de `server/`
+- [x] Nenhum diff de lógica: o `git diff -M` mostra só renomeação e linhas de import
+- [x] Portão passa: `npm run typecheck && npm run lint && npm run test:unit && npm run test:integration && npm run build`
+- [x] Contagem: 894 unitários e 88 de integração — os mesmos de antes, nenhum a menos
 
 **Tests**: unit (os que se mudam junto) · **Gate**: build
 **Commit**: `refactor(jogos): muda os módulos de jogo de server/games para shared/jogos`
@@ -128,11 +128,11 @@ T21 → T22 → T23
 
 **Done when**:
 
-- [ ] Os quatro tipos vivem em `shared/jogos/contrato.ts` e só dependem de `shared/protocolo.ts`
-- [ ] `shared/jogos/registro.ts` importa `JogoDaSala` de `contrato.ts`, não de `server/`
-- [ ] `server/core/despacho.ts` reexporta os quatro; nenhum outro arquivo do servidor muda
-- [ ] Portão passa: `npm run typecheck && npm run test:unit && npm run test:integration`
-- [ ] Contagem: 894 e 88
+- [x] Os quatro tipos vivem em `shared/jogos/contrato.ts` e só dependem de `shared/protocolo.ts`
+- [x] `shared/jogos/registro.ts` importa `JogoDaSala` de `contrato.ts`, não de `server/`
+- [x] `server/core/despacho.ts` reexporta os quatro; nenhum outro arquivo do servidor muda
+- [x] Portão passa: `npm run typecheck && npm run test:unit && npm run test:integration`
+- [x] Contagem: 894 e 88
 
 **Tests**: none (só tipos; o portão de tipo é o teste) · **Gate**: full
 **Commit**: `refactor(jogos): move o contrato entre core e jogo para shared`
@@ -151,10 +151,10 @@ T21 → T22 → T23
 
 **Done when**:
 
-- [ ] `reagendar` e `FOLGA_DO_ALARME_MS` continuam em `server/core/` — `AD-010` intacta, nenhum `setAlarm` em `shared/`
-- [ ] Os testes de `menorPrazo` e `vencidos` se mudam junto e continuam passando
-- [ ] Portão passa: `npm run typecheck && npm run test:unit && npm run test:integration`
-- [ ] Contagem: 894 e 88
+- [x] `reagendar` e `FOLGA_DO_ALARME_MS` continuam em `server/core/` — `AD-010` intacta, nenhum `setAlarm` em `shared/`
+- [x] Os testes de `menorPrazo` e `vencidos` se mudam junto e continuam passando
+- [x] Portão passa: `npm run typecheck && npm run test:unit && npm run test:integration`
+- [x] Contagem: 894 e 88
 
 **Tests**: unit · **Gate**: full
 **Commit**: `refactor(prazos): separa o agendador puro do alarme do durable object`
@@ -173,11 +173,11 @@ T21 → T22 → T23
 
 **Done when**:
 
-- [ ] `aplicar` cobre os quatro efeitos com teste próprio: `estado`, `faseSeguinte`, cada prazo de `prazos` (inclusive `null` limpando), `eventos` devolvidos na ordem, e `promoverAguardando` promovendo todo mundo
-- [ ] Prazo não citado pelo jogo permanece intacto (`AD-010`) — teste dedicado
-- [ ] `despacho.ts` não tem mais lógica de aplicação; só chama e registra no chat
-- [ ] Portão passa: `npm run typecheck && npm run test:unit && npm run test:integration`
-- [ ] Contagem: 894 + os novos de `aplicar.test.ts`, e 88 de integração intactos
+- [x] `aplicar` cobre os quatro efeitos com teste próprio: `estado`, `faseSeguinte`, cada prazo de `prazos` (inclusive `null` limpando), `eventos` devolvidos na ordem, e `promoverAguardando` promovendo todo mundo
+- [x] Prazo não citado pelo jogo permanece intacto (`AD-010`) — teste dedicado
+- [x] `despacho.ts` não tem mais lógica de aplicação; só chama e registra no chat
+- [x] Portão passa: `npm run typecheck && npm run test:unit && npm run test:integration`
+- [x] Contagem: 894 + os novos de `aplicar.test.ts`, e 88 de integração intactos
 
 **Tests**: unit · **Gate**: full
 **Commit**: `refactor(core): extrai a aplicação do resultado do reducer para shared`
@@ -196,12 +196,12 @@ T21 → T22 → T23
 
 **Done when**:
 
-- [ ] Fila nasce na ordem dos jogadores (a ordem da roda) e nomeia sempre um jogador só
-- [ ] Invariante testado: **nunca** existe estado com `revelado: true` e a posição recém-avançada
-- [ ] Fila de um item só funciona (troca de narrador dos Enigmas)
-- [ ] Fila terminada devolve "acabou" em vez de estourar índice
-- [ ] Portão passa: `npm run test:unit`
-- [ ] Contagem: suíte anterior + os novos, nenhum apagado
+- [x] Fila nasce na ordem dos jogadores (a ordem da roda) e nomeia sempre um jogador só
+- [x] Invariante testado: **nunca** existe estado com `revelado: true` e a posição recém-avançada
+- [x] Fila de um item só funciona (troca de narrador dos Enigmas)
+- [x] Fila terminada devolve "acabou" em vez de estourar índice
+- [x] Portão passa: `npm run test:unit`
+- [x] Contagem: suíte anterior + os novos, nenhum apagado
 
 **Tests**: unit · **Gate**: quick
 **Commit**: `feat(passa-e-joga): cria a fila de passagem do aparelho`
@@ -220,12 +220,12 @@ T21 → T22 → T23
 
 **Done when**:
 
-- [ ] Os quatro jogos iniciam uma partida local com o mínimo de jogadores do catálogo, e recusam abaixo dele com o mesmo erro da sala (`PJ-31`)
-- [ ] Comando recusado devolve a mesa **idêntica** à anterior mais o código de erro — teste compara o objeto inteiro (`PJ-13`)
-- [ ] `projetar` projeta para `aparelhoCom` e não para outro jogador — teste com dois jogadores prova que a projeção muda quando o aparelho troca de mão (`PJ-16`)
-- [ ] Partida inteira de um dos jogos, do início ao encerramento, sem tocar em rede (`PJ-15`)
-- [ ] `ordemTurnos` é `entrada`, e `modoPergunta`/`visibilidadeVoto` ficam nos valores locais fixos do design
-- [ ] Portão passa: `npm run test:unit`
+- [x] Os quatro jogos iniciam uma partida local com o mínimo de jogadores do catálogo, e recusam abaixo dele com o mesmo erro da sala (`PJ-31`)
+- [x] Comando recusado devolve a mesa **idêntica** à anterior mais o código de erro — teste compara o objeto inteiro (`PJ-13`)
+- [x] `projetar` projeta para `aparelhoCom` e não para outro jogador — teste com dois jogadores prova que a projeção muda quando o aparelho troca de mão (`PJ-16`)
+- [x] Partida inteira de um dos jogos, do início ao encerramento, sem tocar em rede (`PJ-15`)
+- [x] `ordemTurnos` é `entrada`, e `modoPergunta`/`visibilidadeVoto` ficam nos valores locais fixos do design
+- [x] Portão passa: `npm run test:unit`
 
 **Tests**: unit · **Gate**: quick
 **Commit**: `feat(passa-e-joga): cria o motor local que roda a partida no navegador`
@@ -244,11 +244,11 @@ T21 → T22 → T23
 
 **Done when**:
 
-- [ ] Prazo vencido dispara **uma** vez; chamar de novo com o mesmo `agora` não dispara segunda
-- [ ] Um salto grande de relógio (tela apagada por dez minutos) dispara uma vez, não uma por segundo perdido
-- [ ] Sem prazo ativo, `cobrarPrazos` devolve a mesa intacta
-- [ ] Nenhum `setTimeout` maior que 1s no módulo — verificado por leitura, registrado em comentário
-- [ ] Portão passa: `npm run test:unit`
+- [x] Prazo vencido dispara **uma** vez; chamar de novo com o mesmo `agora` não dispara segunda
+- [x] Um salto grande de relógio (tela apagada por dez minutos) dispara uma vez, não uma por segundo perdido
+- [x] Sem prazo ativo, `cobrarPrazos` devolve a mesa intacta
+- [x] Nenhum `setTimeout` maior que 1s no módulo — verificado por leitura, registrado em comentário
+- [x] Portão passa: `npm run test:unit`
 
 **Tests**: unit · **Gate**: quick
 **Commit**: `feat(passa-e-joga): faz o prazo vencer pelo relógio, não por temporizador`
@@ -267,11 +267,11 @@ T21 → T22 → T23
 
 **Done when**:
 
-- [ ] Depois do último "esconder e passar", `rodadaIniciada` ainda é `false` e não há prazo de turno definido
-- [ ] O comando de começar dispara o pronto retido, `rodadaIniciada` vira `true` e o prazo nasce ali
-- [ ] O jogador que começa perguntando sai da projeção, não de sorteio novo do motor
-- [ ] `shared/jogos/espiao/regras.ts` não tem nenhuma linha alterada — verificado por `git diff`
-- [ ] Portão passa: `npm run test:unit`
+- [x] Depois do último "esconder e passar", `rodadaIniciada` ainda é `false` e não há prazo de turno definido
+- [x] O comando de começar dispara o pronto retido, `rodadaIniciada` vira `true` e o prazo nasce ali
+- [x] O jogador que começa perguntando sai da projeção, não de sorteio novo do motor
+- [x] `shared/jogos/espiao/regras.ts` não tem nenhuma linha alterada — verificado por `git diff`
+- [x] Portão passa: `npm run test:unit`
 
 **Tests**: unit · **Gate**: quick
 **Commit**: `feat(passa-e-joga): segura o último pronto do espião até a mesa mandar começar`
@@ -290,13 +290,13 @@ T21 → T22 → T23
 
 **Done when**:
 
-- [ ] Ida e volta preserva a partida no mesmo ponto (`PJ-32`)
-- [ ] `revelado` volta sempre `false`, mesmo tendo sido `true` ao gravar (`PJ-20`)
-- [ ] `versao` diferente descarta em silêncio e devolve `null`
-- [ ] JSON quebrado devolve `null` sem lançar
-- [ ] `localStorage` indisponível (acesso lança) devolve `null` sem lançar
-- [ ] `jogoId` que não está no registro devolve `null`
-- [ ] Portão passa: `npm run test:unit`
+- [x] Ida e volta preserva a partida no mesmo ponto (`PJ-32`)
+- [x] `revelado` volta sempre `false`, mesmo tendo sido `true` ao gravar (`PJ-20`)
+- [x] `versao` diferente descarta em silêncio e devolve `null`
+- [x] JSON quebrado devolve `null` sem lançar
+- [x] `localStorage` indisponível (acesso lança) devolve `null` sem lançar
+- [x] `jogoId` que não está no registro devolve `null`
+- [x] Portão passa: `npm run test:unit`
 
 **Tests**: unit · **Gate**: quick
 **Commit**: `feat(passa-e-joga): guarda a partida local para sobreviver a um recarregamento`
@@ -315,9 +315,9 @@ T21 → T22 → T23
 
 **Done when**:
 
-- [ ] Os quatro jogos marcados, Cartas não
-- [ ] Teste garante que todo jogo marcado existe no registro compartilhado — marcar sem implementar quebra a suíte
-- [ ] Portão passa: `npm run test:unit`
+- [x] Os quatro jogos marcados, Cartas não
+- [x] Teste garante que todo jogo marcado existe no registro compartilhado — marcar sem implementar quebra a suíte
+- [x] Portão passa: `npm run test:unit`
 
 **Tests**: unit · **Gate**: quick
 **Commit**: `feat(catalogo): marca quais jogos rodam num aparelho só`
@@ -336,12 +336,12 @@ T21 → T22 → T23
 
 **Done when**:
 
-- [ ] Abaixo do mínimo do jogo, motivo diz quantos faltam
-- [ ] Nome repetido (ignorando caixa e espaço nas pontas) é recusado com o motivo certo
-- [ ] Nome vazio ou só espaço é recusado
-- [ ] Acima de 12 é recusado
-- [ ] Lista válida devolve `undefined`
-- [ ] Portão passa: `npm run test:unit`
+- [x] Abaixo do mínimo do jogo, motivo diz quantos faltam
+- [x] Nome repetido (ignorando caixa e espaço nas pontas) é recusado com o motivo certo
+- [x] Nome vazio ou só espaço é recusado
+- [x] Acima de 12 é recusado
+- [x] Lista válida devolve `undefined`
+- [x] Portão passa: `npm run test:unit`
 
 **Tests**: unit · **Gate**: quick
 **Commit**: `feat(passa-e-joga): valida quem vai jogar antes de a partida começar`
@@ -360,10 +360,10 @@ T21 → T22 → T23
 
 **Done when**:
 
-- [ ] A ação tem nome autoexplicativo ("Jogar num celular só") e fica abaixo de "Criar uma sala"
-- [ ] O `(?)` explica em uma frase: um aparelho só, de mão em mão, sem link e sem código
-- [ ] Portão passa: `npm run typecheck && npm run lint && npm run test:unit && npm run test:integration && npm run build`
-- [ ] Verificado ao vivo no navegador, com captura
+- [x] A ação tem nome autoexplicativo ("Jogar num celular só") e fica abaixo de "Criar uma sala"
+- [x] O `(?)` explica em uma frase: um aparelho só, de mão em mão, sem link e sem código
+- [x] Portão passa: `npm run typecheck && npm run lint && npm run test:unit && npm run test:integration && npm run build`
+- [x] Verificado ao vivo no navegador, com captura
 
 **Tests**: none (tela) · **Gate**: build
 **Commit**: `feat(passa-e-joga): abre a porta do modo de um aparelho só na tela inicial`
@@ -382,10 +382,10 @@ T21 → T22 → T23
 
 **Done when**:
 
-- [ ] A lista sai do catálogo — nenhum jogo é citado por nome na tela (`PJ-04`)
-- [ ] A ausência de Cartas é explicada, não silenciosa (`PJ-03`)
-- [ ] Portão passa: build
-- [ ] Verificado ao vivo no navegador, com captura
+- [x] A lista sai do catálogo — nenhum jogo é citado por nome na tela (`PJ-04`)
+- [x] A ausência de Cartas é explicada, não silenciosa (`PJ-03`)
+- [x] Portão passa: build
+- [x] Verificado ao vivo no navegador, com captura
 
 **Tests**: none (tela) · **Gate**: build
 **Commit**: `feat(passa-e-joga): lista na porta os jogos que cabem num aparelho`
@@ -404,12 +404,12 @@ T21 → T22 → T23
 
 **Done when**:
 
-- [ ] O campo de nomes pede explicitamente a ordem da roda e explica por quê (`PJ-07`)
-- [ ] Botão desabilitado sempre diz o motivo, vindo de `nomes.ts` (`PJ-08`)
-- [ ] Aparecem só as configurações do jogo escolhido; voto secreto do Dedo, `modoPergunta` dos Enigmas, `ordemTurnos` e limite de sala não aparecem (`PJ-09`)
-- [ ] Cores sorteadas sem perguntar nada (`PJ-10`)
-- [ ] Portão passa: build
-- [ ] Verificado ao vivo no navegador, com captura
+- [x] O campo de nomes pede explicitamente a ordem da roda e explica por quê (`PJ-07`)
+- [x] Botão desabilitado sempre diz o motivo, vindo de `nomes.ts` (`PJ-08`)
+- [x] Aparecem só as configurações do jogo escolhido; voto secreto do Dedo, `modoPergunta` dos Enigmas, `ordemTurnos` e limite de sala não aparecem (`PJ-09`)
+- [x] Cores sorteadas sem perguntar nada (`PJ-10`)
+- [x] Portão passa: build
+- [x] Verificado ao vivo no navegador, com captura
 
 **Tests**: none (tela) · **Gate**: build
 **Commit**: `feat(passa-e-joga): monta a mesa com quem vai jogar e como`
@@ -428,11 +428,11 @@ T21 → T22 → T23
 
 **Done when**:
 
-- [ ] `modoDaUrl` tem teste próprio: reconhece `?modo=passa-e-joga`, ignora qualquer outro valor
-- [ ] A rota entra por `import()` dinâmico e o `dist/` do bundle principal é medido antes e depois, com o número no commit
-- [ ] Sair com partida em andamento pede confirmação antes de descartar (`PJ-35`)
-- [ ] Portão passa: build
-- [ ] Verificado ao vivo no navegador, com captura
+- [x] `modoDaUrl` tem teste próprio: reconhece `?modo=passa-e-joga`, ignora qualquer outro valor
+- [x] A rota entra por `import()` dinâmico e o `dist/` do bundle principal é medido antes e depois, com o número no commit
+- [x] Sair com partida em andamento pede confirmação antes de descartar (`PJ-35`)
+- [x] Portão passa: build
+- [x] Verificado ao vivo no navegador, com captura
 
 **Tests**: unit (`modoDaUrl`) · **Gate**: build
 **Commit**: `feat(passa-e-joga): liga o modo ao app por rota própria e carregamento sob demanda`
@@ -451,10 +451,10 @@ T21 → T22 → T23
 
 **Done when**:
 
-- [ ] O anúncio não monta nada do conteúdo secreto na árvore — verificado no DOM ao vivo, não só a olho
-- [ ] Um caminho só adiante a partir do conteúdo revelado
-- [ ] Recarregar com o segredo à vista reabre no anúncio (`PJ-20`), verificado ao vivo
-- [ ] Portão passa: build
+- [x] O anúncio não monta nada do conteúdo secreto na árvore — verificado no DOM ao vivo, não só a olho
+- [x] Um caminho só adiante a partir do conteúdo revelado
+- [x] Recarregar com o segredo à vista reabre no anúncio (`PJ-20`), verificado ao vivo
+- [x] Portão passa: build
 
 **Tests**: none (tela; a lógica está coberta em T5) · **Gate**: build
 **Commit**: `feat(passa-e-joga): cria a tela única de passar o aparelho`
@@ -473,11 +473,11 @@ T21 → T22 → T23
 
 **Done when**:
 
-- [ ] Uma tela só, sem passagem obrigatória (`PJ-21`)
-- [ ] Quem levou a carta é sempre toque de gente; o sistema não escolhe ninguém (`AD-003`)
-- [ ] A tela não passou de dois ramos de `modo` — se passou, foi partida em duas
-- [ ] Portão passa: build
-- [ ] Partida local completa jogada ao vivo, com captura
+- [x] Uma tela só, sem passagem obrigatória (`PJ-21`)
+- [x] Quem levou a carta é sempre toque de gente; o sistema não escolhe ninguém (`AD-003`)
+- [x] A tela não passou de dois ramos de `modo` — se passou, foi partida em duas
+- [x] Portão passa: build
+- [x] Partida local completa jogada ao vivo, com captura
 
 **Tests**: none (tela) · **Gate**: build
 **Commit**: `feat(passa-e-joga): adapta o dedo na cara para o aparelho na mesa`
@@ -496,10 +496,10 @@ T21 → T22 → T23
 
 **Done when**:
 
-- [ ] `modoPergunta` é `voz` e não aparece como opção
-- [ ] Troca de narrador passa pela tela de passagem antes de a solução nova aparecer (`PJ-24`)
-- [ ] Portão passa: build
-- [ ] Partida local completa jogada ao vivo, com captura
+- [x] `modoPergunta` é `voz` e não aparece como opção
+- [x] Troca de narrador passa pela tela de passagem antes de a solução nova aparecer (`PJ-24`)
+- [x] Portão passa: build
+- [x] Partida local completa jogada ao vivo, com captura
 
 **Tests**: none (tela) · **Gate**: build
 **Commit**: `feat(passa-e-joga): adapta os enigmas para o aparelho ficar com quem narra`
@@ -518,12 +518,12 @@ T21 → T22 → T23
 
 **Done when**:
 
-- [ ] A volta é nome → "revelar" → papel → "esconder e passar" → próximo, na ordem da roda (`PJ-25`)
-- [ ] O relógio **não** começa durante a volta; começa no toque da tela de "todos prontos?" (`PJ-26`), verificado ao vivo
-- [ ] Começado o relógio, a tela anuncia quem começa perguntando e vira painel; nenhuma tela pede pra passar o aparelho até a votação (`PJ-27`)
-- [ ] A votação usa a tela de passagem, um por vez (`PJ-28`)
-- [ ] Portão passa: build
-- [ ] Partida local completa jogada ao vivo, com captura
+- [x] A volta é nome → "revelar" → papel → "esconder e passar" → próximo, na ordem da roda (`PJ-25`)
+- [x] O relógio **não** começa durante a volta; começa no toque da tela de "todos prontos?" (`PJ-26`), verificado ao vivo
+- [x] Começado o relógio, a tela anuncia quem começa perguntando e vira painel; nenhuma tela pede pra passar o aparelho até a votação (`PJ-27`)
+- [x] A votação usa a tela de passagem, um por vez (`PJ-28`)
+- [x] Portão passa: build
+- [x] Partida local completa jogada ao vivo, com captura
 
 **Tests**: none (tela; o fluxo está coberto em T8) · **Gate**: build
 **Commit**: `feat(passa-e-joga): adapta o espião com a volta de revelação e o relógio na mesa`
@@ -542,11 +542,11 @@ T21 → T22 → T23
 
 **Done when**:
 
-- [ ] O sorteio de quem escreve pra quem vem do jogo, não da tela (`PJ-29`)
-- [ ] Ninguém vê a própria carta: a projeção do jogador da vez já a esconde, e a tela não a recupera de outro lugar (`PJ-30`)
-- [ ] A carta é legível de longe com o aparelho virado
-- [ ] Portão passa: build
-- [ ] Partida local completa jogada ao vivo, com captura
+- [x] O sorteio de quem escreve pra quem vem do jogo, não da tela (`PJ-29`)
+- [x] Ninguém vê a própria carta: a projeção do jogador da vez já a esconde, e a tela não a recupera de outro lugar (`PJ-30`)
+- [x] A carta é legível de longe com o aparelho virado
+- [x] Portão passa: build
+- [x] Partida local completa jogada ao vivo, com captura
 
 **Tests**: none (tela) · **Gate**: build
 **Commit**: `feat(passa-e-joga): adapta o quem sou eu para o aparelho virado pra mesa`
@@ -565,9 +565,9 @@ T21 → T22 → T23
 
 **Done when**:
 
-- [ ] Encerrar pede confirmação e mostra o placar final (`PJ-33`)
-- [ ] `novaPartida` preserva os mesmos jogadores, na mesma ordem, com as mesmas cores (`PJ-34`) — teste no motor
-- [ ] Portão passa: `npm run typecheck && npm run lint && npm run test:unit && npm run test:integration && npm run build`
+- [x] Encerrar pede confirmação e mostra o placar final (`PJ-33`)
+- [x] `novaPartida` preserva os mesmos jogadores, na mesma ordem, com as mesmas cores (`PJ-34`) — teste no motor
+- [x] Portão passa: `npm run typecheck && npm run lint && npm run test:unit && npm run test:integration && npm run build`
 
 **Tests**: unit · **Gate**: build
 **Commit**: `feat(passa-e-joga): encerra a partida e oferece jogar de novo com a mesma mesa`
@@ -586,10 +586,10 @@ T21 → T22 → T23
 
 **Done when**:
 
-- [ ] `npm run build` emite `dist/passa-e-joga.html`
-- [ ] O slug não tem 5 letras (não sombreia código de sala) e está no `sitemap.xml`
-- [ ] A página leva ao app por `/?modo=passa-e-joga`
-- [ ] Portão passa: build
+- [x] `npm run build` emite `dist/passa-e-joga.html`
+- [x] O slug não tem 5 letras (não sombreia código de sala) e está no `sitemap.xml`
+- [x] A página leva ao app por `/?modo=passa-e-joga`
+- [x] Portão passa: build
 
 **Tests**: none (build) · **Gate**: build
 **Commit**: `feat(passa-e-joga): publica a página indexável do modo`
@@ -608,10 +608,10 @@ T21 → T22 → T23
 
 **Done when**:
 
-- [ ] README diz a contagem real de testes daquele momento, não a antiga
-- [ ] Handoff do `STATE.md` descreve o estado real da branch
-- [ ] Traceability da spec com todos os 35 em `Implementing`
-- [ ] Portão passa: build
+- [x] README diz a contagem real de testes daquele momento, não a antiga
+- [x] Handoff do `STATE.md` descreve o estado real da branch
+- [x] Traceability da spec com todos os 35 em `Implementing`
+- [x] Portão passa: build
 
 **Tests**: none (documentação) · **Gate**: build
 **Commit**: `docs(passa-e-joga): registra o modo de um aparelho só`
