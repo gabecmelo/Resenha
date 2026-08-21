@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { nomeDoJogo } from '../../../../shared/jogos-catalogo'
-import { Botao, MarcadorDeJogador, Modal, Shell } from '../../componentes'
+import { Modal } from '../../componentes'
 import type { MesaLocal } from '../../passaejoga/motor'
 import { descartar, guardar, ler } from '../../passaejoga/guarda'
 import { Mesa } from './Mesa'
+import { Partida } from './Partida'
 import { Porta } from './Porta'
 
 /**
@@ -26,7 +26,8 @@ export function PassaEJoga({ aoSair }: { aoSair(): void }) {
   const [jogoId, setJogoId] = useState<string | null>(null)
   const [confirmandoSaida, setConfirmandoSaida] = useState(false)
 
-  const comecar = (partida: MesaLocal) => {
+  /** `PJ-32` — cada mudança de mesa é gravada; é o que sobrevive ao recarregar. */
+  const anotar = (partida: MesaLocal) => {
     guardar(partida)
     setMesa(partida)
   }
@@ -50,11 +51,11 @@ export function PassaEJoga({ aoSair }: { aoSair(): void }) {
   return (
     <>
       {mesa !== null ? (
-        <PartidaEmAndamento mesa={mesa} aoSair={sair} />
+        <Partida mesa={mesa} aoMudar={anotar} aoSair={sair} />
       ) : jogoId === null ? (
         <Porta aoEscolher={setJogoId} aoVoltar={aoSair} />
       ) : (
-        <Mesa jogoId={jogoId} aoComecar={comecar} aoVoltar={() => setJogoId(null)} />
+        <Mesa jogoId={jogoId} aoComecar={anotar} aoVoltar={() => setJogoId(null)} />
       )}
 
       {confirmandoSaida && (
@@ -69,48 +70,5 @@ export function PassaEJoga({ aoSair }: { aoSair(): void }) {
         />
       )}
     </>
-  )
-}
-
-/**
- * A partida que já começou, enquanto as telas de cada jogo não assumem.
- *
- * Mostra a roda na ordem em que o aparelho circula e o último anúncio do
- * motor — que, sem chat, é tudo o que a mesa tem pra ler.
- */
-function PartidaEmAndamento({ mesa, aoSair }: { mesa: MesaLocal; aoSair(): void }) {
-  const ultimo = mesa.eventos.at(-1)
-
-  return (
-    <Shell titulo={nomeDoJogo(mesa.jogoId)}>
-      <div className="mx-auto flex w-full max-w-[520px] flex-col gap-5">
-        <div className="flex flex-col items-start gap-2">
-          <span className="selo bg-acento text-acento-contraste">partida em andamento</span>
-          <h1 className="font-display text-titulo text-balance text-texto">
-            {nomeDoJogo(mesa.jogoId)}
-          </h1>
-          {ultimo !== undefined && <p className="text-corpo text-texto-2">{ultimo.texto}</p>}
-        </div>
-
-        <div className="flex flex-col gap-2 rounded-papel border border-linha bg-superficie p-3.5">
-          <span className="font-mono text-rotulo text-texto-3 uppercase">a roda</span>
-          <div className="flex flex-wrap gap-2">
-            {mesa.sala.jogadores.map((jogador) => (
-              <span
-                key={jogador.id}
-                className="flex items-center gap-1.5 rounded-chip border border-linha px-2.5 py-1.5"
-              >
-                <MarcadorDeJogador apelido={jogador.apelido} cor={jogador.cor} />
-                <span className="text-apoio text-texto-2">{jogador.apelido}</span>
-              </span>
-            ))}
-          </div>
-        </div>
-
-        <Botao larguraTotal variante="secundario" onClick={aoSair}>
-          Sair do Passa e Joga
-        </Botao>
-      </div>
-    </Shell>
   )
 }
