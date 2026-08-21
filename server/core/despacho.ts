@@ -11,7 +11,6 @@ import type {
   EstadoSala,
   Jogador,
   JogadorId,
-  ModuloDeJogo,
   Resultado,
   ResultadoReducer,
 } from '../../shared/protocolo'
@@ -36,6 +35,7 @@ import {
   TEMPO_VOTACAO_MIN_SEG,
 } from '../../shared/protocolo'
 import type { PacoteCompleto } from '../../shared/pacotes-dados'
+import type { AvisoDeSala, EntradaDoJogo, JogoDaSala } from '../../shared/jogos/contrato'
 import * as chat from './chat'
 import { TIPOS_DE_PRAZO, definir } from './prazos'
 import { expulsar as expulsarDoRoster, migrarHost, transferirHost } from './roster'
@@ -43,32 +43,7 @@ import { expulsar as expulsarDoRoster, migrarHost, transferirHost } from './rost
 /** `NOTA-01` */
 export const NOTAS_MAX_CARACTERES = 2_000
 
-/** Avisos que o `core` entrega ao jogo. Não vêm de cliente: nascem da sala. */
-export type AvisoDeSala =
-  | { t: 'saiuJogador'; jogadorId: JogadorId }
-  | { t: 'entrouJogador'; jogadorId: JogadorId }
-  | { t: 'venceuPrazoTurno' }
-
-/** Comandos que o `core` não resolve sozinho — são do jogo, seja ele qual for. */
-type TipoDeComandoDoCore =
-  | 'ola'
-  | 'entrar'
-  | 'configurar'
-  | 'iniciar'
-  | 'expulsar'
-  | 'transferirHost'
-  | 'chat'
-  | 'sair'
-  | 'trocarJogo'
-
-export type ComandoDeJogo = Exclude<Comando, { t: TipoDeComandoDoCore }>
-export type EntradaDoJogo = ComandoDeJogo | AvisoDeSala
-
-/**
- * O que o `core` exige de um módulo de jogo. É a única forma pela qual um jogo
- * entra no `core`: por injeção, nunca por import (AD-002).
- */
-export type JogoDaSala<E> = ModuloDeJogo<E, EntradaDoJogo>
+export type { AvisoDeSala, ComandoDeJogo, EntradaDoJogo, JogoDaSala } from '../../shared/jogos/contrato'
 
 /** O que a casca do Durable Object precisa executar depois do despacho. */
 export interface Efeitos {
