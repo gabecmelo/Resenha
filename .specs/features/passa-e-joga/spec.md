@@ -151,41 +151,41 @@ Quatro dos cinco jogos cabem nesse formato, porque o segredo deles é **pontual*
 
 | Requirement ID | User Story | Phase | Status |
 | --- | --- | --- | --- |
-| PJ-01 | P1: A porta de entrada | Specify | Pending |
-| PJ-02 | P1: A porta de entrada | Specify | Pending |
-| PJ-03 | P1: A porta de entrada | Specify | Pending |
-| PJ-04 | P1: A porta de entrada | Specify | Pending |
-| PJ-05 | P1: A porta de entrada | Specify | Pending |
-| PJ-06 | P2: A mesa | Specify | Pending |
-| PJ-07 | P2: A mesa | Specify | Pending |
-| PJ-08 | P2: A mesa | Specify | Pending |
-| PJ-09 | P2: A mesa | Specify | Pending |
-| PJ-10 | P2: A mesa | Specify | Pending |
-| PJ-11 | P3: O motor local | Specify | Pending |
-| PJ-12 | P3: O motor local | Specify | Pending |
-| PJ-13 | P3: O motor local | Specify | Pending |
-| PJ-14 | P3: O motor local | Specify | Pending |
-| PJ-15 | P3: O motor local | Specify | Pending |
-| PJ-16 | P3: O motor local | Specify | Pending |
-| PJ-17 | P4: A tela de passagem | Specify | Pending |
-| PJ-18 | P4: A tela de passagem | Specify | Pending |
-| PJ-19 | P4: A tela de passagem | Specify | Pending |
-| PJ-20 | P4: A tela de passagem | Specify | Pending |
-| PJ-21 | P4: A tela de passagem | Specify | Pending |
-| PJ-22 | P5: Os quatro jogos | Specify | Pending |
-| PJ-23 | P5: Os quatro jogos | Specify | Pending |
-| PJ-24 | P5: Os quatro jogos | Specify | Pending |
-| PJ-25 | P5: Os quatro jogos | Specify | Pending |
-| PJ-26 | P5: Os quatro jogos | Specify | Pending |
-| PJ-27 | P5: Os quatro jogos | Specify | Pending |
-| PJ-28 | P5: Os quatro jogos | Specify | Pending |
-| PJ-29 | P5: Os quatro jogos | Specify | Pending |
-| PJ-30 | P5: Os quatro jogos | Specify | Pending |
-| PJ-31 | P5: Os quatro jogos | Specify | Pending |
-| PJ-32 | P6: O que sobrevive e o que acaba | Specify | Pending |
-| PJ-33 | P6: O que sobrevive e o que acaba | Specify | Pending |
-| PJ-34 | P6: O que sobrevive e o que acaba | Specify | Pending |
-| PJ-35 | P6: O que sobrevive e o que acaba | Specify | Pending |
+| PJ-01 | P1: A porta de entrada | Design | In Design |
+| PJ-02 | P1: A porta de entrada | Design | In Design |
+| PJ-03 | P1: A porta de entrada | Design | In Design |
+| PJ-04 | P1: A porta de entrada | Design | In Design |
+| PJ-05 | P1: A porta de entrada | Design | In Design |
+| PJ-06 | P2: A mesa | Design | In Design |
+| PJ-07 | P2: A mesa | Design | In Design |
+| PJ-08 | P2: A mesa | Design | In Design |
+| PJ-09 | P2: A mesa | Design | In Design |
+| PJ-10 | P2: A mesa | Design | In Design |
+| PJ-11 | P3: O motor local | Design | In Design |
+| PJ-12 | P3: O motor local | Design | In Design |
+| PJ-13 | P3: O motor local | Design | In Design |
+| PJ-14 | P3: O motor local | Design | In Design |
+| PJ-15 | P3: O motor local | Design | In Design |
+| PJ-16 | P3: O motor local | Design | In Design |
+| PJ-17 | P4: A tela de passagem | Design | In Design |
+| PJ-18 | P4: A tela de passagem | Design | In Design |
+| PJ-19 | P4: A tela de passagem | Design | In Design |
+| PJ-20 | P4: A tela de passagem | Design | In Design |
+| PJ-21 | P4: A tela de passagem | Design | In Design |
+| PJ-22 | P5: Os quatro jogos | Design | In Design |
+| PJ-23 | P5: Os quatro jogos | Design | In Design |
+| PJ-24 | P5: Os quatro jogos | Design | In Design |
+| PJ-25 | P5: Os quatro jogos | Design | In Design |
+| PJ-26 | P5: Os quatro jogos | Design | In Design |
+| PJ-27 | P5: Os quatro jogos | Design | In Design |
+| PJ-28 | P5: Os quatro jogos | Design | In Design |
+| PJ-29 | P5: Os quatro jogos | Design | In Design |
+| PJ-30 | P5: Os quatro jogos | Design | In Design |
+| PJ-31 | P5: Os quatro jogos | Design | In Design |
+| PJ-32 | P6: O que sobrevive e o que acaba | Design | In Design |
+| PJ-33 | P6: O que sobrevive e o que acaba | Design | In Design |
+| PJ-34 | P6: O que sobrevive e o que acaba | Design | In Design |
+| PJ-35 | P6: O que sobrevive e o que acaba | Design | In Design |
 
 **ID format:** `PJ-[NUMBER]`, mapeado em ordem às ACs de P1 (01–05), P2 (06–10), P3 (11–16), P4 (17–21), P5 (22–31), P6 (32–35) acima.
 

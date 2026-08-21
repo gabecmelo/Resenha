@@ -131,6 +131,14 @@
 - **Date**: 2026-08-20
 - **Status**: active
 
+### AD-017
+- **Decision**: um **módulo de jogo passa a morar em `shared/`**, não em `server/`. `server/games/*` (regras, projeção, sorteio, `index.ts` e o `registro.ts`) vai para `shared/jogos/`, junto de `contrato.ts` (`JogoDaSala`, `EntradaDoJogo`, `AvisoDeSala`), de `aplicar.ts` (a aplicação de `ResultadoReducer` extraída de `server/core/despacho.ts`) e da parte pura de `prazos.ts`. `reagendar` e `FOLGA_DO_ALARME_MS` ficam no `core`: são do Durable Object (`AD-010`). O motor local do Passa e Joga usa esse mesmo registro e essa mesma `aplicar`, com um despachante próprio — sem host, sem chat, sem roster.
+- **Reason**: o Passa e Joga roda a partida **no navegador**, sem sala e sem servidor. `server/games/**` nunca importou nada de `server/` — os jogos já eram funções puras com `Ambiente` injetado (`AD-009`), e morar em `server/` era convenção. `AD-012` já tinha decidido que dado de jogo conhecido pelos dois lados mora em `shared/`; isto é a mesma regra aplicada à regra, agora que o navegador também a executa. A alternativa de o cliente importar de `server/games/` quebraria no primeiro import de Cloudflare dentro de um jogo, sem aviso.
+- **Trade-off**: o motor local **não** reusa `despachar()` — o que ele acrescenta ao `reduzir` é autoridade de host, guarda de fase e escrita no chat, e nenhum dos três existe num aparelho só; reusá-lo obrigaria a fabricar um `hostId`, um chat morto e um roster para sempre. Em troca, existem dois despachantes, e uma guarda nova precisa ser pensada nos dois lugares. O que é regra continua num lugar só: `reduzir`. `AD-002` fica intacta — o `core` continua sem conhecer jogo concreto — e `AD-013` também: `shared/jogos/registro.ts` segue sendo o único arquivo que nomeia jogos.
+- **Scope**: `shared/jogos/**` (novo), `server/games/**` (deixa de existir), `server/core/despacho.ts`, `server/core/prazos.ts`, `server/core/sala-do.ts`, `client/src/passaejoga/**`.
+- **Date**: 2026-08-20
+- **Status**: active
+
 ## Handoff
 
 - **Feature `dedo-na-cara`: quinto jogo, spec antes do código.** `.specs/features/dedo-na-cara/spec.md` (23 requisitos `DEDO-01`…`DEDO-23`). Branch `feat/dedo-na-cara`, commits `359ffaf` (spec), `f03b769` (conteúdo), `e6f6bc3` (servidor), `2da0605` (seed do KV), `656b272` (telas), `3cc35c9` (lobby), `2f911c0` (página indexável).
