@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import type { Comando, EstadoSala, Jogador, Mensagem, Projecao } from '../shared/protocolo'
 import { ALFABETO_CODIGO } from './core/codigo'
 import { carregar, salvar } from './core/estado'
-import type { EstadoQuemSouEu } from './games/quem-sou-eu/regras'
+import type { EstadoQuemSouEu } from '../shared/jogos/quem-sou-eu/regras'
 import { criarSala } from './index'
 
 type Sala = EstadoSala<EstadoQuemSouEu>

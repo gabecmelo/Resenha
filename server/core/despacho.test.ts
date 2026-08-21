@@ -14,9 +14,9 @@ import {
   TEMPO_TURNO_MIN_SEG,
 } from '../../shared/protocolo'
 import type { PacoteCompleto } from '../../shared/pacotes-dados'
-import { quemSouEu } from '../games/quem-sou-eu'
-import type { EstadoQuemSouEu } from '../games/quem-sou-eu/regras'
-import { REGISTRO_DE_JOGOS } from '../games/registro'
+import { quemSouEu } from '../../shared/jogos/quem-sou-eu'
+import type { EstadoQuemSouEu } from '../../shared/jogos/quem-sou-eu/regras'
+import { REGISTRO_DE_JOGOS } from '../../shared/jogos/registro'
 import { type JogoDaSala, NOTAS_MAX_CARACTERES, avisar, buscarPacotes, despachar } from './despacho'
 import { reconectar } from './roster'
 
