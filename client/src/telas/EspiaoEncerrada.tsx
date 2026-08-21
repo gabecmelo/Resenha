@@ -16,7 +16,7 @@ import {
 import { tocarAcertou } from '../sons'
 import { useBatidaDeSuspense } from '../estado/suspense'
 import { nomeDoJogo } from '../../../shared/jogos-catalogo'
-import type { PropsDaTela } from './tela'
+import { DE_NOVO_NO_APARELHO, type PropsDaTela } from './tela'
 
 /**
  * A revelação de Espião (`ESP-16`) — o local e todos os espiões, visível pra
@@ -26,7 +26,7 @@ import type { PropsDaTela } from './tela'
  * Depois as fichas de quem estava infiltrado — e aqui o mostarda finalmente
  * entra, porque a informação virou pública e a cor já pode marcar.
  */
-export function EspiaoEncerrada({ projecao, enviar, aoSair }: PropsDaTela) {
+export function EspiaoEncerrada({ projecao, enviar, aoSair, modo = 'sala' }: PropsDaTela) {
   const { sala, eu, jogadores } = projecao
   const espiao = projecao.jogo?.espiao
   const ativos = jogadores.filter((jogador) => jogador.situacao === 'ativo')
@@ -160,18 +160,23 @@ export function EspiaoEncerrada({ projecao, enviar, aoSair }: PropsDaTela) {
 
           <div className="flex flex-col gap-3 lg:hidden">
             <BlocoDeNotas texto={eu.notas} aoMudar={(texto) => enviar({ t: 'notas', texto })} />
-            <PainelRecolhivel rotulo="resenha" contagem={projecao.chat.length}>
-              <Chat mensagens={projecao.chat} aoEnviar={(texto) => enviar({ t: 'chat', texto })} />
-            </PainelRecolhivel>
+            {/* Sem sala não há chat: o painel viveria vazio pra sempre. */}
+            {modo === 'sala' && (
+              <PainelRecolhivel rotulo="resenha" contagem={projecao.chat.length}>
+                <Chat mensagens={projecao.chat} aoEnviar={(texto) => enviar({ t: 'chat', texto })} />
+              </PainelRecolhivel>
+            )}
           </div>
         </div>
 
         <div className="hidden flex-col gap-3 lg:flex">
           {/* `NOTA-01` — o bloco continua disponível até a próxima partida limpar tudo. */}
           <BlocoDeNotas texto={eu.notas} aoMudar={(texto) => enviar({ t: 'notas', texto })} />
-          <PainelRecolhivel rotulo="resenha" contagem={projecao.chat.length}>
-            <Chat mensagens={projecao.chat} aoEnviar={(texto) => enviar({ t: 'chat', texto })} />
-          </PainelRecolhivel>
+          {modo === 'sala' && (
+            <PainelRecolhivel rotulo="resenha" contagem={projecao.chat.length}>
+              <Chat mensagens={projecao.chat} aoEnviar={(texto) => enviar({ t: 'chat', texto })} />
+            </PainelRecolhivel>
+          )}
         </div>
       </div>
 
@@ -184,13 +189,21 @@ export function EspiaoEncerrada({ projecao, enviar, aoSair }: PropsDaTela) {
               mesa decide se muda as regras, troca de jogo ou só começa de novo.
             */}
             <Botao larguraTotal onClick={() => enviar({ t: 'novaPartida' })}>
-              {aguardando.length > 0
-                ? `Voltar ao lobby com ${ativos.length + aguardando.length}`
-                : 'Voltar ao lobby'}
+              {modo === 'local'
+                ? DE_NOVO_NO_APARELHO.rotulo
+                : aguardando.length > 0
+                  ? `Voltar ao lobby com ${ativos.length + aguardando.length}`
+                  : 'Voltar ao lobby'}
             </Botao>
             <p className="text-apoio text-texto-3">
-              Mesma mesa, ninguém precisa entrar de novo. No lobby você escolhe as regras da
-              próxima ou troca de jogo — e as anotações desta partida somem.
+              {modo === 'local' ? (
+                DE_NOVO_NO_APARELHO.explicacao
+              ) : (
+                <>
+                  Mesma mesa, ninguém precisa entrar de novo. No lobby você escolhe as regras da
+                  próxima ou troca de jogo — e as anotações desta partida somem.
+                </>
+              )}
             </p>
           </>
         ) : (

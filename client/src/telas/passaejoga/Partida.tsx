@@ -12,6 +12,7 @@ import {
   cobrarPrazos,
   comecarRodada,
   enviar as despacharNoMotor,
+  novaPartida,
   projetar,
 } from '../../passaejoga/motor'
 import { acabou, avancar, criarPassagem, deQuemE, revelar } from '../../passaejoga/passagem'
@@ -133,7 +134,16 @@ export function Partida({
     // inventar um problema que a mesa não tem.
     if (!eDoJogo(comando)) return
 
-    const resultado = despacharNoMotor(ultima.current, comando, ambiente())
+    /*
+      `PJ-34` — "de novo" aqui não é voltar ao lobby: é a mesma mesa jogando
+      outra vez. Na sala online o lobby existe entre as duas partidas pra mesa
+      mudar as regras; num aparelho só ele seria uma tela de espera pra quem já
+      está reunido em volta do celular. O motor zera e reabre no mesmo gesto.
+    */
+    const resultado =
+      comando.t === 'novaPartida'
+        ? novaPartida(ultima.current, ambiente())
+        : despacharNoMotor(ultima.current, comando, ambiente())
     if (!resultado.ok) {
       setRecusa(FRASE_DA_RECUSA[resultado.erro] ?? 'Essa não deu pra fazer agora.')
       return

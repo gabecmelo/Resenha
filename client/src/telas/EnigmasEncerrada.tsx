@@ -13,7 +13,7 @@ import {
 } from '../componentes'
 import { tocarAcertou } from '../sons'
 import { nomeDoJogo } from '../../../shared/jogos-catalogo'
-import { molduraDaSala, type PropsDaTela } from './tela'
+import { DE_NOVO_NO_APARELHO, molduraDaSala, type PropsDaTela } from './tela'
 
 /**
  * O placar final (`ENIG-25`, `ENIG-26`) — visível pra todo mundo, inclusive pra
@@ -143,13 +143,21 @@ export function EnigmasEncerrada({ projecao, enviar, aoSair, modo = 'sala' }: Pr
         {eu.ehHost ? (
           <>
             <Botao larguraTotal onClick={() => enviar({ t: 'novaPartida' })}>
-              {aguardando.length > 0
-                ? `Voltar ao lobby com ${ativos.length + aguardando.length}`
-                : 'Voltar ao lobby'}
+              {local
+                ? DE_NOVO_NO_APARELHO.rotulo
+                : aguardando.length > 0
+                  ? `Voltar ao lobby com ${ativos.length + aguardando.length}`
+                  : 'Voltar ao lobby'}
             </Botao>
             <p className="text-apoio text-texto-3">
-              Mesma mesa, ninguém precisa entrar de novo. O placar zera na próxima — este aqui
-              acabou de virar história.
+              {local ? (
+                DE_NOVO_NO_APARELHO.explicacao
+              ) : (
+                <>
+                  Mesma mesa, ninguém precisa entrar de novo. O placar zera na próxima — este aqui
+                  acabou de virar história.
+                </>
+              )}
             </p>
           </>
         ) : (

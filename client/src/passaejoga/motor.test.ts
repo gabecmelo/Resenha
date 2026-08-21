@@ -2,7 +2,15 @@ import { describe, expect, it } from 'vitest'
 import type { Ambiente, Config } from '../../../shared/protocolo'
 import { CONFIG_PADRAO } from '../../../shared/protocolo'
 import { minJogadoresDoJogo } from '../../../shared/jogos-catalogo'
-import { type MesaLocal, cobrarPrazos, comecarRodada, enviar, iniciar, projetar } from './motor'
+import {
+  type MesaLocal,
+  cobrarPrazos,
+  comecarRodada,
+  enviar,
+  iniciar,
+  novaPartida,
+  projetar,
+} from './motor'
 import type { ComandoDeJogo } from '../../../shared/jogos/contrato'
 import { acabou, avancar, criarPassagem, deQuemE } from './passagem'
 
@@ -508,5 +516,86 @@ describe('o pronto retido do Espião', () => {
 
     expect(mesa.prontoRetido).toBeNull()
     expect(projetar({ ...mesa, aparelhoCom: 'j1' }).jogo!.espiao!.resultadoVotacao).toBeDefined()
+  })
+})
+
+/** Cada jogo do modo já na fase em que a mesa pode encerrar (`PJ-33`). */
+function emJogo(jogoId: string, amb = ambiente()): MesaLocal {
+  if (jogoId === 'quem-sou-eu') return quemSouEuEmJogo(minJogadoresDoJogo(jogoId), amb)
+  if (jogoId === 'espiao') return espiaoEmRodada(amb)
+  return mesaDe(jogoId, minJogadoresDoJogo(jogoId), amb)
+}
+
+/** O que a mesa não pode ter que redigitar: quem joga, em que ordem, de que cor. */
+function fichas(mesa: MesaLocal) {
+  return mesa.sala.jogadores.map((jogador) => ({
+    id: jogador.id,
+    apelido: jogador.apelido,
+    cor: jogador.cor,
+  }))
+}
+
+describe('encerrar e jogar de novo', () => {
+  it.each(JOGOS_DO_MODO)('%s encerra pela mão de quem está com o aparelho (`PJ-33`)', (jogoId) => {
+    const amb = ambiente()
+
+    const mesa = passar(emJogo(jogoId, amb), { t: 'encerrar' }, amb)
+
+    expect(projetar(mesa).sala.fase).toBe('encerrada')
+  })
+
+  it.each(JOGOS_DO_MODO)(
+    '%s joga de novo com os mesmos jogadores, na mesma ordem e com as mesmas cores (`PJ-34`)',
+    (jogoId) => {
+      const amb = ambiente()
+      const antes = passar(emJogo(jogoId, amb), { t: 'encerrar' }, amb)
+
+      const depois = novaPartida(antes, amb)
+
+      expect(depois.ok && fichas(depois.valor)).toEqual(fichas(antes))
+    },
+  )
+
+  it.each(JOGOS_DO_MODO)(
+    '%s abre a partida seguinte na mesma fase em que a primeira abriu (`PJ-34`)',
+    (jogoId) => {
+      const amb = ambiente()
+      const primeira = mesaDe(jogoId, minJogadoresDoJogo(jogoId), ambiente())
+      const antes = passar(emJogo(jogoId, amb), { t: 'encerrar' }, amb)
+
+      const depois = novaPartida(antes, amb)
+
+      expect(
+        depois.ok && { fase: depois.valor.sala.fase, temPartida: depois.valor.sala.jogo !== null },
+      ).toEqual({ fase: primeira.sala.fase, temPartida: true })
+    },
+  )
+
+  it('a partida nova começa do começo: aparelho no primeiro da roda, sem sobra (`PJ-34`)', () => {
+    const amb = ambiente()
+    // O aparelho acabou a partida na mão do último da roda; a próxima recomeça
+    // no primeiro, como a primeira recomeçou.
+    const encerrada = passar(emJogo('espiao', amb), { t: 'encerrar' }, amb)
+    const antes: MesaLocal = { ...encerrada, aparelhoCom: 'j3' }
+
+    const depois = novaPartida(antes, amb)
+
+    expect(
+      depois.ok && {
+        aparelhoCom: depois.valor.aparelhoCom,
+        passagem: depois.valor.passagem,
+        prontoRetido: depois.valor.prontoRetido,
+      },
+    ).toEqual({ aparelhoCom: 'j1', passagem: null, prontoRetido: null })
+  })
+
+  it('não joga de novo no meio da partida: recusa e deixa a mesa intacta (`PJ-13`)', () => {
+    const amb = ambiente()
+    const mesa = emJogo('dedo-na-cara', amb)
+
+    const resultado = novaPartida(mesa, amb)
+
+    expect(resultado).toEqual({ ok: false, erro: 'FASE_INVALIDA' })
+    expect(mesa.sala.fase).toBe('jogo')
   })
 })

@@ -38,6 +38,24 @@ export interface PropsDaTela {
 }
 
 /**
+ * O convite pra próxima partida num aparelho só (`PJ-34`).
+ *
+ * Na sala online "de novo" é **voltar ao lobby**: de lá a mesa muda as regras,
+ * troca de jogo ou espera quem está chegando. Num aparelho só não há lobby nem
+ * quem chegue no meio — a mesma mesa, na mesma ordem da roda, simplesmente joga
+ * outra vez. Prometer um lobby que não vem mandaria a mesa procurar uma tela
+ * que não existe.
+ *
+ * Mora aqui, e não em cada tela de encerramento, porque a frase é a mesma nas
+ * quatro: quatro cópias divergiriam na primeira correção de texto.
+ */
+export const DE_NOVO_NO_APARELHO = {
+  rotulo: 'Jogar de novo',
+  explicacao:
+    'Mesma mesa, mesma ordem da roda, mesmas cores — ninguém redigita nome nenhum. O que zera é o placar.',
+} as const
+
+/**
  * O código da sala como a moldura o quer.
  *
  * Num aparelho só não há sala, e o código chega vazio: aí a chave não vai — a

@@ -83,7 +83,49 @@ export function iniciar(
   if (jogo === undefined) return { ok: false, erro: 'JOGO_INVALIDO' }
 
   const sala = montarSala(jogoId, nomes, configLocal(config), ambiente)
+  return abrirPartida(jogo, jogoId, sala, ambiente)
+}
 
+/**
+ * Jogar de novo com a mesma mesa (`PJ-34`).
+ *
+ * São dois passos, e nenhum deles inventa regra: o `novaPartida` do próprio
+ * jogo zera o estado e devolve a sala ao lobby, e em cima dessa sala a partida
+ * seguinte é aberta pelo mesmo `iniciarRodada` de sempre.
+ *
+ * Ninguém redigita nome nenhum porque `sala.jogadores` **não é tocado** — os
+ * mesmos ids, na mesma ordem da roda, com as mesmas cores. Na sala online o
+ * lobby existe entre as duas partidas para a mesa mudar as regras; aqui ele
+ * seria uma tela de espera para uma mesa que já está reunida em volta do
+ * aparelho, e por isso os dois passos são um gesto só.
+ */
+export function novaPartida(mesa: MesaLocal, ambiente: Ambiente): Resultado<MesaLocal> {
+  const jogo = jogoDaMesa(mesa)
+  if (jogo === null) return { ok: false, erro: 'JOGO_INVALIDO' }
+
+  const zerada = despachar(mesa, { t: 'novaPartida' }, ambiente, mesa.aparelhoCom, false)
+  if (!zerada.ok) return zerada
+
+  return abrirPartida(jogo, mesa.jogoId, zerada.valor.sala, ambiente)
+}
+
+/**
+ * A sala já montada vira partida em andamento: pacotes, `iniciarRodada` e os
+ * prazos que a rodada pediu.
+ *
+ * É o mesmo caminho na primeira partida e em toda "de novo" — se as duas
+ * abrissem rodada cada uma do seu jeito, a segunda divergiria da primeira na
+ * primeira correção.
+ *
+ * A mesa sai daqui com o aparelho na mão do primeiro da roda e sem volta de
+ * segredo em curso: a partida nova começa do começo.
+ */
+function abrirPartida(
+  jogo: JogoDaSala<unknown>,
+  jogoId: string,
+  sala: EstadoSala,
+  ambiente: Ambiente,
+): Resultado<MesaLocal> {
   const pacotes = pacotesDe(sala.config)
   if (!pacotes.ok) return { ok: false, erro: pacotes.erro }
 
