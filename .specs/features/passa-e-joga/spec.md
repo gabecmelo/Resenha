@@ -45,6 +45,9 @@ Quatro dos cinco jogos cabem nesse formato, porque o segredo deles é **pontual*
 | Configurações que sobrevivem | Pacotes, dificuldade, meta de pontos, tempos, número de espiões, e tudo que descreve **o jogo**. | São as mesmas decisões de sempre; o aparelho não muda nenhuma delas. | n (padrão meu) |
 | Configurações que somem | Ordem de turnos por dispositivo, limite de jogadores da sala, voto secreto/aberto do Dedo na Cara, visibilidade de voto do Espião. | Descrevem coordenação entre aparelhos. Num aparelho só, "voto secreto" é a tela de passagem, e a ordem de turnos é a ordem em que o aparelho circula. | n (padrão meu) |
 | Persistência | A partida inteira mora no `localStorage` e é recuperada ao reabrir. | Um toque errado no "voltar" numa festa não pode custar a partida. Não há servidor pra guardar isso por nós. | n (padrão meu) |
+| Ordem dos nomes | A mesa digita **na ordem da roda**, e essa é a ordem de passagem do aparelho. | Decisão do dono: nas voltas de revelação o aparelho só anda de vizinho pra vizinho, em vez de atravessar a mesa. | y |
+| Quando o aparelho circula | Só nas voltas de segredo (revelar papel, escrever carta, votar). Com o relógio correndo, o aparelho fica parado na mesa. | Decisão do dono: durante o jogo qualquer um pergunta a qualquer um, perto ou longe — quem anda é a pergunta, em voz alta, não o aparelho. | y |
+| Começo do Espião | Volta de revelação → tela de "todos prontos?" → toque em começar → relógio + anúncio de quem começa perguntando. | Fluxo descrito pelo dono. O relógio não pode começar a correr enquanto o aparelho ainda está dando a volta. | y |
 | Sorteios (quem escreve pra quem, quem começa) | Sorteados pelo motor, anunciados na tela, sem escolha manual. | Foi o que o dono descreveu. Escolher manualmente é uma decisão a mais antes de jogar, e o sorteio é justamente o que ninguém quer fazer de cabeça. | n (padrão meu) |
 
 **Open questions:** nenhuma bloqueante. Os padrões marcados "n" são escolhas minhas registradas aqui pra que uma mudança de opinião do dono vire alteração de requisito, não conversa perdida.
@@ -76,9 +79,10 @@ Quatro dos cinco jogos cabem nesse formato, porque o segredo deles é **pontual*
 **Acceptance Criteria**:
 
 6. WHEN a pessoa escolhe um jogo THEN o sistema SHALL pedir os nomes de quem vai jogar, aceitando de N (o mínimo daquele jogo) a 12 jogadores
-7. WHEN a lista de nomes tem menos que o mínimo do jogo, ou tem nome repetido ou vazio THEN o sistema SHALL impedir o começo e dizer o que falta
-8. WHEN a mesa está montada THEN o sistema SHALL oferecer as configurações **daquele jogo** que fazem sentido num aparelho (pacotes, dificuldade, meta, tempos, nº de espiões) e SHALL omitir as que descrevem coordenação entre aparelhos
-9. WHEN a partida começa THEN o sistema SHALL sortear as cores dos jogadores e a ordem de circulação do aparelho, sem pedir nada disso a ninguém
+7. WHEN o sistema pede os nomes THEN o sistema SHALL orientar a mesa a digitá-los **na ordem da roda**, e SHALL usar essa ordem como a ordem de passagem — assim, nas voltas em que o aparelho circula, ele só anda de vizinho pra vizinho
+8. WHEN a lista de nomes tem menos que o mínimo do jogo, ou tem nome repetido ou vazio THEN o sistema SHALL impedir o começo e dizer o que falta
+9. WHEN a mesa está montada THEN o sistema SHALL oferecer as configurações **daquele jogo** que fazem sentido num aparelho (pacotes, dificuldade, meta, tempos, nº de espiões) e SHALL omitir as que descrevem coordenação entre aparelhos
+10. WHEN a partida começa THEN o sistema SHALL sortear as cores dos jogadores e a ordem de circulação do aparelho, sem pedir nada disso a ninguém
 
 ### P3: O motor local
 
@@ -88,12 +92,12 @@ Quatro dos cinco jogos cabem nesse formato, porque o segredo deles é **pontual*
 
 **Acceptance Criteria**:
 
-10. WHEN uma partida do Passa e Joga roda THEN o sistema SHALL usar exatamente os mesmos `iniciarRodada`, `reduzir` e `projetar` que a sala online usa, sem reimplementar regra nenhuma no cliente
-11. WHEN o motor local aplica o resultado de um comando THEN o sistema SHALL respeitar `faseSeguinte`, `prazos`, `eventos` e `promoverAguardando` com o mesmo significado que o servidor lhes dá
-12. WHEN um comando é recusado pelo reducer THEN o sistema SHALL manter o estado anterior e dizer à mesa o que aconteceu, sem travar a partida
-13. WHEN o jogo agenda um prazo THEN o sistema SHALL fazer o tempo correr no próprio aparelho e SHALL disparar o vencimento uma única vez, mesmo com a tela apagada e reaberta
-14. WHEN o aparelho está sem internet THEN o sistema SHALL permitir jogar uma partida inteira do começo ao fim
-15. WHEN o motor precisa da projeção de um jogador THEN o sistema SHALL projetar **para aquele jogador** e mostrar só isso na tela, do mesmo jeito que o servidor faria (`AD-008`)
+11. WHEN uma partida do Passa e Joga roda THEN o sistema SHALL usar exatamente os mesmos `iniciarRodada`, `reduzir` e `projetar` que a sala online usa, sem reimplementar regra nenhuma no cliente
+12. WHEN o motor local aplica o resultado de um comando THEN o sistema SHALL respeitar `faseSeguinte`, `prazos`, `eventos` e `promoverAguardando` com o mesmo significado que o servidor lhes dá
+13. WHEN um comando é recusado pelo reducer THEN o sistema SHALL manter o estado anterior e dizer à mesa o que aconteceu, sem travar a partida
+14. WHEN o jogo agenda um prazo THEN o sistema SHALL fazer o tempo correr no próprio aparelho e SHALL disparar o vencimento uma única vez, mesmo com a tela apagada e reaberta
+15. WHEN o aparelho está sem internet THEN o sistema SHALL permitir jogar uma partida inteira do começo ao fim
+16. WHEN o motor precisa da projeção de um jogador THEN o sistema SHALL projetar **para aquele jogador** e mostrar só isso na tela, do mesmo jeito que o servidor faria (`AD-008`)
 
 ### P4: A tela de passagem
 
@@ -103,11 +107,11 @@ Quatro dos cinco jogos cabem nesse formato, porque o segredo deles é **pontual*
 
 **Acceptance Criteria**:
 
-16. WHEN o jogo precisa mostrar algo secreto a um jogador THEN o sistema SHALL exibir primeiro uma tela de passagem nomeando **quem** deve estar com o aparelho, sem nada do conteúdo à vista
-17. WHEN quem recebeu confirma que está com o aparelho THEN o sistema SHALL revelar o conteúdo secreto e SHALL oferecer um único caminho adiante: esconder e passar
-18. WHEN o conteúdo secreto é dispensado THEN o sistema SHALL voltar imediatamente à tela de passagem do próximo jogador, sem deixar o conteúdo anterior visível em nenhum quadro intermediário
-19. WHEN o aplicativo é recarregado com um segredo à vista THEN o sistema SHALL reabrir na tela de passagem daquele jogador, nunca no conteúdo revelado
-20. WHEN a rodada não tem segredo nenhum (Dedo na Cara, e os Enigmas depois da cena aberta) THEN o sistema SHALL manter o aparelho numa tela só, sem passagem obrigatória
+17. WHEN o jogo precisa mostrar algo secreto a um jogador THEN o sistema SHALL exibir primeiro uma tela de passagem nomeando **quem** deve estar com o aparelho, sem nada do conteúdo à vista
+18. WHEN quem recebeu confirma que está com o aparelho THEN o sistema SHALL revelar o conteúdo secreto e SHALL oferecer um único caminho adiante: esconder e passar
+19. WHEN o conteúdo secreto é dispensado THEN o sistema SHALL voltar imediatamente à tela de passagem do próximo jogador, sem deixar o conteúdo anterior visível em nenhum quadro intermediário
+20. WHEN o aplicativo é recarregado com um segredo à vista THEN o sistema SHALL reabrir na tela de passagem daquele jogador, nunca no conteúdo revelado
+21. WHEN a rodada não tem segredo nenhum (Dedo na Cara, e os Enigmas depois da cena aberta) THEN o sistema SHALL manter o aparelho numa tela só, sem passagem obrigatória
 
 ### P5: Os quatro jogos
 
@@ -117,14 +121,16 @@ Quatro dos cinco jogos cabem nesse formato, porque o segredo deles é **pontual*
 
 **Acceptance Criteria**:
 
-21. WHEN a mesa joga **Dedo na Cara** THEN o sistema SHALL mostrar a carta pra mesa inteira numa tela só, SHALL contar até apontar, e SHALL registrar quem levou a carta por toque de quem está com o aparelho — nunca decidindo sozinho quem merecia (`AD-003`)
-22. WHEN a mesa joga **Enigmas Sinistros** THEN o sistema SHALL manter o aparelho com quem narra, mostrando cena e solução, e SHALL registrar as respostas — o mesmo desenho do modo "só em voz alta" que já existe
-23. WHEN o narrador dos Enigmas muda THEN o sistema SHALL usar a tela de passagem pra entregar o aparelho ao próximo narrador antes de revelar a solução nova
-24. WHEN a mesa joga **Espião** THEN o sistema SHALL distribuir os papéis com uma volta de tela de passagem, e depois SHALL virar um relógio e um painel de votação para a mesa
-25. WHEN a votação do Espião acontece THEN o sistema SHALL registrar o voto da mesa por toque no aparelho, uma pessoa de cada vez, com a mesma tela de passagem
-26. WHEN a mesa joga **Quem Sou Eu?** THEN o sistema SHALL sortear quem escreve a carta de quem e SHALL usar a tela de passagem pra que cada um escreva a sua sem ninguém ver
-27. WHEN chega a vez de alguém no Quem Sou Eu THEN o sistema SHALL exibir a carta em letra grande, pensada pra ser lida pela mesa com o aparelho virado, e SHALL manter escondido dela tudo que a entregaria
-28. WHEN um jogo exige um mínimo de jogadores THEN o sistema SHALL cobrar o mesmo mínimo que a sala online cobra
+22. WHEN a mesa joga **Dedo na Cara** THEN o sistema SHALL mostrar a carta pra mesa inteira numa tela só, SHALL contar até apontar, e SHALL registrar quem levou a carta por toque de quem está com o aparelho — nunca decidindo sozinho quem merecia (`AD-003`)
+23. WHEN a mesa joga **Enigmas Sinistros** THEN o sistema SHALL manter o aparelho com quem narra, mostrando cena e solução, e SHALL registrar as respostas — o mesmo desenho do modo "só em voz alta" que já existe
+24. WHEN o narrador dos Enigmas muda THEN o sistema SHALL usar a tela de passagem pra entregar o aparelho ao próximo narrador antes de revelar a solução nova
+25. WHEN a mesa joga **Espião** THEN o sistema SHALL fazer uma volta de revelação na ordem da roda: para cada jogador, uma tela com o nome dele e um único botão "revelar" → o papel (o nome do lugar, ou "você é o espião") → "esconder e passar" → o próximo
+26. WHEN o último jogador esconde o papel THEN o sistema SHALL parar numa tela de "todos prontos?" com um único botão de começar, e SHALL iniciar o relógio só quando alguém tocar nele
+27. WHEN o relógio começa THEN o sistema SHALL anunciar quem começa perguntando, e a partir daí SHALL deixar o aparelho parado na mesa como relógio e painel — as perguntas correm em voz alta entre quaisquer dois jogadores, perto ou longe, sem o aparelho sair do lugar
+28. WHEN a votação do Espião acontece THEN o sistema SHALL registrar o voto de cada jogador por toque no aparelho, uma pessoa de cada vez, com a mesma tela de passagem
+29. WHEN a mesa joga **Quem Sou Eu?** THEN o sistema SHALL sortear quem escreve a carta de quem e SHALL usar a tela de passagem pra que cada um escreva a sua sem ninguém ver
+30. WHEN chega a vez de alguém no Quem Sou Eu THEN o sistema SHALL exibir a carta em letra grande, pensada pra ser lida pela mesa com o aparelho virado, e SHALL manter escondido dela tudo que a entregaria
+31. WHEN um jogo exige um mínimo de jogadores THEN o sistema SHALL cobrar o mesmo mínimo que a sala online cobra
 
 ### P6: O que sobrevive e o que acaba
 
@@ -134,10 +140,10 @@ Quatro dos cinco jogos cabem nesse formato, porque o segredo deles é **pontual*
 
 **Acceptance Criteria**:
 
-29. WHEN a partida está em andamento e o aplicativo é fechado ou recarregado THEN o sistema SHALL reabrir na mesma partida, no mesmo ponto, respeitando `PJ-19`
-30. WHEN a mesa quer parar THEN o sistema SHALL permitir encerrar a partida e mostrar o placar final, e SHALL pedir confirmação antes, porque não há volta
-31. WHEN a partida termina THEN o sistema SHALL oferecer jogar de novo com a mesma mesa, sem redigitar nome nenhum
-32. WHEN a pessoa sai do Passa e Joga com uma partida em andamento THEN o sistema SHALL avisar que a partida será perdida antes de descartá-la
+32. WHEN a partida está em andamento e o aplicativo é fechado ou recarregado THEN o sistema SHALL reabrir na mesma partida, no mesmo ponto, respeitando `PJ-20`
+33. WHEN a mesa quer parar THEN o sistema SHALL permitir encerrar a partida e mostrar o placar final, e SHALL pedir confirmação antes, porque não há volta
+34. WHEN a partida termina THEN o sistema SHALL oferecer jogar de novo com a mesma mesa, sem redigitar nome nenhum
+35. WHEN a pessoa sai do Passa e Joga com uma partida em andamento THEN o sistema SHALL avisar que a partida será perdida antes de descartá-la
 
 ---
 
@@ -154,18 +160,18 @@ Quatro dos cinco jogos cabem nesse formato, porque o segredo deles é **pontual*
 | PJ-07 | P2: A mesa | Specify | Pending |
 | PJ-08 | P2: A mesa | Specify | Pending |
 | PJ-09 | P2: A mesa | Specify | Pending |
-| PJ-10 | P3: O motor local | Specify | Pending |
+| PJ-10 | P2: A mesa | Specify | Pending |
 | PJ-11 | P3: O motor local | Specify | Pending |
 | PJ-12 | P3: O motor local | Specify | Pending |
 | PJ-13 | P3: O motor local | Specify | Pending |
 | PJ-14 | P3: O motor local | Specify | Pending |
 | PJ-15 | P3: O motor local | Specify | Pending |
-| PJ-16 | P4: A tela de passagem | Specify | Pending |
+| PJ-16 | P3: O motor local | Specify | Pending |
 | PJ-17 | P4: A tela de passagem | Specify | Pending |
 | PJ-18 | P4: A tela de passagem | Specify | Pending |
 | PJ-19 | P4: A tela de passagem | Specify | Pending |
 | PJ-20 | P4: A tela de passagem | Specify | Pending |
-| PJ-21 | P5: Os quatro jogos | Specify | Pending |
+| PJ-21 | P4: A tela de passagem | Specify | Pending |
 | PJ-22 | P5: Os quatro jogos | Specify | Pending |
 | PJ-23 | P5: Os quatro jogos | Specify | Pending |
 | PJ-24 | P5: Os quatro jogos | Specify | Pending |
@@ -173,12 +179,15 @@ Quatro dos cinco jogos cabem nesse formato, porque o segredo deles é **pontual*
 | PJ-26 | P5: Os quatro jogos | Specify | Pending |
 | PJ-27 | P5: Os quatro jogos | Specify | Pending |
 | PJ-28 | P5: Os quatro jogos | Specify | Pending |
-| PJ-29 | P6: O que sobrevive e o que acaba | Specify | Pending |
-| PJ-30 | P6: O que sobrevive e o que acaba | Specify | Pending |
-| PJ-31 | P6: O que sobrevive e o que acaba | Specify | Pending |
+| PJ-29 | P5: Os quatro jogos | Specify | Pending |
+| PJ-30 | P5: Os quatro jogos | Specify | Pending |
+| PJ-31 | P5: Os quatro jogos | Specify | Pending |
 | PJ-32 | P6: O que sobrevive e o que acaba | Specify | Pending |
+| PJ-33 | P6: O que sobrevive e o que acaba | Specify | Pending |
+| PJ-34 | P6: O que sobrevive e o que acaba | Specify | Pending |
+| PJ-35 | P6: O que sobrevive e o que acaba | Specify | Pending |
 
-**ID format:** `PJ-[NUMBER]`, mapeado em ordem às ACs de P1 (01–05), P2 (06–09), P3 (10–15), P4 (16–20), P5 (21–28) e P6 (29–32) acima.
+**ID format:** `PJ-[NUMBER]`, mapeado em ordem às ACs de P1 (01–05), P2 (06–10), P3 (11–16), P4 (17–21), P5 (22–31), P6 (32–35) acima.
 
 **Status values:** Pending → In Design → In Tasks → Implementing → Verified
 
