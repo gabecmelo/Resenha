@@ -57,8 +57,13 @@ export function Passagem({
       <div className="mx-auto flex w-full max-w-[520px] flex-col gap-5">
         <div className="flex flex-col items-start gap-2">
           <span className="selo bg-acento text-acento-contraste">passe o aparelho</span>
+          {/*
+            "para", e não "pro"/"pra": o nome de alguém não diz o gênero dessa
+            pessoa, e a contração escolhe um. "Passe pro Ana" é o app errando o
+            nome de quem está jogando na tela em que essa pessoa é o assunto.
+          */}
           <h1 className="font-display text-display text-balance text-texto">
-            Passe pro {jogador.apelido}
+            Passe para {jogador.apelido}
           </h1>
           <p className="text-corpo text-texto-3">{instrucao}</p>
         </div>
@@ -80,9 +85,9 @@ export function Passagem({
         </div>
 
         <p className="text-apoio leading-snug text-texto-3">
-          Só toque no botão quando o aparelho já estiver na mão do{' '}
+          Só toque no botão quando o aparelho já estiver na mão de{' '}
           <strong className="font-semibold text-texto">{jogador.apelido}</strong>. O que vem
-          depois é só dele.
+          depois é só de quem recebeu.
         </p>
       </div>
 

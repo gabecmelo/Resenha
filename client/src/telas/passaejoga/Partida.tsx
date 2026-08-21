@@ -233,7 +233,7 @@ export function Partida({
           jogador={jogador}
           posicao={passagem.posicao + 1}
           total={passagem.fila.length}
-          instrucao={volta?.instrucao ?? 'É a vez dele no aparelho.'}
+          instrucao={volta?.instrucao ?? 'É a vez de quem recebe o aparelho.'}
           aoRevelar={abrirOSegredo}
           aoSair={aoSair}
         />
@@ -334,7 +334,10 @@ function TelaDoJogo({
 interface VoltaDoAparelho {
   /** Na ordem da roda (`PJ-07`). */
   fila: JogadorId[]
-  /** O que a pessoa vai fazer ao revelar. Nunca o segredo em si. */
+  /**
+   * O que vem depois do toque. Nunca o segredo em si — e sempre impessoal: um
+   * nome não diz o gênero de ninguém, e "ele vai ver" erra metade da mesa.
+   */
   instrucao: string
   /**
    * `false` quando o aparelho **fica** com quem o recebeu — a entrega ao
@@ -365,7 +368,7 @@ function voltaDaFase(projecao: Projecao, aparelhoCom: JogadorId): VoltaDoAparelh
   if (projecao.sala.fase === 'escrita') {
     return {
       fila: ativos(projecao),
-      instrucao: 'Ele vai escrever uma carta que ninguém mais pode ver.',
+      instrucao: 'Uma carta que ninguém mais pode ver.',
       escondeAoPassar: true,
     }
   }
@@ -379,7 +382,7 @@ function voltaDaFase(projecao: Projecao, aparelhoCom: JogadorId): VoltaDoAparelh
   if (espiao !== undefined && !espiao.rodadaIniciada) {
     return {
       fila: ativos(projecao),
-      instrucao: 'Ele vai ver o papel dele — o local, ou que é o espião.',
+      instrucao: 'O papel desta rodada — o local, ou ser o espião.',
       escondeAoPassar: true,
       comandoAoEsconder: { t: 'marcarPronto', pronto: true },
     }
@@ -394,7 +397,7 @@ function voltaDaFase(projecao: Projecao, aparelhoCom: JogadorId): VoltaDoAparelh
   if (votacao !== undefined && votacao.quantosVotaram < votacao.total) {
     return {
       fila: ativos(projecao),
-      instrucao: 'Ele vai votar sem ninguém ver.',
+      instrucao: 'Um voto que mais ninguém vê.',
       escondeAoPassar: true,
     }
   }
@@ -408,7 +411,7 @@ function voltaDaFase(projecao: Projecao, aparelhoCom: JogadorId): VoltaDoAparelh
   if (enigmas !== undefined && enigmas.narrador.id !== aparelhoCom) {
     return {
       fila: [enigmas.narrador.id],
-      instrucao: 'Ele narra este enigma — a solução é só dele.',
+      instrucao: 'Quem receber narra este enigma — a solução é só de quem narra.',
       escondeAoPassar: false,
     }
   }
