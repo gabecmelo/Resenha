@@ -51,6 +51,17 @@ describe('CARTAS_DEDO — conteúdo dos pacotes', () => {
     }
   })
 
+  /*
+   * O aviso é a condição pra este pacote existir: ele é separado justamente
+   * pra ninguém esbarrar nele sem querer. Se o campo sumir num refactor, o
+   * conteúdo continua lá e a combinação com a mesa some — o teste segura isso.
+   */
+  it('o pacote de humor negro não existe sem o aviso da mesa', () => {
+    const escuro = CARTAS_DEDO.find((p) => p.id === 'dedo-fundo-do-poco')
+    expect(escuro?.aviso).toBeTruthy()
+    expect(escuro?.aviso).toContain('host')
+  })
+
   it('nenhuma carta se repete, dentro ou entre pacotes', () => {
     const cartas = CARTAS_DEDO.flatMap((p) => p.cartas)
     expect(new Set(cartas).size).toBe(cartas.length)

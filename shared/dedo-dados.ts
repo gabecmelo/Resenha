@@ -45,6 +45,12 @@ export interface PacoteDeDedo {
   jogoId: string
   /** O que a mesa está escolhendo de verdade ao marcar o pacote. */
   tom: 'leve' | 'pesado'
+  /**
+   * Aviso que a mesa lê **antes** de ligar o pacote. Mesma regra do Cartas
+   * Contra a Turma: o conteúdo que só funciona com quem combinou jogar assim
+   * carrega o aviso no próprio dado, onde o pacote é escolhido.
+   */
+  aviso?: string
   /** A pergunta inteira, do "Quem aqui" ao fim. Sem ponto de interrogação: a tela põe. */
   cartas: string[]
 }
@@ -154,6 +160,41 @@ const FIM_DO_MUNDO: string[] = [
   'Quem aqui a mesa entrega primeiro se o resgate for por um só',
 ]
 
+const FUNDO_DO_POCO: string[] = [
+  'Quem aqui ri na hora errada num velório',
+  'Quem aqui faz piada de morto na frente da viúva',
+  'Quem aqui bebe no enterro e ainda faz discurso',
+  'Quem aqui chora mais na leitura do testamento do que no caixão',
+  'Quem aqui vende o carro do morto antes do sétimo dia',
+  'Quem aqui manda a mensagem de pêsames pro grupo errado',
+  'Quem aqui não iria no enterro de ninguém desta mesa',
+  'Quem aqui a mesa esqueceria de avisar sobre o próprio velório',
+  'Quem aqui morre primeiro e ninguém estranha',
+  'Quem aqui vai morrer fazendo uma burrice completamente evitável',
+  'Quem aqui some quando o amigo adoece de verdade',
+  'Quem aqui visita menos no hospital e mais no Instagram',
+  'Quem aqui aguenta menos tempo cuidando de alguém doente',
+  'Quem aqui assinaria primeiro o papel pra desligar os aparelhos',
+  'Quem aqui mentiria sobre uma doença pra ganhar alguma coisa',
+  'Quem aqui monta a vaquinha e fica com a diferença',
+  'Quem aqui some do país com o dinheiro do rateio',
+  'Quem aqui trocaria dez anos de vida por dinheiro agora',
+  'Quem aqui aproveitaria uma tragédia pra viralizar',
+  'Quem aqui posta a própria dor medindo o engajamento',
+  'Quem aqui chora no post e não atende o telefone',
+  'Quem aqui vira notícia policial antes dos quarenta',
+  'Quem aqui entra numa seita achando que é curso de liderança',
+  'Quem aqui defende o indefensável no grupo da família',
+  'Quem aqui vai virar o tio problemático da próxima geração',
+  'Quem aqui seria cancelado com razão',
+  'Quem aqui já pagou de vítima numa história que foi ela quem causou',
+  'Quem aqui já desejou desgraça pra alguém desta mesa',
+  'Quem aqui reza pedindo o mal de uma pessoa específica',
+  'Quem aqui a família inteira finge que gosta',
+  'Quem aqui ninguém aqui chamaria no pior dia da vida',
+  'Quem aqui vai acabar sozinho e sabe disso',
+]
+
 /** `DEDO-22` — a lista inteira. Um pacote novo entra aqui e mais nada muda. */
 export const CARTAS_DEDO: PacoteDeDedo[] = [
   {
@@ -185,5 +226,17 @@ export const CARTAS_DEDO: PacoteDeDedo[] = [
     jogoId: 'dedo-na-cara',
     tom: 'pesado',
     cartas: FIM_DO_MUNDO,
+  },
+  {
+    id: 'dedo-fundo-do-poco',
+    emoji: '☠️',
+    nome: 'O Fundo do Poço',
+    descricao: 'Humor negro sem anestesia: morte, doença, tragédia e a escrotidão que ninguém admite.',
+    aviso:
+      'Este pacote fica separado de propósito. Quem liga é o host, por conta e risco da mesa — e só faz sentido com gente que se conhece e combinou jogar assim.',
+    quantidade: FUNDO_DO_POCO.length,
+    jogoId: 'dedo-na-cara',
+    tom: 'pesado',
+    cartas: FUNDO_DO_POCO,
   },
 ]
