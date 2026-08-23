@@ -326,11 +326,11 @@ function PortaDoPassaEJoga() {
           larguraTotal
           onClick={() => window.location.assign(CAMINHO_DO_PASSA_E_JOGA)}
         >
-          Jogar num celular só
+          Ir para o Passa e Joga
         </Botao>
         <button
           type="button"
-          aria-label="O que é jogar num celular só?"
+          aria-label="O que é o Passa e Joga?"
           onClick={() => {
             tocarClique()
             setExplicando(true)
@@ -343,7 +343,7 @@ function PortaDoPassaEJoga() {
 
       {explicando && (
         <Modal
-          titulo="Jogar num celular só"
+          titulo="Passa e Joga"
           rotuloCancelar="Entendi"
           aoCancelar={() => setExplicando(false)}
         >
