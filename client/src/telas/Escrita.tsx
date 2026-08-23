@@ -146,6 +146,7 @@ export function Escrita({ projecao, enviar, aoSair, modo = 'sala' }: PropsDaTela
       </div>
 
       <AcoesDaFase
+        local={modo === 'local'}
         souHost={eu.ehHost}
         apelidoDoHost={host?.apelido}
         souJogador={eu.situacao === 'ativo' && eu.alvo !== undefined}
@@ -370,6 +371,7 @@ function Coluna({
  * nem apagada.
  */
 function AcoesDaFase({
+  local,
   souHost,
   apelidoDoHost,
   souJogador,
@@ -384,6 +386,7 @@ function AcoesDaFase({
   aoDesmarcar,
   enviar,
 }: {
+  local: boolean
   souHost: boolean
   apelidoDoHost: string | undefined
   souJogador: boolean
@@ -415,6 +418,7 @@ function AcoesDaFase({
       )}
 
       {souJogador &&
+        !(local && pronto) &&
         (pronto ? (
           <>
             <Botao larguraTotal variante="secundario" onClick={aoDesmarcar}>
@@ -440,7 +444,21 @@ function AcoesDaFase({
           </Botao>
         ))}
 
-      {souHost ? (
+      {/*
+        `PJ2-10` — num aparelho só o rodapé oferece a ação daquela tela e mais
+        nada. `ehHost` acompanha quem está com o celular, então sem este ramo os
+        dois controles de host se empilhavam por cima do botão do jogador — e um
+        deles apaga todas as cartas, a um toque de quem está no meio da volta.
+        Enquanto a roda escreve a ação é entregar a carta; quando a roda fecha, é
+        começar. Sair continua no canto da moldura.
+      */}
+      {local ? (
+        todosProntos && (
+          <Botao larguraTotal onClick={() => enviar({ t: 'comecar' })}>
+            Começar a partida
+          </Botao>
+        )
+      ) : souHost ? (
         <>
           <Botao
             larguraTotal
