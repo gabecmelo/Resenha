@@ -1245,12 +1245,20 @@ function RegrasDedo({
           aoAbrir={abrir('votacaoDedo')}
         />
       )}
-      <LinhaDeRegra
-        rotulo="Apontar pra si mesmo"
-        dica="No jogo original não pode. Liberar faz a mesa assumir a carta na cara dura, o que às vezes é mais engraçado."
-        valor={rotuloDe(OPCOES_DE_AUTO_VOTO, config.dedo.autoVoto)}
-        aoAbrir={abrir('autoVotoDedo')}
-      />
+      {/*
+        `PJ2-16` — num aparelho só ninguém aponta pra si mesmo porque ninguém
+        aponta: a mesa decide em voz alta e o celular registra. Deixar a opção
+        aqui seria oferecer uma escolha que o modo não usa, e mostrar "não
+        pode" enquanto o motor precisa do contrário pra fechar a rodada.
+      */}
+      {!local && (
+        <LinhaDeRegra
+          rotulo="Apontar pra si mesmo"
+          dica="No jogo original não pode. Liberar faz a mesa assumir a carta na cara dura, o que às vezes é mais engraçado."
+          valor={rotuloDe(OPCOES_DE_AUTO_VOTO, config.dedo.autoVoto)}
+          aoAbrir={abrir('autoVotoDedo')}
+        />
+      )}
       <LinhaDeRegra
         rotulo="Meta de pontos"
         dica="Cada carta levada vale 1. Sem meta, a partida só acaba quando o host encerra."

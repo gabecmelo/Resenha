@@ -178,12 +178,12 @@ describe('voltaDaFase — quando o aparelho circula', () => {
 })
 
 describe('donoDoAparelho', () => {
-  it('passa a vez do Dedo na Cara pra quem ainda não apontou (`PJ-22`)', () => {
+  it('não move o aparelho no Dedo na Cara — a mesa aponta com o dedo (`PJ2-16`)', () => {
     const mesa = mesaDe('dedo-na-cara', 4)
 
     const depoisDoPrimeiro = passar(mesa, { t: 'apontar', alvoId: 'j2' })
 
-    expect(donoDoAparelho(veja(depoisDoPrimeiro), 'j1')).toBe('j2')
+    expect(donoDoAparelho(veja(depoisDoPrimeiro), 'j1')).toBe('j1')
   })
 
   it('não move o aparelho nas fases em que ninguém deve um gesto', () => {

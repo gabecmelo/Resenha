@@ -151,10 +151,8 @@ export function ativos(projecao: Projecao): JogadorId[] {
 /**
  * De quem é o aparelho quando ele está parado na mesa (`PJ-22`).
  *
- * O Dedo na Cara é o caso que precisa disso: o aparelho não circula, mas cada
- * um aponta o seu dedo tocando na mesma tela. Quem está "com o aparelho" é o
- * próximo que ainda não apontou — sem isso, o primeiro toque seria o único que
- * conta e a contagem nunca fecharia.
+ * Sobrou um caso só: o "Quem Sou Eu?", onde o aparelho não pode ficar com quem
+ * está na vez — a carta dela é escondida justamente de quem a carrega.
  *
  * Nada aqui escolhe alvo nenhum (`AD-003`): só diz de quem é o próximo toque.
  */
@@ -176,12 +174,14 @@ export function donoDoAparelho(projecao: Projecao, atual: JogadorId): JogadorId 
     return atual
   }
 
-  const dedo = projecao.jogo?.dedo
-  if (dedo === undefined || dedo.fase !== 'votacao') return atual
+  /*
+    O Dedo na Cara **não** move mais o aparelho (`PJ2-16`).
 
-  const jaApontaram = new Set(dedo.votos.map((voto) => voto.eleitor.id))
-  const proximo = projecao.jogadores.find(
-    (jogador) => jogador.situacao === 'ativo' && !jaApontaram.has(jogador.id),
-  )
-  return proximo?.id ?? atual
+    Ele movia enquanto o modo local imitava a urna do online: o celular dava a
+    volta na roda colhendo um dedo de cada vez. Agora a mesa aponta com o dedo
+    mesmo, em voz alta, e quem está com o aparelho registra quem levou — um
+    toque, uma confirmação, e a carta seguinte. Não há gesto de ninguém mais
+    pra esperar, então não há pra quem passar.
+  */
+  return atual
 }
