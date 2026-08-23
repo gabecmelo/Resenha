@@ -84,31 +84,31 @@ O eixo desta rodada é um só: **num aparelho só, quem julga é a mesa; o apare
 
 | ID | Block | Phase | Status |
 | --- | --- | --- | --- |
-| PJ2-01 | P1: A moldura e a porta | Specify | Pending |
-| PJ2-02 | P1: A moldura e a porta | Specify | Pending |
-| PJ2-03 | P1: A moldura e a porta | Specify | Pending |
-| PJ2-04 | P2: Os pacotes | Specify | Pending |
-| PJ2-05 | P2: Os pacotes | Specify | Pending |
-| PJ2-06 | P3: O Quem Sou Eu em telas | Specify | Pending |
-| PJ2-07 | P3: O Quem Sou Eu em telas | Specify | Pending |
-| PJ2-08 | P3: O Quem Sou Eu em telas | Specify | Pending |
-| PJ2-09 | P3: O Quem Sou Eu em telas | Specify | Pending |
-| PJ2-10 | P3: O Quem Sou Eu em telas | Specify | Pending |
-| PJ2-11 | P4: O Espião sem urna | Specify | Pending |
-| PJ2-12 | P4: O Espião sem urna | Specify | Pending |
-| PJ2-13 | P4: O Espião sem urna | Specify | Pending |
-| PJ2-14 | P4: O Espião sem urna | Specify | Pending |
-| PJ2-15 | P4: O Espião sem urna | Specify | Pending |
-| PJ2-16 | P5: O Dedo na Cara sem urna | Specify | Pending |
-| PJ2-17 | P5: O Dedo na Cara sem urna | Specify | Pending |
-| PJ2-18 | P5: O Dedo na Cara sem urna | Specify | Pending |
-| PJ2-19 | P6: Os Enigmas | Specify | Pending |
-| PJ2-20 | P6: Os Enigmas | Specify | Pending |
-| PJ2-21 | P6: Os Enigmas | Specify | Pending |
-| PJ2-22 | P7: O lobby local | Specify | Pending |
-| PJ2-23 | P7: O lobby local | Specify | Pending |
-| PJ2-24 | P7: O lobby local | Specify | Pending |
-| PJ2-25 | P7: O lobby local | Specify | Pending |
+| PJ2-01 | P1: A moldura e a porta | Design | In Design |
+| PJ2-02 | P1: A moldura e a porta | Design | In Design |
+| PJ2-03 | P1: A moldura e a porta | Design | In Design |
+| PJ2-04 | P2: Os pacotes | Design | In Design |
+| PJ2-05 | P2: Os pacotes | Design | In Design |
+| PJ2-06 | P3: O Quem Sou Eu em telas | Design | In Design |
+| PJ2-07 | P3: O Quem Sou Eu em telas | Design | In Design |
+| PJ2-08 | P3: O Quem Sou Eu em telas | Design | In Design |
+| PJ2-09 | P3: O Quem Sou Eu em telas | Design | In Design |
+| PJ2-10 | P3: O Quem Sou Eu em telas | Design | In Design |
+| PJ2-11 | P4: O Espião sem urna | Design | In Design |
+| PJ2-12 | P4: O Espião sem urna | Design | In Design |
+| PJ2-13 | P4: O Espião sem urna | Design | In Design |
+| PJ2-14 | P4: O Espião sem urna | Design | In Design |
+| PJ2-15 | P4: O Espião sem urna | Design | In Design |
+| PJ2-16 | P5: O Dedo na Cara sem urna | Design | In Design |
+| PJ2-17 | P5: O Dedo na Cara sem urna | Design | In Design |
+| PJ2-18 | P5: O Dedo na Cara sem urna | Design | In Design |
+| PJ2-19 | P6: Os Enigmas | Design | In Design |
+| PJ2-20 | P6: Os Enigmas | Design | In Design |
+| PJ2-21 | P6: Os Enigmas | Design | In Design |
+| PJ2-22 | P7: O lobby local | Design | In Design |
+| PJ2-23 | P7: O lobby local | Design | In Design |
+| PJ2-24 | P7: O lobby local | Design | In Design |
+| PJ2-25 | P7: O lobby local | Design | In Design |
 
 **Status values:** Pending → In Design → In Tasks → Implementing → Verified
 
