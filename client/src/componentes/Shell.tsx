@@ -32,6 +32,25 @@ export interface PropsDoShell {
  *
  * `SALA-08` — o código fica sempre à vista e um toque nele copia o convite.
  */
+/*
+  Sem código não há sala — e é por isso que a mesma pergunta tem duas respostas.
+  Na sala online sair libera uma vaga e descarta uma carta que outra pessoa
+  escreveu; num aparelho só não existe vaga, nem código pra voltar, e o que se
+  perde é a mesa montada. Prometer o errado nos dois sentidos assusta quem não
+  precisava e tranquiliza quem ia perder tudo.
+*/
+const SAIR_DA_SALA = {
+  titulo: 'Sair da sala?',
+  descricao:
+    'Sua vaga é liberada e a carta que escreveram para você é descartada. Para voltar, é preciso entrar de novo pelo código.',
+}
+
+const SAIR_DA_MESA = {
+  titulo: 'Sair da mesa?',
+  descricao:
+    'A partida e os nomes que a mesa digitou se perdem. Para jogar de novo, é começar montando a mesa outra vez.',
+}
+
 export function Shell({ titulo = 'Resenha', codigo, faixa, aoSair, children }: PropsDoShell) {
   const [confirmandoSaida, setConfirmandoSaida] = useState(false)
   const [pedindoApoio, setPedindoApoio] = useState(false)
@@ -69,8 +88,8 @@ export function Shell({ titulo = 'Resenha', codigo, faixa, aoSair, children }: P
           {aoSair !== undefined && (
             <button
               type="button"
-              aria-label="Sair da sala"
-              title="Sair da sala"
+              aria-label={codigo === undefined ? 'Sair da mesa' : 'Sair da sala'}
+              title={codigo === undefined ? 'Sair da mesa' : 'Sair da sala'}
               onClick={() => setConfirmandoSaida(true)}
               className="flex h-11 w-9 flex-none cursor-pointer items-center justify-center rounded-chip text-texto-3 hover:text-texto"
             >
@@ -105,8 +124,7 @@ export function Shell({ titulo = 'Resenha', codigo, faixa, aoSair, children }: P
 
       {confirmandoSaida && aoSair !== undefined && (
         <Modal
-          titulo="Sair da sala?"
-          descricao="Sua vaga é liberada e a carta que escreveram para você é descartada. Para voltar, é preciso entrar de novo pelo código."
+          {...(codigo === undefined ? SAIR_DA_MESA : SAIR_DA_SALA)}
           rotuloConfirmar="Sair"
           rotuloCancelar="Ficar"
           destrutivo
