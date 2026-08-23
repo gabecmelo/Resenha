@@ -13,7 +13,8 @@ import {
 } from '../componentes'
 import { tocarAcertou } from '../sons'
 import { nomeDoJogo } from '../../../shared/jogos-catalogo'
-import { DE_NOVO_NO_APARELHO, molduraDaSala, type PropsDaTela } from './tela'
+import { molduraDaSala, type PropsDaTela } from './tela'
+import { FimDaPartida } from './passaejoga/FimDaPartida'
 
 /**
  * O placar final (`ENIG-25`, `ENIG-26`) — visível pra todo mundo, inclusive pra
@@ -24,7 +25,7 @@ import { DE_NOVO_NO_APARELHO, molduraDaSala, type PropsDaTela } from './tela'
  * o que reclamar. Empate no topo não é desempatado — dois campeões é uma
  * resposta melhor que um critério inventado (`ENIG-26`).
  */
-export function EnigmasEncerrada({ projecao, enviar, aoSair, modo = 'sala' }: PropsDaTela) {
+export function EnigmasEncerrada({ projecao, enviar, aoSair, aoVoltarAoLobby, modo = 'sala' }: PropsDaTela) {
   const local = modo === 'local'
   const { sala, eu, jogadores } = projecao
   const enigmas = projecao.jogo?.enigmas
@@ -142,23 +143,24 @@ export function EnigmasEncerrada({ projecao, enviar, aoSair, modo = 'sala' }: Pr
       <BarraDeAcao>
         {eu.ehHost ? (
           <>
-            <Botao larguraTotal onClick={() => enviar({ t: 'novaPartida' })}>
-              {local
-                ? DE_NOVO_NO_APARELHO.rotulo
-                : aguardando.length > 0
-                  ? `Voltar ao lobby com ${ativos.length + aguardando.length}`
-                  : 'Voltar ao lobby'}
-            </Botao>
-            <p className="text-apoio text-texto-3">
-              {local ? (
-                DE_NOVO_NO_APARELHO.explicacao
-              ) : (
-                <>
+            {local ? (
+              <FimDaPartida
+                aoJogarDeNovo={() => enviar({ t: 'novaPartida' })}
+                aoVoltarAoLobby={() => aoVoltarAoLobby?.()}
+              />
+            ) : (
+              <>
+                <Botao larguraTotal onClick={() => enviar({ t: 'novaPartida' })}>
+                  {aguardando.length > 0
+                    ? `Voltar ao lobby com ${ativos.length + aguardando.length}`
+                    : 'Voltar ao lobby'}
+                </Botao>
+                <p className="text-apoio text-texto-3">
                   Mesma mesa, ninguém precisa entrar de novo. O placar zera na próxima — este aqui
                   acabou de virar história.
-                </>
-              )}
-            </p>
+                </p>
+              </>
+            )}
           </>
         ) : (
           <div className="flex items-center gap-2.5">

@@ -11,7 +11,8 @@ import {
   TiraDePacotes,
 } from '../componentes'
 import { nomeDoJogo } from '../../../shared/jogos-catalogo'
-import { DE_NOVO_NO_APARELHO, molduraDaSala, type PropsDaTela } from './tela'
+import { molduraDaSala, type PropsDaTela } from './tela'
+import { FimDaPartida } from './passaejoga/FimDaPartida'
 
 /**
  * A revelação e o convite para mais uma (`FIM-02`, `FIM-03`, `FIM-04`).
@@ -23,7 +24,7 @@ import { DE_NOVO_NO_APARELHO, molduraDaSala, type PropsDaTela } from './tela'
  * escreveu o quê**.
  */
 
-export function Encerrada({ projecao, enviar, aoSair, modo = 'sala' }: PropsDaTela) {
+export function Encerrada({ projecao, enviar, aoSair, aoVoltarAoLobby, modo = 'sala' }: PropsDaTela) {
   const { sala, eu, jogadores } = projecao
   const ativos = jogadores.filter((jogador) => jogador.situacao === 'ativo')
   const aguardando = jogadores.filter((jogador) => jogador.situacao === 'aguardando')
@@ -108,26 +109,29 @@ export function Encerrada({ projecao, enviar, aoSair, modo = 'sala' }: PropsDaTe
         {eu.ehHost ? (
           <>
             {/*
-              Um botão só: voltar ao lobby *é* começar outra partida. De lá a
-              mesa decide se muda as regras, troca de jogo ou só começa de novo.
+              Na sala, um botão só: voltar ao lobby *é* começar outra partida,
+              e de lá a mesa muda as regras ou troca de jogo. Num aparelho só
+              os dois gestos se separam, porque o caminho curto — a mesma mesa
+              jogando de novo na hora — é o que a turma quer quase sempre.
             */}
-            <Botao larguraTotal onClick={() => enviar({ t: 'novaPartida' })}>
-              {modo === 'local'
-                ? DE_NOVO_NO_APARELHO.rotulo
-                : aguardando.length > 0
-                  ? `Voltar ao lobby com ${ativos.length + aguardando.length}`
-                  : 'Voltar ao lobby'}
-            </Botao>
-            <p className="text-apoio text-texto-3">
-              {modo === 'local' ? (
-                DE_NOVO_NO_APARELHO.explicacao
-              ) : (
-                <>
+            {modo === 'local' ? (
+              <FimDaPartida
+                aoJogarDeNovo={() => enviar({ t: 'novaPartida' })}
+                aoVoltarAoLobby={() => aoVoltarAoLobby?.()}
+              />
+            ) : (
+              <>
+                <Botao larguraTotal onClick={() => enviar({ t: 'novaPartida' })}>
+                  {aguardando.length > 0
+                    ? `Voltar ao lobby com ${ativos.length + aguardando.length}`
+                    : 'Voltar ao lobby'}
+                </Botao>
+                <p className="text-apoio text-texto-3">
                   Mesma mesa, ninguém precisa entrar de novo. No lobby você escolhe as regras da
                   próxima ou troca de jogo — e as anotações desta partida somem.
-                </>
-              )}
-            </p>
+                </p>
+              </>
+            )}
           </>
         ) : (
           <div className="flex items-center gap-2.5">

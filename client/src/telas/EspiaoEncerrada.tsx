@@ -15,7 +15,8 @@ import {
 import { tocarAcertou } from '../sons'
 import { useBatidaDeSuspense } from '../estado/suspense'
 import { nomeDoJogo } from '../../../shared/jogos-catalogo'
-import { DE_NOVO_NO_APARELHO, molduraDaSala, type PropsDaTela } from './tela'
+import { molduraDaSala, type PropsDaTela } from './tela'
+import { FimDaPartida } from './passaejoga/FimDaPartida'
 
 /**
  * A revelação de Espião (`ESP-16`) — o local e todos os espiões, visível pra
@@ -25,7 +26,7 @@ import { DE_NOVO_NO_APARELHO, molduraDaSala, type PropsDaTela } from './tela'
  * Depois as fichas de quem estava infiltrado — e aqui o mostarda finalmente
  * entra, porque a informação virou pública e a cor já pode marcar.
  */
-export function EspiaoEncerrada({ projecao, enviar, aoSair, modo = 'sala' }: PropsDaTela) {
+export function EspiaoEncerrada({ projecao, enviar, aoSair, aoVoltarAoLobby, modo = 'sala' }: PropsDaTela) {
   const { sala, eu, jogadores } = projecao
   const espiao = projecao.jogo?.espiao
   const ativos = jogadores.filter((jogador) => jogador.situacao === 'ativo')
@@ -178,23 +179,24 @@ export function EspiaoEncerrada({ projecao, enviar, aoSair, modo = 'sala' }: Pro
               Um botão só: voltar ao lobby *é* começar outra partida. De lá a
               mesa decide se muda as regras, troca de jogo ou só começa de novo.
             */}
-            <Botao larguraTotal onClick={() => enviar({ t: 'novaPartida' })}>
-              {modo === 'local'
-                ? DE_NOVO_NO_APARELHO.rotulo
-                : aguardando.length > 0
-                  ? `Voltar ao lobby com ${ativos.length + aguardando.length}`
-                  : 'Voltar ao lobby'}
-            </Botao>
-            <p className="text-apoio text-texto-3">
-              {modo === 'local' ? (
-                DE_NOVO_NO_APARELHO.explicacao
-              ) : (
-                <>
+            {modo === 'local' ? (
+              <FimDaPartida
+                aoJogarDeNovo={() => enviar({ t: 'novaPartida' })}
+                aoVoltarAoLobby={() => aoVoltarAoLobby?.()}
+              />
+            ) : (
+              <>
+                <Botao larguraTotal onClick={() => enviar({ t: 'novaPartida' })}>
+                  {aguardando.length > 0
+                    ? `Voltar ao lobby com ${ativos.length + aguardando.length}`
+                    : 'Voltar ao lobby'}
+                </Botao>
+                <p className="text-apoio text-texto-3">
                   Mesma mesa, ninguém precisa entrar de novo. No lobby você escolhe as regras da
                   próxima ou troca de jogo — e as anotações desta partida somem.
-                </>
-              )}
-            </p>
+                </p>
+              </>
+            )}
           </>
         ) : (
           <div className="flex items-center gap-2.5">

@@ -35,16 +35,22 @@ export interface PropsDaTela {
    * Registrar em nome do narrador seria mentir pro placar.
    */
   enviarComo?(autorId: JogadorId, comando: Comando): void
+  /**
+   * `PJ2-22` — volta pro lobby da mesa, guardando os nomes.
+   *
+   * Só existe no modo local, e não é o mesmo gesto que "jogar de novo": aqui a
+   * partida acaba e a mesa volta a poder escolher — outro jogo, outras regras,
+   * outro pacote — sem que ninguém redigite nome nenhum.
+   */
+  aoVoltarAoLobby?(): void
 }
 
 /**
  * O convite pra próxima partida num aparelho só (`PJ-34`).
  *
- * Na sala online "de novo" é **voltar ao lobby**: de lá a mesa muda as regras,
- * troca de jogo ou espera quem está chegando. Num aparelho só não há lobby nem
- * quem chegue no meio — a mesma mesa, na mesma ordem da roda, simplesmente joga
- * outra vez. Prometer um lobby que não vem mandaria a mesa procurar uma tela
- * que não existe.
+ * É o caminho curto: a mesma mesa, na mesma ordem da roda, jogando de novo sem
+ * passar por tela nenhuma. Quem quiser trocar de jogo ou mexer nas regras tem
+ * o lobby da mesa ao lado (`PJ2-22`) — que também não pede os nomes de volta.
  *
  * Mora aqui, e não em cada tela de encerramento, porque a frase é a mesma nas
  * quatro: quatro cópias divergiriam na primeira correção de texto.

@@ -54,10 +54,12 @@ export function Partida({
   mesa,
   aoMudar,
   aoSair,
+  aoVoltarAoLobby,
 }: {
   mesa: MesaLocal
   aoMudar(mesa: MesaLocal): void
   aoSair(): void
+  aoVoltarAoLobby(): void
 }) {
   const [recusa, setRecusa] = useState<string | null>(null)
   const projecao = useMemo(() => projetar(mesa), [mesa])
@@ -285,6 +287,7 @@ export function Partida({
         aoSair={aoSair}
         prontosRetidos={mesa.prontoRetido !== null}
         aoComecarRodada={comecar}
+        aoVoltarAoLobby={aoVoltarAoLobby}
       />
 
       {emVolta && passagem.revelado && acao !== null && (
@@ -305,6 +308,7 @@ function TelaDoJogo({
   projecao,
   enviar,
   enviarComo,
+  aoVoltarAoLobby,
   aoSair,
   prontosRetidos,
   aoComecarRodada,
@@ -313,10 +317,18 @@ function TelaDoJogo({
   enviar(comando: Comando): void
   enviarComo(autorId: JogadorId, comando: Comando): void
   aoSair(): void
+  aoVoltarAoLobby(): void
   prontosRetidos: boolean
   aoComecarRodada(): void
 }) {
-  const props = { projecao, enviar, enviarComo, aoSair, modo: 'local' as const }
+  const props = {
+    projecao,
+    enviar,
+    enviarComo,
+    aoSair,
+    aoVoltarAoLobby,
+    modo: 'local' as const,
+  }
 
   switch (projecao.sala.fase) {
     case 'lobby':

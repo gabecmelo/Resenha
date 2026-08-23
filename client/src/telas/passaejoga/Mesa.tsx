@@ -29,15 +29,25 @@ import { RegrasDoJogo, pendenciasParaIniciar } from '../Lobby'
  */
 export function Mesa({
   jogoId,
+  nomesIniciais,
   aoComecar,
   aoVoltar,
 }: {
   jogoId: string
+  /** `PJ2-23` — a roda que já estava montada, quando a mesa volta pro lobby. */
+  nomesIniciais?: string[]
   aoComecar(mesa: MesaLocal): void
   aoVoltar(): void
 }) {
   const minimo = minJogadoresDoJogo(jogoId)
-  const [nomes, setNomes] = useState<string[]>(() => Array<string>(minimo).fill(''))
+  const [nomes, setNomes] = useState<string[]>(() =>
+    // Um jogo com mínimo maior que a roda que voltou ganha campos vazios no
+    // fim, em vez de recusar a mesa inteira: é mais fácil digitar um nome que
+    // seis.
+    nomesIniciais === undefined
+      ? Array<string>(minimo).fill('')
+      : [...nomesIniciais, ...Array<string>(Math.max(0, minimo - nomesIniciais.length)).fill('')],
+  )
   const [config, setConfig] = useState<Config>(configInicial)
   const [recusa, setRecusa] = useState<string | null>(null)
 
