@@ -153,7 +153,7 @@ const MOTIVO_DO_RECOMENDADO: Record<string, string> = {
  * quando são dois — descobrir que falta gente, resolver, e só então descobrir
  * que falta pacote é o jeito mais fácil de irritar quem está organizando.
  */
-function pendenciasParaIniciar(
+export function pendenciasParaIniciar(
   ativos: number,
   minimo: number,
   config: Config,

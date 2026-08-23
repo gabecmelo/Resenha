@@ -10,7 +10,7 @@ import { BarraDeAcao, Botao, Shell } from '../../componentes'
 import { tocarClique } from '../../sons'
 import { MAX_NA_MESA, motivoParaComecar, nomesDaMesa } from '../../passaejoga/nomes'
 import { type MesaLocal, iniciar } from '../../passaejoga/motor'
-import { RegrasDoJogo } from '../Lobby'
+import { RegrasDoJogo, pendenciasParaIniciar } from '../Lobby'
 
 /**
  * A mesa: quem vai jogar e como (`PJ-06`–`PJ-10`).
@@ -38,10 +38,17 @@ export function Mesa({
 }) {
   const minimo = minJogadoresDoJogo(jogoId)
   const [nomes, setNomes] = useState<string[]>(() => Array<string>(minimo).fill(''))
-  const [config, setConfig] = useState<Config>(() => configInicial(jogoId))
+  const [config, setConfig] = useState<Config>(configInicial)
   const [recusa, setRecusa] = useState<string | null>(null)
 
-  const motivo = motivoParaComecar(nomes, jogoId)
+  /*
+    `PJ2-05` — a pendência de pacote é a mesma do lobby online, e vem de lá:
+    duas listas do que impede começar divergiriam no primeiro jogo novo.
+    Nomes primeiro — é o que a mesa está digitando agora.
+  */
+  const motivo =
+    motivoParaComecar(nomes, jogoId) ??
+    pendenciasParaIniciar(nomesDaMesa(nomes).length, minimo, config, jogoId)[0]
   const recomendado = recomendadoDoJogo(jogoId)
   const abaixoDoRecomendado =
     recomendado !== undefined && motivo === undefined && nomes.length < recomendado
@@ -227,14 +234,13 @@ function pacotesDoJogo(jogoId: string): PacoteResumo[] {
 }
 
 /**
- * A config com que a mesa abre: o padrão do produto, com os pacotes daquele
- * jogo já marcados.
+ * A config com que a mesa abre: o padrão do produto, **sem pacote marcado**.
  *
- * Marcar por padrão porque numa festa a primeira tela não pode ser uma
- * pendência: quem quiser trocar troca nas regras acima, e quem não quiser
- * começa. `modoPacote` fica como o padrão manda — quem precisa dele em
- * `pacote` é o próprio bloco de regras do jogo, que já cuida disso.
+ * Marcar todos por padrão parecia poupar um toque, mas entregava a mesa uma
+ * escolha já feita — e feita do jeito que ninguém faria: baralho nenhum é a
+ * soma de todos eles. Quem escolhe o pacote está escolhendo o assunto da
+ * noite, e essa é justamente a decisão que a mesa quer tomar.
  */
-function configInicial(jogoId: string): Config {
-  return { ...CONFIG_PADRAO, pacoteIds: pacotesDoJogo(jogoId).map((pacote) => pacote.id) }
+function configInicial(): Config {
+  return { ...CONFIG_PADRAO, pacoteIds: [] }
 }
