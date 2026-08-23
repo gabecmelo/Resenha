@@ -14,6 +14,7 @@ import {
   CampoDeTexto,
   Chat,
   FaixaDeFase,
+  Contagem,
   MarcadorDeJogador,
   Modal,
   PainelRecolhivel,
@@ -50,6 +51,8 @@ export function EnigmasJogo({ projecao, enviar, enviarComo, aoSair, modo = 'sala
   const [confirmandoEncerrar, setConfirmandoEncerrar] = useState(false)
   const [confirmandoEntrega, setConfirmandoEntrega] = useState(false)
   const [declarando, setDeclarando] = useState(false)
+  const [confirmandoDesatou, setConfirmandoDesatou] = useState<JogadorId | null>(null)
+  const [contando, setContando] = useState(false)
   const [rascunhoDeclaracao, setRascunhoDeclaracao] = useState('')
   const [rascunhoPergunta, setRascunhoPergunta] = useState('')
   const [anotacaoDeVoz, setAnotacaoDeVoz] = useState('')
@@ -174,12 +177,7 @@ export function EnigmasJogo({ projecao, enviar, enviarComo, aoSair, modo = 'sala
             enigmas={enigmas}
             jogadores={jogadores}
             local={local}
-            aoRegistrar={(jogadorId) => {
-              // Duas mãos no mesmo gesto: a versão é de quem falou, o veredito é
-              // de quem narra. Só assim o ponto cai na conta certa (`ENIG-16`).
-              enviarComo?.(jogadorId, { t: 'declararSolucao', texto: 'Contou em voz alta.' })
-              enviar({ t: 'julgarDeclaracao', acertou: true })
-            }}
+            aoRegistrar={setConfirmandoDesatou}
           />
 
           <Historico key={enigmas.rodada} enigmas={enigmas} />
@@ -207,7 +205,10 @@ export function EnigmasJogo({ projecao, enviar, enviarComo, aoSair, modo = 'sala
           {revelou ? (
             enigmas.souNarrador ? (
               <div className="min-w-0 flex-1">
-                <Botao larguraTotal onClick={() => enviar({ t: 'proximoEnigma' })}>
+                <Botao
+                  larguraTotal
+                  onClick={() => (local ? setContando(true) : enviar({ t: 'proximoEnigma' }))}
+                >
                   Próximo enigma
                 </Botao>
               </div>
@@ -309,6 +310,42 @@ export function EnigmasJogo({ projecao, enviar, enviarComo, aoSair, modo = 'sala
         />
       )}
 
+      {/*
+        `PJ2-20` — dar o enigma por desatado encerra a rodada e move o placar.
+        Os nomes ficam lado a lado num punhado de pixels, e o dedo erra: uma
+        confirmação é barata perto de tirar da mesa um enigma que ninguém
+        tinha desatado ainda.
+      */}
+      {confirmandoDesatou !== null && (
+        <Modal
+          titulo={`${nomeDaMesa(jogadores, confirmandoDesatou)} desatou?`}
+          descricao="Isso encerra o enigma, revela a solução pra mesa e marca o ponto."
+          rotuloConfirmar="Desatou mesmo"
+          rotuloCancelar="Ainda não"
+          aoConfirmar={() => {
+            // Duas mãos no mesmo gesto: a versão é de quem falou, o veredito é
+            // de quem narra. Só assim o ponto cai na conta certa (`ENIG-16`).
+            enviarComo?.(confirmandoDesatou, {
+              t: 'declararSolucao',
+              texto: 'Contou em voz alta.',
+            })
+            enviar({ t: 'julgarDeclaracao', acertou: true })
+            setConfirmandoDesatou(null)
+          }}
+          aoCancelar={() => setConfirmandoDesatou(null)}
+        />
+      )}
+
+      {/* `PJ2-21` — a mesma batida do Dedo na Cara antes do enigma novo. */}
+      {contando && (
+        <Contagem
+          aoTerminar={() => {
+            setContando(false)
+            enviar({ t: 'proximoEnigma' })
+          }}
+        />
+      )}
+
       {menuDeHost && (
         <Modal
           titulo="Ações do host"
@@ -380,6 +417,11 @@ function Resenha({
       <Chat mensagens={projecao.chat} aoEnviar={(texto) => enviar({ t: 'chat', texto })} />
     </PainelRecolhivel>
   )
+}
+
+/** O apelido de quem tem esse id, ou uma frase que não mente. */
+function nomeDaMesa(jogadores: Projecao['jogadores'], id: JogadorId): string {
+  return jogadores.find((jogador) => jogador.id === id)?.apelido ?? 'essa pessoa'
 }
 
 /**
@@ -476,6 +518,8 @@ function Cena({
  * diagramação.
  */
 function Solucao({ enigmas }: { enigmas: ProjecaoEnigmas }) {
+  const [escondida, setEscondida] = useState(false)
+
   if (enigmas.solucao === undefined) {
     return (
       <section className="rounded-papel border border-dashed border-linha p-4">
@@ -495,10 +539,36 @@ function Solucao({ enigmas }: { enigmas: ProjecaoEnigmas }) {
         aberta ? 'border-pronto bg-superficie-2' : 'border-controle-linha bg-superficie'
       }`}
     >
-      <p className="text-rotulo text-texto-3 uppercase">
-        {aberta ? 'a solução' : 'a solução — só você lê'}
-      </p>
-      <p className="mt-2 text-corpo leading-snug text-texto">{enigmas.solucao}</p>
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-rotulo text-texto-3 uppercase">
+          {aberta ? 'a solução' : 'a solução — só você lê'}
+        </p>
+        {/*
+          `PJ2-19` — quem narra às vezes quer a tela pra outra coisa: anotar as
+          perguntas, mostrar a cena a quem chegou atrasado, deixar o celular na
+          mesa um instante. Sem um jeito de fechar, a única saída é virar o
+          aparelho pra baixo e torcer.
+        */}
+        {!aberta && (
+          <button
+            type="button"
+            onClick={() => {
+              tocarClique()
+              setEscondida((estava) => !estava)
+            }}
+            className="flex-none cursor-pointer font-mono text-rotulo text-texto-3 uppercase underline decoration-dotted underline-offset-4 hover:text-acento"
+          >
+            {escondida ? 'mostrar' : 'esconder'}
+          </button>
+        )}
+      </div>
+      {escondida && !aberta ? (
+        <p className="mt-2 text-corpo leading-snug text-texto-3">
+          Guardada. A tela está livre — toque em "mostrar" quando precisar dela de volta.
+        </p>
+      ) : (
+        <p className="mt-2 text-corpo leading-snug text-texto">{enigmas.solucao}</p>
+      )}
     </section>
   )
 }
