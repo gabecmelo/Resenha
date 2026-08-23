@@ -107,16 +107,20 @@ export function voltaDaFase(projecao: Projecao, aparelhoCom: JogadorId): VoltaDo
   }
 
   /*
-    `PJ-28` — a votação também é segredo, e num aparelho só o "voto oculto" da
-    sala é literalmente a tela de passagem: um de cada vez, e o próximo não vê
-    o que o anterior marcou.
+    `PJ2-13` — a mesa pegou o espião, e agora é a vez dele. O aparelho vai pra
+    uma pessoa só e **fica** com ela: chutar o local é um gesto privado, e a
+    tela seguinte é o resultado, que é de todo mundo.
+
+    Não existe volta de votação aqui (`PJ2-11`). Ela existia enquanto o modo
+    local imitava a urna do online — cinco pessoas tocando uma de cada vez pra
+    registrar uma decisão que a mesa já tinha tomado em voz alta.
   */
-  const votacao = espiao?.votacaoAberta
-  if (votacao !== undefined && votacao.quantosVotaram < votacao.total) {
+  const chute = espiao?.chuteDoEspiao
+  if (chute !== undefined && chute.espiao.id !== aparelhoCom) {
     return {
-      fila: ativos(projecao),
-      instrucao: 'Um voto que mais ninguém vê.',
-      escondeAoPassar: true,
+      fila: [chute.espiao.id],
+      instrucao: 'A mesa acertou. O espião ainda pode salvar a rodada chutando o local.',
+      escondeAoPassar: false,
     }
   }
 

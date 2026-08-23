@@ -53,6 +53,20 @@ function espiaoEmRodada(quantos: number, amb = ambiente()): MesaLocal {
   return mesa
 }
 
+/** A mesa acusa o espião de verdade — o desfecho que abre o chute do local. */
+function espiaoAcusado(quantos: number, amb = ambiente()): MesaLocal {
+  let mesa = espiaoEmRodada(quantos, amb)
+  const espiaoId = mesa.sala.jogadores.find(
+    (jogador) => projetar({ ...mesa, aparelhoCom: jogador.id }).jogo?.espiao?.souEspiao === true,
+  )!.id
+
+  mesa = passar(mesa, { t: 'abrirVotacao' }, amb)
+  for (const jogador of mesa.sala.jogadores) {
+    mesa = passar({ ...mesa, aparelhoCom: jogador.id }, { t: 'votar', alvoId: espiaoId }, amb)
+  }
+  return mesa
+}
+
 function quemSouEuEmJogo(quantos: number, amb = ambiente()): MesaLocal {
   let mesa = mesaDe('quem-sou-eu', quantos, amb)
   for (const jogador of mesa.sala.jogadores) {
@@ -109,17 +123,31 @@ describe('voltaDaFase — quando o aparelho circula', () => {
     expect(voltaDaFase(veja(mesa), mesa.aparelhoCom)).toBeNull()
   })
 
-  it('faz a votação do Espião circular um voto de cada vez, sem ninguém ver o anterior (`PJ-28`)', () => {
+  it('não abre volta de votação nenhuma — a mesa já votou em voz alta (`PJ2-11`)', () => {
     const emRodada = espiaoEmRodada(4)
     const mesa = passar(emRodada, { t: 'abrirVotacao' })
 
-    const volta = voltaDaFase(veja(mesa), mesa.aparelhoCom)
+    expect(voltaDaFase(veja(mesa), mesa.aparelhoCom)).toBeNull()
+  })
+
+  it('entrega o aparelho só ao espião pego, e ele fica com quem recebeu (`PJ2-13`)', () => {
+    const mesa = espiaoAcusado(4)
+    const chute = veja(mesa).jogo!.espiao!.chuteDoEspiao!
+
+    const volta = voltaDaFase(veja(mesa), 'quem-nao-chuta' as JogadorId)
 
     expect(volta).toEqual({
-      fila: ['j1', 'j2', 'j3', 'j4'],
-      instrucao: 'Um voto que mais ninguém vê.',
-      escondeAoPassar: true,
+      fila: [chute.espiao.id],
+      instrucao: 'A mesa acertou. O espião ainda pode salvar a rodada chutando o local.',
+      escondeAoPassar: false,
     })
+  })
+
+  it('não reabre a volta quando o aparelho já está com quem chuta', () => {
+    const mesa = espiaoAcusado(4)
+    const chute = veja(mesa).jogo!.espiao!.chuteDoEspiao!
+
+    expect(voltaDaFase(veja(mesa), chute.espiao.id)).toBeNull()
   })
 
   it('entrega o aparelho só ao próximo narrador dos Enigmas, e ele fica com quem recebeu (`PJ-24`)', () => {

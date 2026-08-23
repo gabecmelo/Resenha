@@ -215,6 +215,18 @@ export function comecarRodada(mesa: MesaLocal, ambiente: Ambiente): Resultado<Me
  * mesmo `reduzir` dos comandos, e ele exige a aleatoriedade injetada.
  */
 export function cobrarPrazos(mesa: MesaLocal, ambiente: Ambiente): MesaLocal {
+  /*
+    O relógio não corre enquanto o aparelho está viajando.
+
+    Numa sala online o tempo passa para todo mundo ao mesmo tempo, cada um
+    olhando a própria tela. Num aparelho só, o intervalo entre alguém esconder
+    e o vizinho tocar em "estou com o aparelho" é o celular atravessando a
+    mesa — e ninguém está jogando nesse pedaço. Cobrar prazo ali é cobrar o
+    trajeto: foi assim que o espião pego chegou a perder o chute sem nunca ter
+    visto a tela dele, porque os 30 segundos correram na mão de quem passava.
+  */
+  if (mesa.passagem !== null && !mesa.passagem.revelado && !acabou(mesa.passagem)) return mesa
+
   if (!vencidos(mesa.sala, ambiente.agora).includes('turno')) return mesa
 
   const sala = structuredClone(mesa.sala)

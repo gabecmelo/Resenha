@@ -22,6 +22,7 @@ import { useBatidaDeSuspense } from '../estado/suspense'
 import { tocarAcertou, tocarSuaVez, tocarTempoAcabando, tocarVezOutro } from '../sons'
 import { nomeDoJogo } from '../../../shared/jogos-catalogo'
 import { molduraDaSala, type PropsDaTela } from './tela'
+import { EspiaoAcusacao } from './passaejoga/EspiaoAcusacao'
 
 /**
  * A tela padrão da rodada de Espião (`ESP-07`…`ESP-15`, `ESP-17`…`ESP-21`),
@@ -40,7 +41,7 @@ import { molduraDaSala, type PropsDaTela } from './tela'
 /** A partir daqui a votação ganha busca e atalho — é o caso de 20 em 360px. */
 const MESA_GRANDE = 10
 
-export function EspiaoJogo({ projecao, enviar, aoSair, modo = 'sala' }: PropsDaTela) {
+export function EspiaoJogo({ projecao, enviar, enviarComo, aoSair, modo = 'sala' }: PropsDaTela) {
   const { sala, eu, jogadores } = projecao
   const espiao = projecao.jogo?.espiao
   const ativos = jogadores.filter((jogador) => jogador.situacao === 'ativo')
@@ -239,7 +240,7 @@ export function EspiaoJogo({ projecao, enviar, aoSair, modo = 'sala' }: PropsDaT
                 setDica(DICAS_DE_PERGUNTA[Math.floor(Math.random() * DICAS_DE_PERGUNTA.length)] ?? null)
               }
             />
-          ) : (
+          ) : modo === 'local' ? null : (
             <Votacao
               votacao={votacao}
               ativos={ativos}
@@ -323,7 +324,11 @@ export function EspiaoJogo({ projecao, enviar, aoSair, modo = 'sala' }: PropsDaT
                   motivoOculto
                   onClick={() => setConfirmandoVotacao(true)}
                 >
-                  {acabando ? 'Abrir votação agora' : 'Abrir votação'}
+                  {modo === 'local'
+                    ? 'A mesa acusou alguém'
+                    : acabando
+                      ? 'Abrir votação agora'
+                      : 'Abrir votação'}
                 </Botao>
               </div>
               {/* `VIS-04` — na tela de quem não é host esse ⋯ não aparece. */}
@@ -334,7 +339,9 @@ export function EspiaoJogo({ projecao, enviar, aoSair, modo = 'sala' }: PropsDaT
                 ? 'A mesa gastou todas as votações. No zero do relógio abre a final, e ela decide a partida.'
                 : acabando
                   ? 'No último minuto abrir agora é o esperado — o relógio abre sozinho no zero.'
-                  : 'Isso puxa a mesa toda pra tela — qualquer um pode abrir, inclusive o espião.'}
+                  : modo === 'local'
+                    ? 'Quando a roda apontar alguém, toque aqui e registre num toque só.'
+                    : 'Isso puxa a mesa toda pra tela — qualquer um pode abrir, inclusive o espião.'}
               {espiao.votacoesRestantes !== null && !semVotacoes && (
                 <>
                   {' '}
@@ -375,8 +382,38 @@ export function EspiaoJogo({ projecao, enviar, aoSair, modo = 'sala' }: PropsDaT
         )}
       </BarraDeAcao>
 
+      {/*
+        `PJ2-12` — num aparelho só não se abre urna: registra-se o que a mesa
+        já decidiu. A acusação sai como o voto de todo mundo porque foi isso
+        que aconteceu na mesa, e assim o mesmo `reduzir` de sempre apura.
+      */}
+      {modo === 'local' && (confirmandoVotacao || votacao !== undefined) && (
+        <EspiaoAcusacao
+          projecao={projecao}
+          /*
+            `ESP-49` — no zero do relógio a votação abre sozinha, sem ninguém
+            tocar em nada. Num aparelho só isso largaria a mesa dentro da urna
+            que este modo não tem; aqui vira a mesma pergunta de sempre.
+          */
+          rotuloDesistir={votacao === undefined ? 'Ainda não decidimos' : 'Não acusar ninguém'}
+          aoAcusar={(alvoId) => {
+            if (votacao === undefined) enviar({ t: 'abrirVotacao' })
+            for (const jogador of ativos) enviarComo?.(jogador.id, { t: 'votar', alvoId })
+            setConfirmandoVotacao(false)
+          }}
+          aoDesistir={() => {
+            // Com a votação já aberta pelo relógio não há pra onde voltar: a
+            // saída é a mesa dizer que não acusa ninguém, que o jogo já prevê.
+            if (votacao !== undefined) {
+              for (const jogador of ativos) enviarComo?.(jogador.id, { t: 'votar', alvoId: null })
+            }
+            setConfirmandoVotacao(false)
+          }}
+        />
+      )}
+
       {/* `ESP-11` — abrir votação é gesto público: a mesa inteira para por causa dele. */}
-      {confirmandoVotacao && (
+      {confirmandoVotacao && modo === 'sala' && (
         <Modal
           titulo="Abrir a votação?"
           descricao="Isso para o relógio e chama todo mundo pra tela. A mesa vai saber que foi você que abriu."

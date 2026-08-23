@@ -631,3 +631,46 @@ describe('a config que o modo local monta', () => {
     expect(CONFIG_PADRAO.dedo.autoVoto).toBe(false)
   })
 })
+
+describe('o relógio e o aparelho em trânsito', () => {
+  it('não cobra prazo enquanto o aparelho ainda não foi revelado a quem recebe', () => {
+    const mesa = espiaoComPrazoVencido()
+    const emTransito: MesaLocal = {
+      ...mesa,
+      passagem: { fila: ['j1', 'j2'], posicao: 0, revelado: false },
+    }
+
+    expect(cobrarPrazos(emTransito, ambiente(AGORA + 10 * 60_000))).toBe(emTransito)
+  })
+
+  it('volta a cobrar assim que quem recebeu abre a tela', () => {
+    const mesa = espiaoComPrazoVencido()
+    const naMao: MesaLocal = {
+      ...mesa,
+      passagem: { fila: ['j1', 'j2'], posicao: 0, revelado: true },
+    }
+
+    const depois = cobrarPrazos(naMao, ambiente(AGORA + 10 * 60_000))
+
+    expect(depois).not.toBe(naMao)
+  })
+
+  it('cobra normalmente quando não há volta nenhuma', () => {
+    const mesa = espiaoComPrazoVencido()
+
+    const depois = cobrarPrazos(mesa, ambiente(AGORA + 10 * 60_000))
+
+    expect(depois).not.toBe(mesa)
+  })
+})
+
+/** Uma rodada de Espião correndo, com relógio de rodada definido. */
+function espiaoComPrazoVencido(): MesaLocal {
+  let mesa = mesaDe('espiao', 3)
+  for (const jogador of mesa.sala.jogadores) {
+    mesa = passar({ ...mesa, aparelhoCom: jogador.id }, { t: 'marcarPronto', pronto: true })
+  }
+  return comecarRodada(mesa, ambiente()).ok
+    ? (comecarRodada(mesa, ambiente()) as { ok: true; valor: MesaLocal }).valor
+    : mesa
+}
