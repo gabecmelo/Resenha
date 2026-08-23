@@ -16,7 +16,7 @@ import {
   projetar,
 } from '../../passaejoga/motor'
 import { acabou, avancar, criarPassagem, deQuemE, revelar } from '../../passaejoga/passagem'
-import { donoDoAparelho, voltaDaFase } from '../../passaejoga/volta'
+import { acaoDaVolta, donoDoAparelho, voltaDaFase } from '../../passaejoga/volta'
 import { CartasEncerrada } from '../CartasEncerrada'
 import { CartasJogo } from '../CartasJogo'
 import { DedoEncerrada } from '../DedoEncerrada'
@@ -28,6 +28,7 @@ import { EspiaoEncerrada } from '../EspiaoEncerrada'
 import { EspiaoJogo } from '../EspiaoJogo'
 import { Escrita } from '../Escrita'
 import { Jogo } from '../Jogo'
+import { CartaDoVizinho } from './CartaDoVizinho'
 import { EspiaoPapel, EspiaoTodosProntos } from './EspiaoVolta'
 import { BarraDePassar, Passagem } from './Passagem'
 
@@ -252,6 +253,29 @@ export function Partida({
     }
   }
 
+  /*
+    `PJ2-07` — escreveu, e agora a mesa vê. A condição é a projeção, não um
+    estado de tela: quem está com o aparelho já tem carta entregue e alvo. Um
+    recarregamento no meio disso reabre exatamente aqui.
+  */
+  if (
+    emVolta &&
+    passagem.revelado &&
+    volta?.mostraAoAgir === true &&
+    projecao.eu.cartaQueEscrevi !== undefined
+  ) {
+    return (
+      <CartaDoVizinho
+        projecao={projecao}
+        ultimo={passagem.posicao >= passagem.fila.length - 1}
+        aoPassar={esconderEPassar}
+        aoSair={aoSair}
+      />
+    )
+  }
+
+  const acao = acaoDaVolta(volta, passagem?.posicao ?? 0, passagem?.fila.length ?? 0)
+
   return (
     <>
       <TelaDoJogo
@@ -263,8 +287,8 @@ export function Partida({
         aoComecarRodada={comecar}
       />
 
-      {emVolta && passagem.revelado && (
-        <BarraDePassar rotulo="Esconder e passar" aoPassar={esconderEPassar} />
+      {emVolta && passagem.revelado && acao !== null && (
+        <BarraDePassar rotulo={acao.rotulo} aoPassar={esconderEPassar} />
       )}
 
       {recusa !== null && <Recusa texto={recusa} aoFechar={() => setRecusa(null)} />}

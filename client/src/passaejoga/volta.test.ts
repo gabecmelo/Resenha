@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Ambiente, Config, JogadorId, Projecao } from '../../../shared/protocolo'
 import type { ComandoDeJogo } from '../../../shared/jogos/contrato'
 import { type MesaLocal, enviar, iniciar, projetar } from './motor'
-import { ativos, donoDoAparelho, voltaDaFase } from './volta'
+import { acaoDaVolta, ativos, donoDoAparelho, voltaDaFase } from './volta'
 
 const AGORA = 1_700_000_000_000
 
@@ -84,6 +84,8 @@ describe('voltaDaFase — quando o aparelho circula', () => {
       fila: ['j1', 'j2', 'j3', 'j4'],
       instrucao: 'Uma carta que ninguém mais pode ver.',
       escondeAoPassar: true,
+      mostraAoAgir: true,
+      comandoAoEsconder: { t: 'marcarPronto', pronto: true },
     })
   })
 
@@ -185,5 +187,41 @@ describe('donoDoAparelho', () => {
     const outro = roda.find((id) => id !== vezDe)!
 
     expect(donoDoAparelho(veja({ ...mesa, aparelhoCom: outro }), outro)).toBe(outro)
+  })
+})
+
+describe('acaoDaVolta — o que o rodapé oferece (`PJ2-09`, `PJ2-10`)', () => {
+  const revelacaoDoEspiao = (mesa: MesaLocal) => voltaDaFase(veja(mesa), mesa.aparelhoCom)
+
+  it('não oferece passar a ninguém na última pessoa da roda (`PJ2-09`)', () => {
+    const volta = revelacaoDoEspiao(mesaDe('espiao', 4))
+
+    expect(acaoDaVolta(volta, 3, 4)).toEqual({ rotulo: 'Esconder' })
+  })
+
+  it('oferece esconder e passar enquanto ainda há vizinho', () => {
+    const volta = revelacaoDoEspiao(mesaDe('espiao', 4))
+
+    expect([0, 1, 2].map((posicao) => acaoDaVolta(volta, posicao, 4)?.rotulo)).toEqual([
+      'Esconder e passar',
+      'Esconder e passar',
+      'Esconder e passar',
+    ])
+  })
+
+  it('cala quando a volta tem tela própria pro gesto (`PJ2-10`)', () => {
+    const escrita = voltaDaFase(veja(mesaDe('quem-sou-eu', 4)), 'j1')
+
+    expect(acaoDaVolta(escrita, 0, 4)).toBeNull()
+  })
+
+  it('cala na entrega que não volta — os Enigmas', () => {
+    const entrega = voltaDaFase(veja(mesaDe('enigmas-sinistros', 4)), 'quem-nao-narra' as JogadorId)
+
+    expect(acaoDaVolta(entrega, 0, 1)).toBeNull()
+  })
+
+  it('cala quando não há volta nenhuma', () => {
+    expect(acaoDaVolta(null, 0, 4)).toBeNull()
   })
 })

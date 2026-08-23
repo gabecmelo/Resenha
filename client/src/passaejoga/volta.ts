@@ -35,6 +35,35 @@ export interface VoltaDoAparelho {
    * relógio de começar com o celular na mão de alguém (`PJ-26`).
    */
   comandoAoEsconder?: ComandoDeJogo
+  /**
+   * `PJ2-07` — depois de agir, a volta tem uma tela própria antes de o
+   * aparelho andar: a carta escrita, à vista da mesa. Quando isso vale, a
+   * barra genérica de passar não aparece — quem manda no gesto é aquela tela,
+   * e duas ofertas na mesma hora é exatamente o que `PJ2-10` proíbe.
+   */
+  mostraAoAgir?: true
+}
+
+/**
+ * O que a barra de passar oferece nesta volta, ou `null` quando não há barra.
+ *
+ * Três motivos pra não haver: a volta acabou; a volta entrega o aparelho de vez
+ * e o toque de receber já a encerrou; ou uma tela própria daquela volta já
+ * carrega a ação.
+ *
+ * E há o quarto caso, que é o de `PJ2-09`: na última pessoa da roda não existe
+ * "e passar". Oferecer isso ali manda a mesa procurar um vizinho que não tem —
+ * o gesto que falta é esconder o que está na tela, e mais nada.
+ */
+export function acaoDaVolta(
+  volta: VoltaDoAparelho | null,
+  posicao: number,
+  total: number,
+): { rotulo: string } | null {
+  if (volta === null || total === 0) return null
+  if (!volta.escondeAoPassar) return null
+  if (volta.mostraAoAgir === true) return null
+  return posicao >= total - 1 ? { rotulo: 'Esconder' } : { rotulo: 'Esconder e passar' }
 }
 
 /**
@@ -51,6 +80,14 @@ export function voltaDaFase(projecao: Projecao, aparelhoCom: JogadorId): VoltaDo
       fila: ativos(projecao),
       instrucao: 'Uma carta que ninguém mais pode ver.',
       escondeAoPassar: true,
+      mostraAoAgir: true,
+      /*
+        Escrever e entregar são dois comandos, e quem está com o aparelho só
+        faz o primeiro: o segundo sai junto do gesto de passar adiante. Sem
+        isso a carta ficaria escrita e nunca entregue, e a roda fecharia sem
+        que a partida pudesse começar.
+      */
+      comandoAoEsconder: { t: 'marcarPronto', pronto: true },
     }
   }
 
