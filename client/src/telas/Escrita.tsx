@@ -12,7 +12,7 @@ import {
   TiraDePacotes,
 } from '../componentes'
 import { nomeDoJogo } from '../../../shared/jogos-catalogo'
-import type { PropsDaTela } from './tela'
+import { molduraDaSala, type PropsDaTela } from './tela'
 
 /**
  * Cada um escreve a carta de uma pessoa sorteada (`ESCR-02`…`ESCR-06`,
@@ -63,7 +63,7 @@ export function Escrita({ projecao, enviar, aoSair, modo = 'sala' }: PropsDaTela
 
   return (
     <Shell
-      codigo={sala.codigo}
+      {...molduraDaSala(sala.codigo)}
       titulo={nomeDoJogo(sala.jogoId)}
       faixa={
         <FaixaDeFase

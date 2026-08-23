@@ -19,7 +19,7 @@ import { useRestante } from '../estado/contagem'
 import { useBatidaDeSuspense } from '../estado/suspense'
 import { tocarSuaVez, tocarVezOutro, tocarAcertou, tocarTempoAcabando, tocarTickContagem } from '../sons'
 import { nomeDoJogo } from '../../../shared/jogos-catalogo'
-import type { PropsDaTela } from './tela'
+import { molduraDaSala, type PropsDaTela } from './tela'
 
 /**
  * O tabuleiro (`JOGO-01`, `JOGO-03`…`JOGO-11`, `DESC-01`…`DESC-07`).
@@ -128,7 +128,7 @@ export function Jogo({ projecao, enviar, aoSair, modo = 'sala' }: PropsDaTela) {
 
   return (
     <Shell
-      codigo={sala.codigo}
+      {...molduraDaSala(sala.codigo)}
       titulo={nomeDoJogo(sala.jogoId)}
       faixa={
         <FaixaDeFase

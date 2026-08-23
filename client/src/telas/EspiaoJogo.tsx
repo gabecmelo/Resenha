@@ -21,7 +21,7 @@ import { DICAS_DE_PERGUNTA } from '../estado/dicas-de-pergunta'
 import { useBatidaDeSuspense } from '../estado/suspense'
 import { tocarAcertou, tocarSuaVez, tocarTempoAcabando, tocarVezOutro } from '../sons'
 import { nomeDoJogo } from '../../../shared/jogos-catalogo'
-import type { PropsDaTela } from './tela'
+import { molduraDaSala, type PropsDaTela } from './tela'
 
 /**
  * A tela padrão da rodada de Espião (`ESP-07`…`ESP-15`, `ESP-17`…`ESP-21`),
@@ -109,7 +109,7 @@ export function EspiaoJogo({ projecao, enviar, aoSair, modo = 'sala' }: PropsDaT
 
   return (
     <Shell
-      codigo={sala.codigo}
+      {...molduraDaSala(sala.codigo)}
       titulo={nomeDoJogo(sala.jogoId)}
       faixa={
         <FaixaDeFase

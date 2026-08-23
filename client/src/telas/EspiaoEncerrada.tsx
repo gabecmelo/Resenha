@@ -15,7 +15,7 @@ import {
 import { tocarAcertou } from '../sons'
 import { useBatidaDeSuspense } from '../estado/suspense'
 import { nomeDoJogo } from '../../../shared/jogos-catalogo'
-import { DE_NOVO_NO_APARELHO, type PropsDaTela } from './tela'
+import { DE_NOVO_NO_APARELHO, molduraDaSala, type PropsDaTela } from './tela'
 
 /**
  * A revelação de Espião (`ESP-16`) — o local e todos os espiões, visível pra
@@ -54,7 +54,7 @@ export function EspiaoEncerrada({ projecao, enviar, aoSair, modo = 'sala' }: Pro
 
   return (
     <Shell
-      codigo={sala.codigo}
+      {...molduraDaSala(sala.codigo)}
       titulo={nomeDoJogo(sala.jogoId)}
       faixa={
         <FaixaDeFase

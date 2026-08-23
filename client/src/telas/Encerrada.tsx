@@ -11,7 +11,7 @@ import {
   TiraDePacotes,
 } from '../componentes'
 import { nomeDoJogo } from '../../../shared/jogos-catalogo'
-import { DE_NOVO_NO_APARELHO, type PropsDaTela } from './tela'
+import { DE_NOVO_NO_APARELHO, molduraDaSala, type PropsDaTela } from './tela'
 
 /**
  * A revelação e o convite para mais uma (`FIM-02`, `FIM-03`, `FIM-04`).
@@ -33,7 +33,7 @@ export function Encerrada({ projecao, enviar, aoSair, modo = 'sala' }: PropsDaTe
 
   return (
     <Shell
-      codigo={sala.codigo}
+      {...molduraDaSala(sala.codigo)}
       titulo={nomeDoJogo(sala.jogoId)}
       faixa={
         <FaixaDeFase selo="fim da partida" tom="tinta">
