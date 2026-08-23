@@ -84,31 +84,31 @@ O eixo desta rodada é um só: **num aparelho só, quem julga é a mesa; o apare
 
 | ID | Block | Phase | Status |
 | --- | --- | --- | --- |
-| PJ2-01 | P1: A moldura e a porta | Execute | Implementing |
-| PJ2-02 | P1: A moldura e a porta | Execute | Implementing |
-| PJ2-03 | P1: A moldura e a porta | Execute | Implementing |
-| PJ2-04 | P2: Os pacotes | Execute | Implementing |
-| PJ2-05 | P2: Os pacotes | Execute | Implementing |
-| PJ2-06 | P3: O Quem Sou Eu em telas | Execute | Implementing |
-| PJ2-07 | P3: O Quem Sou Eu em telas | Execute | Implementing |
-| PJ2-08 | P3: O Quem Sou Eu em telas | Execute | Implementing |
-| PJ2-09 | P3: O Quem Sou Eu em telas | Execute | Implementing |
-| PJ2-10 | P3: O Quem Sou Eu em telas | Execute | Implementing |
-| PJ2-11 | P4: O Espião sem urna | Execute | Implementing |
-| PJ2-12 | P4: O Espião sem urna | Execute | Implementing |
-| PJ2-13 | P4: O Espião sem urna | Execute | Implementing |
-| PJ2-14 | P4: O Espião sem urna | Execute | Implementing |
-| PJ2-15 | P4: O Espião sem urna | Execute | Implementing |
-| PJ2-16 | P5: O Dedo na Cara sem urna | Execute | Implementing |
-| PJ2-17 | P5: O Dedo na Cara sem urna | Execute | Implementing |
-| PJ2-18 | P5: O Dedo na Cara sem urna | Execute | Implementing |
-| PJ2-19 | P6: Os Enigmas | Execute | Implementing |
-| PJ2-20 | P6: Os Enigmas | Execute | Implementing |
-| PJ2-21 | P6: Os Enigmas | Execute | Implementing |
-| PJ2-22 | P7: O lobby local | Execute | Implementing |
-| PJ2-23 | P7: O lobby local | Execute | Implementing |
-| PJ2-24 | P7: O lobby local | Execute | Implementing |
-| PJ2-25 | P7: O lobby local | Execute | Implementing |
+| PJ2-01 | P1: A moldura e a porta | Execute | Verified |
+| PJ2-02 | P1: A moldura e a porta | Execute | Verified |
+| PJ2-03 | P1: A moldura e a porta | Execute | Verified |
+| PJ2-04 | P2: Os pacotes | Execute | Verified |
+| PJ2-05 | P2: Os pacotes | Execute | Verified |
+| PJ2-06 | P3: O Quem Sou Eu em telas | Execute | Verified |
+| PJ2-07 | P3: O Quem Sou Eu em telas | Execute | Verified |
+| PJ2-08 | P3: O Quem Sou Eu em telas | Execute | Verified |
+| PJ2-09 | P3: O Quem Sou Eu em telas | Execute | Verified |
+| PJ2-10 | P3: O Quem Sou Eu em telas | Execute | Verified |
+| PJ2-11 | P4: O Espião sem urna | Execute | Verified |
+| PJ2-12 | P4: O Espião sem urna | Execute | Verified |
+| PJ2-13 | P4: O Espião sem urna | Execute | Verified |
+| PJ2-14 | P4: O Espião sem urna | Execute | Verified |
+| PJ2-15 | P4: O Espião sem urna | Execute | Verified |
+| PJ2-16 | P5: O Dedo na Cara sem urna | Execute | Verified |
+| PJ2-17 | P5: O Dedo na Cara sem urna | Execute | Verified |
+| PJ2-18 | P5: O Dedo na Cara sem urna | Execute | Verified |
+| PJ2-19 | P6: Os Enigmas | Execute | Verified |
+| PJ2-20 | P6: Os Enigmas | Execute | Verified |
+| PJ2-21 | P6: Os Enigmas | Execute | Verified |
+| PJ2-22 | P7: O lobby local | Execute | Verified |
+| PJ2-23 | P7: O lobby local | Execute | Verified |
+| PJ2-24 | P7: O lobby local | Execute | Verified |
+| PJ2-25 | P7: O lobby local | Execute | Verified |
 
 **Status values:** Pending → In Design → In Tasks → Implementing → Verified
 

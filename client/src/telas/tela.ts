@@ -21,10 +21,13 @@ export interface PropsDaTela {
    * tela fala precisa ser nomeada, porque quem segura o celular muda a cada
    * toque.
    *
-   * **Limite:** se uma tela passar de dois ramos de `modo`, ela se parte em
-   * duas em vez de acumular condicionais. Duas telas honestas são melhores que
-   * uma que finge ser uma só. Estourar o limite sem partir exige exceção
-   * nomeada no `STATE.md` — hoje só o `EspiaoJogo` tem uma (`AD-018`).
+   * **Limite (`AD-018`):** contam os ramos que decidem **estrutura** — escolher
+   * só a cópia não conta. Passou de dois, primeiro unifique a decisão espalhada
+   * num componente; só se sobrarem mais de duas decisões de verdade a tela se
+   * parte. Duas telas honestas são melhores que uma que finge ser uma só — mas
+   * duas cópias da mesma leitura da projeção são piores que as duas coisas.
+   * Estourar sem unificar nem partir exige exceção nomeada no `STATE.md`: hoje
+   * só o `EspiaoJogo` tem uma.
    */
   modo?: 'sala' | 'local'
   /**
