@@ -23,7 +23,8 @@ export interface PropsDaTela {
    *
    * **Limite:** se uma tela passar de dois ramos de `modo`, ela se parte em
    * duas em vez de acumular condicionais. Duas telas honestas são melhores que
-   * uma que finge ser uma só.
+   * uma que finge ser uma só. Estourar o limite sem partir exige exceção
+   * nomeada no `STATE.md` — hoje só o `EspiaoJogo` tem uma (`AD-018`).
    */
   modo?: 'sala' | 'local'
   /**

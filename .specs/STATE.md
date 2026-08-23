@@ -139,6 +139,14 @@
 - **Date**: 2026-08-20
 - **Status**: active
 
+### AD-018
+- **Decision**: o limite de “no máximo dois ramos de `modo` por tela” (`tela.ts`, `PropsDaTela.modo`) ganha uma **exceção nomeada**: `client/src/telas/EspiaoJogo.tsx`, hoje com seis ramos. A regra passa a valer assim — quando uma tela estoura o limite, ou ela se parte em duas, **ou** a exceção entra aqui com o motivo. Estourar em silêncio, não.
+- **Reason**: a regra existe pra impedir que uma tela finja ser uma só sendo duas. No Espião ela não descreve o que está acontecendo: as duas metades compartilham papéis, relógio, dica de pergunta, resultado, chute do espião, placar e menu de host — ~80% de uma tela de 868 linhas. O que difere entre sala e mesa são quatro ramos estruturais (o painel do papel, a urna, a tela de acusação, o menu) e dois de cópia. Partir produziria duas telas 80% idênticas, e cópia que diverge na primeira correção de texto é exatamente o defeito que a extração do `FimDaPartida` e do `PainelDaResenha` foi curar nesta mesma rodada.
+- **Trade-off**: a tela mais complexa do projeto fica com seis ramos de `modo`, e quem mexer nela precisa pensar nos dois modos ao mesmo tempo — que é o custo que o limite queria evitar. Em troca, a regra deixa de ser burlada por refatoração cerimonial. O caminho de saída, se o Espião crescer mais, não é partir a tela: é extrair os blocos compartilhados pra módulos, como já foi feito com o painel e com o fim de partida, até o que sobra caber em duas telas honestas.
+- **Scope**: `client/src/telas/tela.ts`, `client/src/telas/EspiaoJogo.tsx`.
+- **Date**: 2026-08-23
+- **Status**: active
+
 ## Handoff
 
 - **Feature `passa-e-joga`: as 23 tasks implementadas; falta o Verifier.** Modo de um aparelho só, passando de mão em mão numa festa. Branch **`feat/passa-e-joga`**, ramificada de `main` em `de88520`. Spec com 35 requisitos `PJ-01`…`PJ-35` (todos `Implementing`), `design.md`, e `tasks.md` com as 23 tasks marcadas concluídas.
