@@ -156,3 +156,42 @@ describe('sortearOpcoesPorJogador (PKT-11, PKT-13, PKT-28)', () => {
     expect(segundo).toEqual(primeiro)
   })
 })
+
+describe("sortearAlvos — pares na ordem da roda (`PJ2-06`)", () => {
+  it('liga cada um ao vizinho seguinte, fechando o círculo', () => {
+    const jogadores = ids(4)
+
+    const alvos = sortearAlvos(jogadores, fonteFixa(42), 'roda')
+
+    expect(alvos).toEqual({ j1: 'j2', j2: 'j3', j3: 'j4', j4: 'j1' })
+  })
+
+  it('não consulta a fonte de aleatoriedade — a ordem já veio decidida', () => {
+    let consultas = 0
+
+    sortearAlvos(ids(5), () => {
+      consultas += 1
+      return 0.5
+    }, 'roda')
+
+    expect(consultas).toBe(0)
+  })
+
+  it('continua sem ponto fixo: ninguém escreve a própria carta', () => {
+    const jogadores = ids(6)
+
+    const alvos = sortearAlvos(jogadores, fonteFixa(1), 'roda')
+
+    expect(jogadores.filter((id) => alvos[id] === id)).toEqual([])
+  })
+
+  it('o padrão continua sendo o sorteio de sempre — o online não muda', () => {
+    const jogadores = ids(6)
+
+    const semDizer = sortearAlvos(jogadores, fonteFixa(42))
+    const dizendoSorteados = sortearAlvos(jogadores, fonteFixa(42), 'sorteados')
+
+    expect(semDizer).toEqual(dizendoSorteados)
+    expect(semDizer).not.toEqual(sortearAlvos(jogadores, fonteFixa(42), 'roda'))
+  })
+})

@@ -17,8 +17,12 @@ import type { JogadorId } from '../../protocolo'
 export function sortearAlvos(
   ids: readonly JogadorId[],
   aleatorio: () => number,
+  pares: 'sorteados' | 'roda' = 'sorteados',
 ): Record<JogadorId, JogadorId> {
-  const ciclo = embaralhar(ids, aleatorio)
+  // `PJ2-06` — em `'roda'` o ciclo **é** a ordem recebida. A propriedade que
+  // importa é a mesma nos dois casos: um ciclo único de tamanho ≥ 2 não tem
+  // ponto fixo, então ninguém escreve a própria carta em nenhum dos modos.
+  const ciclo = pares === 'roda' ? [...ids] : embaralhar(ids, aleatorio)
 
   const atribuicoes: Record<JogadorId, JogadorId> = {}
   for (let i = 0; i < ciclo.length; i += 1) {

@@ -347,10 +347,21 @@ function configLocal(parcial: Partial<Config>): Config {
     ...CONFIG_PADRAO,
     ...parcial,
     ordemTurnos: 'entrada',
+    // `PJ2-06` — cada um escreve a carta de quem vai receber o aparelho. É o
+    // que mantém a passagem entre vizinhos: com pares sorteados o celular
+    // atravessaria a mesa a cada carta escrita.
+    paresDeEscrita: 'roda',
     espiao: { ...CONFIG_PADRAO.espiao, ...parcial.espiao, visibilidadeVoto: 'oculta' },
     enigmas: { ...CONFIG_PADRAO.enigmas, ...parcial.enigmas, modoPergunta: 'voz' },
     cartas: { ...CONFIG_PADRAO.cartas, ...parcial.cartas },
-    dedo: { ...CONFIG_PADRAO.dedo, ...parcial.dedo, votacao: 'aberta' },
+    /*
+      `PJ2-16` — num aparelho só ninguém aponta pra si mesmo, porque ninguém
+      aponta: a mesa diz quem levou a carta e o aparelho registra. Como esse
+      registro sai em nome de todo mundo, quem levou também consta — e sem
+      `autoVoto` o comando em nome dele seria recusado e a rodada nunca
+      fecharia. A opção não aparece no formulário local (`PJ-09`).
+    */
+    dedo: { ...CONFIG_PADRAO.dedo, ...parcial.dedo, votacao: 'aberta', autoVoto: true },
   }
 }
 

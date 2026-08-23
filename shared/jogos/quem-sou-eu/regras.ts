@@ -124,6 +124,7 @@ export function iniciarRodada(
   estado.atribuicoes = sortearAlvos(
     ativos.map((j) => j.id),
     ambiente.aleatorio,
+    ctx.config.paresDeEscrita,
   )
 
   if (pacotes && pool !== null) {

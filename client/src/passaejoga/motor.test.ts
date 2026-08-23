@@ -599,3 +599,35 @@ describe('encerrar e jogar de novo', () => {
     expect(mesa.sala.fase).toBe('jogo')
   })
 })
+
+describe('a config que o modo local monta', () => {
+  it('faz cada um escrever a carta do vizinho seguinte na roda (`PJ2-06`)', () => {
+    const mesa = mesaDe('quem-sou-eu', 4)
+
+    const alvos = mesa.sala.jogadores.map((jogador) => {
+      const projecao = projetar({ ...mesa, aparelhoCom: jogador.id })
+      return [jogador.id, projecao.eu.alvo?.id]
+    })
+
+    expect(alvos).toEqual([
+      ['j1', 'j2'],
+      ['j2', 'j3'],
+      ['j3', 'j4'],
+      ['j4', 'j1'],
+    ])
+  })
+
+  it('deixa o Dedo registrar quem levou mesmo em nome de quem levou (`PJ2-16`)', () => {
+    let mesa = mesaDe('dedo-na-cara', 4)
+
+    for (const jogador of mesa.sala.jogadores) {
+      mesa = passar({ ...mesa, aparelhoCom: jogador.id }, { t: 'apontar', alvoId: 'j2' })
+    }
+
+    expect(projetar(mesa).jogo?.dedo?.vencedor?.id).toBe('j2')
+  })
+
+  it('não leva `autoVoto` ligado pro padrão do produto', () => {
+    expect(CONFIG_PADRAO.dedo.autoVoto).toBe(false)
+  })
+})
