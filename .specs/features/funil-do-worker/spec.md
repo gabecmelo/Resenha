@@ -61,16 +61,16 @@ no caminho do jogo — enquanto `writeDataPoint` é `void` e não bloqueia nada.
 
 | ID | Fase | Status |
 | --- | --- | --- |
-| FUN-01 | Execute | Implementing |
-| FUN-02 | Execute | Implementing |
-| FUN-03 | Execute | Implementing |
-| FUN-04 | Execute | Implementing |
-| FUN-05 | Execute | Implementing |
-| FUN-06 | Execute | Implementing |
-| FUN-07 | Execute | Implementing |
-| FUN-08 | Execute | Implementing |
-| FUN-11 | Execute | Implementing |
-| FUN-09 | Execute | Implementing |
-| FUN-10 | Execute | Implementing |
+| FUN-01 | Execute | Verified |
+| FUN-02 | Execute | Verified |
+| FUN-03 | Execute | Verified |
+| FUN-04 | Execute | Verified |
+| FUN-05 | Execute | Verified |
+| FUN-06 | Execute | Verified |
+| FUN-07 | Execute | Verified |
+| FUN-08 | Execute | Verified |
+| FUN-11 | Execute | Verified |
+| FUN-09 | Execute | Verified |
+| FUN-10 | Execute | Verified |
 
 **Status values:** Pending → In Design → In Tasks → Implementing → Verified

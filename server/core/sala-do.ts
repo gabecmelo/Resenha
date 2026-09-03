@@ -240,9 +240,17 @@ export class SalaDeJogo {
       // `FUN-11` — este caminho não chega ao `confirmar`: a sala é apagada e
       // a fase nunca vira `encerrada`. Sem contar aqui, a mesa que abandonou
       // no meio da partida ficaria invisível — e abandono é justamente o que
-      // se quer medir num lançamento. Depois do `expirar`, pelo mesmo motivo
-      // que `sala_criada` vem depois do `persistir`: conta-se o que virou
-      // fato.
+      // se quer medir num lançamento.
+      //
+      // A ordem em relação ao `expirar` **não importa** hoje, e o teste de
+      // mutação confirma: trocar as duas linhas não quebra nada. Fica depois
+      // por leitura, não por garantia — se um dia `expirar` puder falhar de
+      // um jeito que deixe a sala viva, aí passa a importar.
+      //
+      // `faseAntes` em vez de `sala.fase` também é defesa, não necessidade:
+      // `expirar` não mexe na fase em memória. É o mesmo hábito do
+      // `webSocketMessage`, onde a captura antecipada **é** o que faz o funil
+      // enxergar a transição.
       const abandono = eventoDaExpiracao(faseAntes, sala)
       if (abandono !== null) registrar(this.env, abandono, this.ctx.id.toString())
       return
