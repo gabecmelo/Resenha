@@ -58,15 +58,15 @@ no caminho do jogo — enquanto `writeDataPoint` é `void` e não bloqueia nada.
 
 | ID | Fase | Status |
 | --- | --- | --- |
-| FUN-01 | Execute | Pending |
-| FUN-02 | Execute | Pending |
-| FUN-03 | Execute | Pending |
-| FUN-04 | Execute | Pending |
-| FUN-05 | Execute | Pending |
-| FUN-06 | Execute | Pending |
-| FUN-07 | Execute | Pending |
-| FUN-08 | Execute | Pending |
-| FUN-09 | Execute | Pending |
-| FUN-10 | Execute | Pending |
+| FUN-01 | Execute | Implementing |
+| FUN-02 | Execute | Implementing |
+| FUN-03 | Execute | Implementing |
+| FUN-04 | Execute | Implementing |
+| FUN-05 | Execute | Implementing |
+| FUN-06 | Execute | Implementing |
+| FUN-07 | Execute | Implementing |
+| FUN-08 | Execute | Parcial — só produção; o ambiente `beta` não existe na `main` |
+| FUN-09 | Execute | Implementing |
+| FUN-10 | Execute | Implementing |
 
 **Status values:** Pending → In Design → In Tasks → Implementing → Verified
