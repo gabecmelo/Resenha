@@ -1,6 +1,6 @@
 import { SELF, env, runInDurableObject } from 'cloudflare:test'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import type { Comando, EstadoSala, Mensagem } from '../../shared/protocolo'
+import type { Comando, EstadoSala, Fase, Mensagem } from '../../shared/protocolo'
 import { carregar, salvar } from './estado'
 
 /**
@@ -64,8 +64,28 @@ async function abrir(codigo: string): Promise<Cliente> {
   return { ws, recebidas }
 }
 
-async function assentar(): Promise<void> {
-  for (let i = 0; i < 30; i += 1) await new Promise((pronto) => setTimeout(pronto, 1))
+/**
+ * Janela fixa é flaky: o `confirmar` busca o catálogo de pacotes em todo lobby
+ * (`CCT-31`), com KV e imports dinâmicos, e 30 ticks não bastam sob carga.
+ * Mesma assinatura do `index.integration.test.ts`: com condição, espera até ela
+ * valer; sem, mantém a janela curta pros casos em que não há o que esperar.
+ */
+async function assentar(pronto?: () => boolean): Promise<void> {
+  const tentativas = pronto === undefined ? 30 : 400
+  for (let i = 0; i < tentativas; i += 1) {
+    if (pronto?.() === true) return
+    await new Promise((resolver) => setTimeout(resolver, 1))
+  }
+}
+
+/** A última projeção que este cliente recebeu — o sinal de que o comando voltou. */
+function visto(cliente: Cliente) {
+  const ultima = cliente.recebidas.filter((m) => m.t === 'projecao').at(-1)
+  return ultima?.t === 'projecao' ? ultima.dados : undefined
+}
+
+function faseVista(cliente: Cliente): Fase | undefined {
+  return visto(cliente)?.sala.fase
 }
 
 function mandar(cliente: Cliente, comando: Comando): void {
@@ -75,7 +95,7 @@ function mandar(cliente: Cliente, comando: Comando): void {
 async function entrar(codigo: string, apelido: string): Promise<Cliente> {
   const cliente = await abrir(codigo)
   mandar(cliente, { t: 'entrar', apelido })
-  await assentar()
+  await assentar(() => cliente.recebidas.some((m) => m.t === 'entrou'))
   if (!cliente.recebidas.some((m) => m.t === 'entrou')) {
     throw new Error(`não entrou: ${JSON.stringify(cliente.recebidas)}`)
   }
@@ -88,15 +108,22 @@ async function entrar(codigo: string, apelido: string): Promise<Cliente> {
  */
 async function jogarAte(ana: Cliente, bruno: Cliente): Promise<void> {
   mandar(ana, { t: 'iniciar' })
-  await assentar()
+  await assentar(() => faseVista(ana) === 'escrita' && faseVista(bruno) === 'escrita')
+
   mandar(ana, { t: 'escreverCarta', texto: 'girafa' })
   mandar(bruno, { t: 'escreverCarta', texto: 'pinguim' })
-  await assentar()
+  await assentar(
+    () =>
+      visto(ana)?.eu.cartaQueEscrevi !== undefined &&
+      visto(bruno)?.eu.cartaQueEscrevi !== undefined,
+  )
+
   mandar(ana, { t: 'marcarPronto', pronto: true })
   mandar(bruno, { t: 'marcarPronto', pronto: true })
-  await assentar()
+  await assentar(() => visto(ana)?.eu.pronto === true && visto(bruno)?.eu.pronto === true)
+
   mandar(ana, { t: 'comecar' })
-  await assentar()
+  await assentar(() => faseVista(ana) === 'jogo')
 }
 
 /** Mesma técnica do `expiracao.integration.test.ts`: envelhece o prazo e
