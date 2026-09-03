@@ -31,10 +31,6 @@ export function FimDaPartida({
       <Botao larguraTotal variante="secundario" onClick={aoVoltarAoLobby}>
         Voltar ao lobby da mesa
       </Botao>
-      <p className="text-apoio text-texto-3">
-        {DE_NOVO_NO_APARELHO.explicacao} No lobby dá pra trocar de jogo, de pacote e de regra — os
-        nomes continuam lá.
-      </p>
     </>
   )
 }
