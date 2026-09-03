@@ -20,7 +20,7 @@ import { useRestante } from '../estado/contagem'
 import { useBatidaDeSuspense } from '../estado/suspense'
 import { tocarAcertou, tocarClique, tocarSuaVez, tocarTempoAcabando, tocarVezOutro } from '../sons'
 import { nomeDoJogo } from '../../../shared/jogos-catalogo'
-import type { PropsDaTela } from './tela'
+import { molduraDaSala, type PropsDaTela } from './tela'
 
 /**
  * A tela da rodada de Cartas Contra a Turma (`CCT-04`…`CCT-14`).
@@ -113,7 +113,7 @@ export function CartasJogo({ projecao, enviar, aoSair }: PropsDaTela) {
 
   return (
     <Shell
-      codigo={sala.codigo}
+      {...molduraDaSala(sala.codigo)}
       titulo={nomeDoJogo(sala.jogoId)}
       faixa={
         <FaixaDeFase

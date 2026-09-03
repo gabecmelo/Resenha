@@ -6,7 +6,7 @@ import {
 } from 'cloudflare:test'
 import { describe, expect, it } from 'vitest'
 import type { Comando, EstadoSala, Mensagem, Projecao } from '../../shared/protocolo'
-import type { EstadoQuemSouEu } from '../games/quem-sou-eu/regras'
+import type { EstadoQuemSouEu } from '../../shared/jogos/quem-sou-eu/regras'
 import { CHAT_MAX_POR_JANELA } from './chat'
 import { carregar, salvar } from './estado'
 import { MIGRACAO_HOST_MS } from './sala-do'

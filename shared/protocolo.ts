@@ -290,6 +290,18 @@ export const JANELA_DE_REVELACAO_MS = 10_000
 export interface Config {
   /** `CFG-01` */
   ordemTurnos: 'sorteada' | 'entrada'
+  /**
+   * `PJ2-06` — quem escreve a carta de quem.
+   *
+   * `'sorteados'` embaralha antes de fechar o ciclo, que é o certo quando cada
+   * um está no próprio aparelho: escrever pra alguém do outro lado da chamada
+   * custa o mesmo que pro vizinho.
+   *
+   * `'roda'` mantém o ciclo na ordem recebida — cada um escreve a carta de
+   * quem está do lado. Num aparelho só isso não é enfeite: é o que faz o
+   * celular andar de vizinho pra vizinho em vez de atravessar a mesa.
+   */
+  paresDeEscrita: 'sorteados' | 'roda'
   /** `CFG-03`, `JOGO-08` — `null` significa "sem limite". */
   tempoTurnoSeg: number | null
   /** `PKT-01` */
@@ -311,6 +323,7 @@ export interface Config {
 /** Padrões de uma sala recém-criada (`CFG-05`). */
 export const CONFIG_PADRAO: Config = {
   ordemTurnos: 'sorteada',
+  paresDeEscrita: 'sorteados',
   tempoTurnoSeg: null,
   modoPacote: 'livre',
   pacoteIds: [],

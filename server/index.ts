@@ -4,7 +4,7 @@ import { gerarCodigo, normalizarCodigo } from './core/codigo'
 import { codigoDoCaminho, paginaDeConvite } from './convite'
 import { limiteDeEntrada } from './core/roster'
 import { SalaDeJogo } from './core/sala-do'
-import { REGISTRO_DE_JOGOS } from './games/registro'
+import { REGISTRO_DE_JOGOS } from '../shared/jogos/registro'
 
 /**
  * Ponto único onde o jogo entra na sala (AD-002, AD-013): a casca genérica

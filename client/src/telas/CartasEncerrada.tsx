@@ -12,7 +12,7 @@ import {
 } from '../componentes'
 import { tocarAcertou } from '../sons'
 import { nomeDoJogo } from '../../../shared/jogos-catalogo'
-import type { PropsDaTela } from './tela'
+import { molduraDaSala, type PropsDaTela } from './tela'
 
 /**
  * O placar final (`CCT-29`, `CCT-30`) — visível pra todo mundo, inclusive pra
@@ -41,7 +41,7 @@ export function CartasEncerrada({ projecao, enviar, aoSair }: PropsDaTela) {
 
   return (
     <Shell
-      codigo={sala.codigo}
+      {...molduraDaSala(sala.codigo)}
       titulo={nomeDoJogo(sala.jogoId)}
       faixa={
         <FaixaDeFase

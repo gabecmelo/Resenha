@@ -3,16 +3,16 @@ import {
   BlocoDeNotas,
   Botao,
   Carta,
-  Chat,
   ConviteDeApoio,
   FaixaDeFase,
   MarcadorDeJogador,
-  PainelRecolhivel,
+  PainelDaResenha,
   Shell,
   TiraDePacotes,
 } from '../componentes'
 import { nomeDoJogo } from '../../../shared/jogos-catalogo'
-import type { PropsDaTela } from './tela'
+import { molduraDaSala, type PropsDaTela } from './tela'
+import { FimDaPartida } from './passaejoga/FimDaPartida'
 
 /**
  * A revelação e o convite para mais uma (`FIM-02`, `FIM-03`, `FIM-04`).
@@ -24,7 +24,7 @@ import type { PropsDaTela } from './tela'
  * escreveu o quê**.
  */
 
-export function Encerrada({ projecao, enviar, aoSair }: PropsDaTela) {
+export function Encerrada({ projecao, enviar, aoSair, aoVoltarAoLobby, modo = 'sala' }: PropsDaTela) {
   const { sala, eu, jogadores } = projecao
   const ativos = jogadores.filter((jogador) => jogador.situacao === 'ativo')
   const aguardando = jogadores.filter((jogador) => jogador.situacao === 'aguardando')
@@ -34,7 +34,7 @@ export function Encerrada({ projecao, enviar, aoSair }: PropsDaTela) {
 
   return (
     <Shell
-      codigo={sala.codigo}
+      {...molduraDaSala(sala.codigo)}
       titulo={nomeDoJogo(sala.jogoId)}
       faixa={
         <FaixaDeFase selo="fim da partida" tom="tinta">
@@ -93,18 +93,14 @@ export function Encerrada({ projecao, enviar, aoSair }: PropsDaTela) {
 
           <div className="flex flex-col gap-3 lg:hidden">
             <BlocoDeNotas texto={eu.notas} aoMudar={(texto) => enviar({ t: 'notas', texto })} />
-            <PainelRecolhivel rotulo="resenha" contagem={projecao.chat.length}>
-              <Chat mensagens={projecao.chat} aoEnviar={(texto) => enviar({ t: 'chat', texto })} />
-            </PainelRecolhivel>
+            <PainelDaResenha projecao={projecao} enviar={enviar} modo={modo} />
           </div>
         </div>
 
         <div className="hidden flex-col gap-3 lg:flex">
           {/* `NOTA-01` — o bloco continua disponível até a próxima partida limpar tudo. */}
           <BlocoDeNotas texto={eu.notas} aoMudar={(texto) => enviar({ t: 'notas', texto })} />
-          <PainelRecolhivel rotulo="resenha" contagem={projecao.chat.length}>
-            <Chat mensagens={projecao.chat} aoEnviar={(texto) => enviar({ t: 'chat', texto })} />
-          </PainelRecolhivel>
+          <PainelDaResenha projecao={projecao} enviar={enviar} modo={modo} />
         </div>
       </div>
 
@@ -113,18 +109,29 @@ export function Encerrada({ projecao, enviar, aoSair }: PropsDaTela) {
         {eu.ehHost ? (
           <>
             {/*
-              Um botão só: voltar ao lobby *é* começar outra partida. De lá a
-              mesa decide se muda as regras, troca de jogo ou só começa de novo.
+              Na sala, um botão só: voltar ao lobby *é* começar outra partida,
+              e de lá a mesa muda as regras ou troca de jogo. Num aparelho só
+              os dois gestos se separam, porque o caminho curto — a mesma mesa
+              jogando de novo na hora — é o que a turma quer quase sempre.
             */}
-            <Botao larguraTotal onClick={() => enviar({ t: 'novaPartida' })}>
-              {aguardando.length > 0
-                ? `Voltar ao lobby com ${ativos.length + aguardando.length}`
-                : 'Voltar ao lobby'}
-            </Botao>
-            <p className="text-apoio text-texto-3">
-              Mesma mesa, ninguém precisa entrar de novo. No lobby você escolhe as regras da
-              próxima ou troca de jogo — e as anotações desta partida somem.
-            </p>
+            {modo === 'local' ? (
+              <FimDaPartida
+                aoJogarDeNovo={() => enviar({ t: 'novaPartida' })}
+                aoVoltarAoLobby={() => aoVoltarAoLobby?.()}
+              />
+            ) : (
+              <>
+                <Botao larguraTotal onClick={() => enviar({ t: 'novaPartida' })}>
+                  {aguardando.length > 0
+                    ? `Voltar ao lobby com ${ativos.length + aguardando.length}`
+                    : 'Voltar ao lobby'}
+                </Botao>
+                <p className="text-apoio text-texto-3">
+                  Mesma mesa, ninguém precisa entrar de novo. No lobby você escolhe as regras da
+                  próxima ou troca de jogo — e as anotações desta partida somem.
+                </p>
+              </>
+            )}
           </>
         ) : (
           <div className="flex items-center gap-2.5">

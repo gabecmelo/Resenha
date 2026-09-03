@@ -4,16 +4,15 @@ import {
   BlocoDeNotas,
   Botao,
   CampoDeTexto,
-  Chat,
   FaixaDeFase,
   MarcadorDeJogador,
   Modal,
-  PainelRecolhivel,
+  PainelDaResenha,
   Shell,
   TiraDePacotes,
 } from '../componentes'
 import { nomeDoJogo } from '../../../shared/jogos-catalogo'
-import type { PropsDaTela } from './tela'
+import { molduraDaSala, type PropsDaTela } from './tela'
 
 /**
  * Cada um escreve a carta de uma pessoa sorteada (`ESCR-02`…`ESCR-06`,
@@ -30,7 +29,7 @@ import type { PropsDaTela } from './tela'
 /** `ESCR-03` */
 const CARTA_MAX = 60
 
-export function Escrita({ projecao, enviar, aoSair }: PropsDaTela) {
+export function Escrita({ projecao, enviar, aoSair, modo = 'sala' }: PropsDaTela) {
   const { sala, eu, jogadores } = projecao
   const prontos = projecao.jogo?.prontos ?? 0
   const total = projecao.jogo?.total ?? 0
@@ -64,7 +63,7 @@ export function Escrita({ projecao, enviar, aoSair }: PropsDaTela) {
 
   return (
     <Shell
-      codigo={sala.codigo}
+      {...molduraDaSala(sala.codigo)}
       titulo={nomeDoJogo(sala.jogoId)}
       faixa={
         <FaixaDeFase
@@ -135,22 +134,19 @@ export function Escrita({ projecao, enviar, aoSair }: PropsDaTela) {
 
           <div className="flex flex-col gap-3 lg:hidden">
             <BlocoDeNotas texto={eu.notas} aoMudar={(texto) => enviar({ t: 'notas', texto })} />
-            <PainelRecolhivel rotulo="resenha" contagem={projecao.chat.length}>
-              <Chat mensagens={projecao.chat} aoEnviar={(texto) => enviar({ t: 'chat', texto })} />
-            </PainelRecolhivel>
+            <PainelDaResenha projecao={projecao} enviar={enviar} modo={modo} />
           </div>
         </div>
 
         <div className="hidden flex-col gap-3 lg:flex">
           {/* `NOTA-01` — o bloco já existe na escrita. */}
           <BlocoDeNotas texto={eu.notas} aoMudar={(texto) => enviar({ t: 'notas', texto })} />
-          <PainelRecolhivel rotulo="resenha" contagem={projecao.chat.length}>
-            <Chat mensagens={projecao.chat} aoEnviar={(texto) => enviar({ t: 'chat', texto })} />
-          </PainelRecolhivel>
+          <PainelDaResenha projecao={projecao} enviar={enviar} modo={modo} />
         </div>
       </div>
 
       <AcoesDaFase
+        local={modo === 'local'}
         souHost={eu.ehHost}
         apelidoDoHost={host?.apelido}
         souJogador={eu.situacao === 'ativo' && eu.alvo !== undefined}
@@ -375,6 +371,7 @@ function Coluna({
  * nem apagada.
  */
 function AcoesDaFase({
+  local,
   souHost,
   apelidoDoHost,
   souJogador,
@@ -389,6 +386,7 @@ function AcoesDaFase({
   aoDesmarcar,
   enviar,
 }: {
+  local: boolean
   souHost: boolean
   apelidoDoHost: string | undefined
   souJogador: boolean
@@ -420,6 +418,7 @@ function AcoesDaFase({
       )}
 
       {souJogador &&
+        !(local && pronto) &&
         (pronto ? (
           <>
             <Botao larguraTotal variante="secundario" onClick={aoDesmarcar}>
@@ -445,7 +444,21 @@ function AcoesDaFase({
           </Botao>
         ))}
 
-      {souHost ? (
+      {/*
+        `PJ2-10` — num aparelho só o rodapé oferece a ação daquela tela e mais
+        nada. `ehHost` acompanha quem está com o celular, então sem este ramo os
+        dois controles de host se empilhavam por cima do botão do jogador — e um
+        deles apaga todas as cartas, a um toque de quem está no meio da volta.
+        Enquanto a roda escreve a ação é entregar a carta; quando a roda fecha, é
+        começar. Sair continua no canto da moldura.
+      */}
+      {local ? (
+        todosProntos && (
+          <Botao larguraTotal onClick={() => enviar({ t: 'comecar' })}>
+            Começar a partida
+          </Botao>
+        )
+      ) : souHost ? (
         <>
           <Botao
             larguraTotal

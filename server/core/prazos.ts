@@ -1,32 +1,13 @@
-import type { EstadoSala, TipoPrazo } from '../../shared/protocolo'
+import type { EstadoSala } from '../../shared/protocolo'
+import { menorPrazo } from '../../shared/jogos/prazos'
 
 /**
- * Agendador de prazos da sala (AD-010).
- *
- * Um Durable Object admite um único alarme e `setAlarm()` preserva apenas a
- * chamada mais recente. Por isso os quatro prazos da sala são guardados no
- * documento e multiplexados aqui: quem agenda o alarme lê sempre `menorPrazo`,
- * e definir um prazo nunca cancela os outros.
+ * O que sobrou do agendador aqui: o alarme (AD-010). O resto — definir, ver o
+ * que venceu, achar o menor prazo — é aritmética pura e mora em
+ * `shared/jogos/prazos.ts`, porque o motor local do Passa e Joga também conta
+ * o tempo e não tem alarme nenhum pra chamar (AD-017).
  */
-export const TIPOS_DE_PRAZO: readonly TipoPrazo[] = [
-  'turno',
-  'migracaoHost',
-  'salaVazia',
-  'salaOciosa',
-]
-
-/** Define (ou limpa, com `null`) um prazo, sem tocar nos demais. */
-export function definir(estado: EstadoSala, tipo: TipoPrazo, quando: number | null): void {
-  estado.prazos[tipo] = quando
-}
-
-/** Prazos ativos cujo vencimento já chegou. */
-export function vencidos(estado: EstadoSala, agora: number): TipoPrazo[] {
-  return TIPOS_DE_PRAZO.filter((tipo) => {
-    const quando = estado.prazos[tipo]
-    return quando !== null && quando <= agora
-  })
-}
+export { TIPOS_DE_PRAZO, definir, menorPrazo, vencidos } from '../../shared/jogos/prazos'
 
 /**
  * Folga entre o prazo e o alarme que o cobra.
@@ -57,15 +38,4 @@ export async function reagendar(
     return
   }
   await storage.setAlarm(proximo + FOLGA_DO_ALARME_MS)
-}
-
-/** Próximo vencimento entre os prazos ativos, ou `null` quando não há nenhum. */
-export function menorPrazo(estado: EstadoSala): number | null {
-  let menor: number | null = null
-  for (const tipo of TIPOS_DE_PRAZO) {
-    const quando = estado.prazos[tipo]
-    if (quando === null) continue
-    if (menor === null || quando < menor) menor = quando
-  }
-  return menor
 }

@@ -74,6 +74,24 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: ESP-22 vs spec.md Out-of-Scope table (specs)
 - last seen: 2026-08-13T22:22:44Z
 
+### L-011 — Decisao de comportamento que um AC cobra nao mora em funcao nao exportada dentro de arquivo .tsx: extraia para modulo puro e importe na tela, senao o AC fica sem caminho ate uma assercao
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `client/telas` · harmful: 0
+- features: passa-e-joga
+- evidence: validation.md — PJ-21, PJ-22, PJ-24, PJ-29, PJ-30 em client/src/telas/passaejoga/Partida.tsx:376-475 (voltaDaFase, donoDoAparelho nao exportadas) (client/telas)
+- last seen: 2026-08-21T18:59:55Z
+
+### L-012 — Quando duas camadas trancam o mesmo invariante, asserte cada tranca com uma entrada que so ela consegue barrar, senao a segunda vira codigo sem cobertura
+- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `client/passaejoga` · harmful: 0
+- features: passa-e-joga
+- evidence: validation.md sensor M7 — client/src/passaejoga/guarda.ts:95 (client/passaejoga)
+- last seen: 2026-08-21T19:00:04Z
+
+### L-013 — Ao registrar uma decisao do dono na tabela de premissas, reescreva os ACs que diziam o contrario no mesmo commit: dois ACs em desacordo deixam o verificador sem resultado esperado
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `spec` · harmful: 0
+- features: passa-e-joga
+- evidence: validation.md — PJ-10 contradiz PJ-07 e a tabela de premissas sobre a ordem de circulacao (spec)
+- last seen: 2026-08-21T19:00:05Z
+
 ## Quarantined (failed when applied — ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.

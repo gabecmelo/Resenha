@@ -6,6 +6,7 @@ import {
   Chat,
   FaixaDeFase,
   MarcadorDeJogador,
+  Contagem,
   Modal,
   PainelRecolhivel,
   Shell,
@@ -13,7 +14,7 @@ import {
 } from '../componentes'
 import { tocarAcertou, tocarClique, tocarSuaVez } from '../sons'
 import { nomeDoJogo } from '../../../shared/jogos-catalogo'
-import type { PropsDaTela } from './tela'
+import { molduraDaSala, type PropsDaTela } from './tela'
 
 /**
  * A tela do Dedo na Cara (`DEDO-03`…`DEDO-17`).
@@ -31,8 +32,16 @@ import type { PropsDaTela } from './tela'
  * Nada aqui decide quem levou a carta nem esconde dedo nenhum: numa sala
  * secreta o alvo dos outros nem chega na projeção (`AD-008`, `DEDO-08`).
  */
-export function DedoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
+export function DedoJogo({ projecao, enviar, enviarComo, aoSair, modo = 'sala' }: PropsDaTela) {
   const { sala, eu, jogadores } = projecao
+  /*
+    `PJ-22` — num aparelho só a tela não fala com "você": ela fala com a mesa,
+    e a mesa precisa saber de quem é o dedo agora. Quem segura o celular muda a
+    cada toque, então o nome tem que estar escrito.
+  */
+  const local = modo === 'local'
+  const [confirmandoLevou, setConfirmandoLevou] = useState<JogadorId | null>(null)
+  const [contando, setContando] = useState(false)
   const dedo = projecao.jogo?.dedo
   const [menuDeHost, setMenuDeHost] = useState(false)
   const [confirmandoEncerrar, setConfirmandoEncerrar] = useState(false)
@@ -57,14 +66,32 @@ export function DedoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
   const souEspectador = eu.situacao !== 'ativo'
   const faltam = Math.max(0, dedo.quantosDevemVotar - dedo.quantosVotaram)
 
+  /*
+    `PJ2-17` — num aparelho só ninguém aponta: a mesa já apontou, com o dedo
+    mesmo, e o celular registra quem levou. Por isso o toque abre uma
+    confirmação em vez de virar voto na hora — um dedo torto na lista de nomes
+    não pode entregar a carta pra pessoa errada.
+
+    O registro sai em nome de todo mundo porque foi isso que aconteceu na
+    mesa: dedo unânime. O `reduzir` de sempre apura e fecha a rodada.
+  */
   const apontar = (alvoId: JogadorId) => {
     tocarClique()
-    enviar({ t: 'apontar', alvoId })
+    if (!local) {
+      enviar({ t: 'apontar', alvoId })
+      return
+    }
+    setConfirmandoLevou(alvoId)
+  }
+
+  const registrarQuemLevou = (alvoId: JogadorId) => {
+    for (const jogador of ativos) enviarComo?.(jogador.id, { t: 'apontar', alvoId })
+    setConfirmandoLevou(null)
   }
 
   return (
     <Shell
-      codigo={sala.codigo}
+      {...molduraDaSala(sala.codigo)}
       titulo={nomeDoJogo(sala.jogoId)}
       faixa={
         <FaixaDeFase
@@ -79,13 +106,15 @@ export function DedoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
               : dedo.vencedor?.id === eu.id
                 ? `Foi você, com ${contarDedos(dedo.vencedor.votos)}. Boa sorte se explicando.`
                 : `${dedo.vencedor?.apelido} levou a carta com ${contarDedos(dedo.vencedor?.votos ?? 0)}.`
-            : souEspectador
-              ? 'Você entrou no meio — assista esta e entra na próxima partida.'
-              : dedo.meuVoto === null
-                ? 'Aponte pra alguém. A contagem fecha quando o último apontar.'
-                : faltam === 0
-                  ? 'Todos apontaram. Contando os dedos…'
-                  : `Seu dedo está de pé. ${faltam === 1 ? 'Falta 1' : `Faltam ${faltam}`}.`}
+            : local
+              ? 'Contem até três e apontem. Depois toque em quem levou.'
+              : souEspectador
+                ? 'Você entrou no meio — assista esta e entra na próxima partida.'
+                : dedo.meuVoto === null
+                  ? 'Aponte pra alguém. A contagem fecha quando o último apontar.'
+                  : faltam === 0
+                    ? 'Todos apontaram. Contando os dedos…'
+                    : `Seu dedo está de pé. ${faltam === 1 ? 'Falta 1' : `Faltam ${faltam}`}.`}
         </FaixaDeFase>
       }
       aoSair={aoSair}
@@ -101,22 +130,19 @@ export function DedoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
             ativos={ativos}
             euId={eu.id}
             podeApontar={!apurando && !souEspectador}
+            local={local}
             aoApontar={apontar}
           />
 
           <div className="flex flex-col gap-4 lg:hidden">
             <Placar dedo={dedo} euId={eu.id} jogadores={jogadores} />
-            <PainelRecolhivel rotulo="resenha" contagem={projecao.chat.length}>
-              <Chat mensagens={projecao.chat} aoEnviar={(texto) => enviar({ t: 'chat', texto })} />
-            </PainelRecolhivel>
+            <Resenha projecao={projecao} enviar={enviar} local={local} />
           </div>
         </div>
 
         <div className="hidden flex-col gap-4 lg:flex">
           <Placar dedo={dedo} euId={eu.id} jogadores={jogadores} />
-          <PainelRecolhivel rotulo="resenha" contagem={projecao.chat.length}>
-            <Chat mensagens={projecao.chat} aoEnviar={(texto) => enviar({ t: 'chat', texto })} />
-          </PainelRecolhivel>
+          <Resenha projecao={projecao} enviar={enviar} local={local} />
         </div>
       </div>
 
@@ -133,7 +159,7 @@ export function DedoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
                 larguraTotal
                 motivo={souEspectador ? 'Você entra na próxima partida.' : undefined}
                 motivoOculto
-                onClick={() => enviar({ t: 'proximaCarta' })}
+                onClick={() => (local ? setContando(true) : enviar({ t: 'proximaCarta' }))}
               >
                 Próxima carta
               </Botao>
@@ -144,6 +170,11 @@ export function DedoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
                 <>
                   <strong className="font-semibold text-texto">Você está de fora.</strong> A mesa
                   está apontando.
+                </>
+              ) : local ? (
+                <>
+                  <strong className="font-semibold text-texto">Os dedos são de verdade.</strong>{' '}
+                  Contem juntos e apontem; o celular só guarda quem levou.
                 </>
               ) : dedo.votacao === 'secreta' ? (
                 <>
@@ -162,6 +193,28 @@ export function DedoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
           {eu.ehHost && <BotaoDeMenu aoAbrir={() => setMenuDeHost(true)} />}
         </div>
       </BarraDeAcao>
+
+      {/* `PJ2-17` — quem levou a carta, confirmado antes de virar placar. */}
+      {confirmandoLevou !== null && (
+        <Modal
+          titulo={`${nomeDe(ativos, confirmandoLevou)} levou essa?`}
+          descricao="A mesa já apontou; isto só registra. Vira ponto e fecha a rodada."
+          rotuloConfirmar="Foi ele mesmo"
+          rotuloCancelar="Voltar"
+          aoConfirmar={() => registrarQuemLevou(confirmandoLevou)}
+          aoCancelar={() => setConfirmandoLevou(null)}
+        />
+      )}
+
+      {/* `PJ2-18` — a batida que junta os olhos da mesa antes da carta nova. */}
+      {contando && (
+        <Contagem
+          aoTerminar={() => {
+            setContando(false)
+            enviar({ t: 'proximaCarta' })
+          }}
+        />
+      )}
 
       {menuDeHost && (
         <Modal
@@ -201,6 +254,33 @@ export function DedoJogo({ projecao, enviar, aoSair }: PropsDaTela) {
   )
 }
 
+/** O apelido de quem tem esse id, ou uma frase que não mente. */
+function nomeDe(jogadores: Projecao['jogadores'], id: JogadorId): string {
+  return jogadores.find((jogador) => jogador.id === id)?.apelido ?? 'essa pessoa'
+}
+
+/**
+ * A conversa da sala. Num aparelho só ela não existe: a mesa está na mesma
+ * sala, e um campo de recado que ninguém do outro lado vai ler é pior que
+ * campo nenhum (`PJ-21`).
+ */
+function Resenha({
+  projecao,
+  enviar,
+  local,
+}: {
+  projecao: Projecao
+  enviar: PropsDaTela['enviar']
+  local: boolean
+}) {
+  if (local) return null
+  return (
+    <PainelRecolhivel rotulo="resenha" contagem={projecao.chat.length}>
+      <Chat mensagens={projecao.chat} aoEnviar={(texto) => enviar({ t: 'chat', texto })} />
+    </PainelRecolhivel>
+  )
+}
+
 function contarDedos(quantos: number): string {
   return `${quantos} ${quantos === 1 ? 'dedo' : 'dedos'}`
 }
@@ -227,12 +307,15 @@ function AMesa({
   ativos,
   euId,
   podeApontar,
+  local,
   aoApontar,
 }: {
   dedo: ProjecaoDedo
   ativos: Projecao['jogadores']
   euId: JogadorId
   podeApontar: boolean
+  /** Num aparelho só a lista não é urna: é onde se registra quem a mesa apontou. */
+  local: boolean
   aoApontar(alvoId: JogadorId): void
 }) {
   const apurando = dedo.fase === 'apuracao'
@@ -255,7 +338,9 @@ function AMesa({
             ? dedo.empatou
               ? 'empate — ninguém pontuou'
               : 'contagem fechada'
-            : `${dedo.quantosVotaram} de ${dedo.quantosDevemVotar} apontaram`}
+            : local
+              ? 'toque em quem levou'
+              : `${dedo.quantosVotaram} de ${dedo.quantosDevemVotar} apontaram`}
         </span>
       </div>
 
@@ -333,9 +418,18 @@ function AMesa({
 
       {!apurando && (
         <p className="text-apoio leading-snug text-texto-3">
-          Trocar o dedo de lugar é permitido até a contagem fechar. Leva a carta quem tiver{' '}
-          <strong className="font-semibold text-texto">mais dedos que qualquer outro</strong> —
-          empatou no topo, ninguém pontua.
+          {local ? (
+            <>
+              Os dedos sobem na mesa, não na tela. Quem levou mais dedos que qualquer outro fica com
+              a carta — <strong className="font-semibold text-texto">toque no nome dele</strong>.
+            </>
+          ) : (
+            <>
+              Trocar o dedo de lugar é permitido até a contagem fechar. Leva a carta quem tiver{' '}
+              <strong className="font-semibold text-texto">mais dedos que qualquer outro</strong> —
+              empatou no topo, ninguém pontua.
+            </>
+          )}
         </p>
       )}
     </section>

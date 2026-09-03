@@ -22,6 +22,16 @@ Dois pacotes são de humor negro e vêm desligados, com aviso na tela: quem liga
 
 Cada sala aguenta até 20 pessoas. Funciona com a turma junta no sofá, cada um com o celular na mão, e funciona igual com todo mundo em chamada de vídeo.
 
+## [Passa e Joga](https://resenha.dev.br/passa-e-joga): um celular só
+
+Numa festa, oito pessoas entrando num link custa mais tempo do que a primeira rodada. O **Passa e Joga** é o segundo caminho: um aparelho só, passando de mão em mão. Quem organiza diz quem vai jogar e começa — ninguém entra em link, ninguém digita código.
+
+Quando a rodada tem segredo (o papel do Espião, a carta que você escreve, o voto), a tela nomeia quem deve estar com o aparelho e não monta nada do conteúdo até essa pessoa tocar. Fora disso o celular fica parado na mesa, servindo de relógio e painel.
+
+Quatro dos cinco jogos cabem: Quem Sou Eu?, Espião, Enigmas Sinistros e Dedo na Cara. Cartas Contra a Turma fica de fora porque lá cada pessoa segura seis cartas privadas o tempo inteiro, e não só num instante da rodada.
+
+A partida roda **inteira dentro do navegador**, sem sala e sem servidor — dá para jogar do começo ao fim sem sinal — e é guardada no próprio aparelho, então um toque errado no "voltar" não custa a partida.
+
 ## Como foi feito
 
 Um **Cloudflare Worker** serve o app e faz a ponte para os **Durable Objects** — um por sala, que é o dono de toda a verdade do jogo. O cliente não decide nada: manda comando, recebe projeção. Isso torna trapaça um problema de servidor, não de confiança no navegador, e faz a reconexão ser trivial — quem cai volta e recebe o estado inteiro.
@@ -30,19 +40,22 @@ Os WebSockets usam a **Hibernation API**: uma sala parada não consome tempo de 
 
 ```
 client/   React 19 + Vite + Tailwind v4
+  passaejoga/  o motor local do modo de um aparelho só
 server/
   core/     sala, roster, chat, prazos — não conhece jogo nenhum
-  games/    cada jogo é um módulo com regras e projeção próprias
 shared/   protocolo e conteúdo que os dois lados leem
+  jogos/    cada jogo é um módulo com regras e projeção próprias
 ```
 
-A regra que segura a arquitetura: **`core/` nunca importa de `games/`**. Um jogo novo é uma pasta em `games/` mais uma linha no registro — nada no núcleo muda. Foi assim que o segundo, o terceiro e o quarto jogo entraram.
+Os jogos moram em `shared/` porque os dois lados os executam: o Durable Object na sala online e o navegador no Passa e Joga. São funções puras, com relógio e sorteio injetados — morar em `server/` era convenção, não necessidade. Uma regra, uma implementação: a que valeu na sala vale na festa.
 
-**898 testes** (810 unitários e 88 de integração rodando no `workerd` de verdade, com Durable Objects reais) rodam no CI a cada push, junto de typecheck e lint.
+A regra que segura a arquitetura: **`core/` nunca importa jogo nenhum**. Ele recebe o registro por injeção, e um jogo novo é uma pasta em `shared/jogos/` mais uma linha nesse registro — nada no núcleo muda. Foi assim que o segundo, o terceiro e o quarto jogo entraram.
+
+**1099 testes** (1011 unitários e 88 de integração rodando no `workerd` de verdade, com Durable Objects reais) rodam no CI a cada push, junto de typecheck e lint.
 
 ### As páginas de cada jogo
 
-As páginas de `/espiao`, `/quem-sou-eu` e companhia são HTML estático gerado no build, e não rotas do app — porque o fallback de SPA da Cloudflare só responde a requisições de navegação, e raspador de link não manda o cabeçalho que dispara isso. O texto sai do mesmo módulo que alimenta o "como jogar" dentro do jogo, para os dois nunca discordarem.
+As páginas de `/espiao`, `/quem-sou-eu`, `/passa-e-joga` e companhia são HTML estático gerado no build, e não rotas do app — porque o fallback de SPA da Cloudflare só responde a requisições de navegação, e raspador de link não manda o cabeçalho que dispara isso. O texto sai do mesmo módulo que alimenta o "como jogar" dentro do jogo, para os dois nunca discordarem.
 
 ![A página do Espião, com a explicação de como jogar](docs/pagina-espiao.png)
 

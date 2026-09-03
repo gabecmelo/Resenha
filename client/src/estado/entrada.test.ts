@@ -6,6 +6,7 @@ import {
   codigoDaUrl,
   jogoDaUrl,
   limiteDigitado,
+  modoDaUrl,
   linkDeConvite,
   motivoParaCriar,
   motivoParaEntrar,
@@ -232,5 +233,26 @@ describe('jogoDaUrl', () => {
     // Sem nenhum "em breve" no catálogo não há o que afirmar; o caso volta a
     // ser coberto assim que um for anunciado.
     if (emBreve !== undefined) expect(jogoDaUrl(`?jogo=${emBreve.id}`)).toBeNull()
+  })
+})
+
+describe('modoDaUrl', () => {
+  it('reconhece o endereço do Passa e Joga (`PJ-05`)', () => {
+    expect(modoDaUrl('?modo=passa-e-joga')).toBe('passa-e-joga')
+  })
+
+  it('aceita a busca com outros parâmetros junto', () => {
+    expect(modoDaUrl('?ref=instagram&modo=passa-e-joga')).toBe('passa-e-joga')
+  })
+
+  it('devolve null sem o parâmetro', () => {
+    expect(modoDaUrl('')).toBeNull()
+    expect(modoDaUrl('?jogo=espiao')).toBeNull()
+  })
+
+  it('ignora qualquer outro valor de modo', () => {
+    expect(modoDaUrl('?modo=')).toBeNull()
+    expect(modoDaUrl('?modo=sala')).toBeNull()
+    expect(modoDaUrl('?modo=passa-e-joga-x')).toBeNull()
   })
 })

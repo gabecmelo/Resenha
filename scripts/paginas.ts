@@ -22,7 +22,12 @@
  */
 import type { Plugin } from 'vite'
 import { nomeDoJogo } from '../shared/jogos-catalogo'
-import { CONTEUDO_DOS_JOGOS, type ConteudoDoJogo } from '../shared/jogos-conteudo'
+import {
+  CONTEUDO_DOS_JOGOS,
+  CONTEUDO_DO_PASSA_E_JOGA,
+  type ConteudoDeModo,
+  type ConteudoDoJogo,
+} from '../shared/jogos-conteudo'
 
 /** `&` primeiro, senão ele reescapa o que os outros acabaram de produzir. */
 function escapar(texto: string): string {
@@ -221,14 +226,33 @@ const LOGO =
   '<rect x="13.5" y="16.5" width="28" height="36" rx="4" fill="var(--superficie)" stroke="currentColor" stroke-width="3.5" transform="rotate(-8 27 34)"/>' +
   '</svg>'
 
-function dadosEstruturados(conteudo: ConteudoDoJogo, origem: string): string {
-  const nome = nomeDoJogo(conteudo.jogoId)
+/**
+ * Uma página indexável já resolvida: o conteúdo mais o que só quem chama sabe.
+ *
+ * Página de jogo e página de modo são o mesmo documento — mesma folha, mesmos
+ * blocos, mesmo rodapé. O que muda é o nome que a trilha usa, para onde o botão
+ * leva e o que ele promete: "abra uma sala e mande o código" seria mentira numa
+ * página cujo assunto é justamente não ter código nenhum.
+ */
+interface PaginaIndexavel extends ConteudoDeModo {
+  /** Como a trilha e os botões chamam esta página. */
+  nome: string
+  /** O que ela é para o schema.org: um jogo, ou uma página sobre um modo. */
+  tipo: 'VideoGame' | 'WebPage'
+  /** Para onde os dois botões levam dentro do app. */
+  destino: string
+  /** Os dois botões: o mesmo destino, dito de dois jeitos, e a linha de baixo. */
+  botao: { abrir: string; jogar: string; abaixo: string }
+}
+
+function dadosEstruturados(conteudo: PaginaIndexavel, origem: string): string {
+  const nome = conteudo.nome
   const url = `${origem}/${conteudo.slug}`
 
   const blocos: unknown[] = [
     {
       '@context': 'https://schema.org',
-      '@type': 'VideoGame',
+      '@type': conteudo.tipo,
       name: `${nome} — Resenha`,
       url,
       description: conteudo.descricao,
@@ -278,8 +302,44 @@ function dadosEstruturados(conteudo: ConteudoDoJogo, origem: string): string {
     .join('\n    ')
 }
 
+/** A página de um jogo: o nome e o destino saem do catálogo (`AD-013`). */
 export function paginaDoJogo(conteudo: ConteudoDoJogo, origem: string): string {
-  const nome = nomeDoJogo(conteudo.jogoId)
+  return pagina(
+    {
+      ...conteudo,
+      nome: nomeDoJogo(conteudo.jogoId),
+      tipo: 'VideoGame',
+      destino: `/?jogo=${conteudo.jogoId}`,
+      botao: {
+        abrir: `Abrir uma sala de ${nomeDoJogo(conteudo.jogoId)}`,
+        jogar: `Jogar ${nomeDoJogo(conteudo.jogoId)}`,
+        abaixo: 'crie a sala e mande o código de 5 letras',
+      },
+    },
+    origem,
+  )
+}
+
+/** `PJ-05` — a página do modo de um aparelho só, que não tem sala nem código. */
+export function paginaDoPassaEJoga(origem: string): string {
+  return pagina(
+    {
+      ...CONTEUDO_DO_PASSA_E_JOGA,
+      nome: 'Passa e Joga',
+      tipo: 'WebPage',
+      destino: '/?modo=passa-e-joga',
+      botao: {
+        abrir: 'Jogar num celular só',
+        jogar: 'Começar num celular só',
+        abaixo: 'sem link, sem código, sem cadastro',
+      },
+    },
+    origem,
+  )
+}
+
+function pagina(conteudo: PaginaIndexavel, origem: string): string {
+  const nome = conteudo.nome
   const url = `${origem}/${conteudo.slug}`
   const outros = CONTEUDO_DOS_JOGOS.filter((outro) => outro.slug !== conteudo.slug)
 
@@ -361,7 +421,7 @@ export function paginaDoJogo(conteudo: ConteudoDoJogo, origem: string): string {
         <p>${escapar(conteudo.contexto)}</p>
 
         <div class="cta">
-          <a href="/?jogo=${conteudo.jogoId}">Abrir uma sala de ${escapar(nome)}</a>
+          <a href="${conteudo.destino}">${escapar(conteudo.botao.abrir)}</a>
           <p class="abaixo">sem cadastro · sem instalar nada</p>
         </div>
 
@@ -375,14 +435,14 @@ ${passos}
 ${faq}
         </dl>
 
-        <h2>Os outros jogos da mesa</h2>
+        <h2>${conteudo.tipo === 'VideoGame' ? 'Os outros jogos da mesa' : 'Os jogos da mesa'}</h2>
         <ul class="outros">
 ${lista}
         </ul>
 
         <div class="cta">
-          <a href="/?jogo=${conteudo.jogoId}">Jogar ${escapar(nome)}</a>
-          <p class="abaixo">crie a sala e mande o código de 5 letras</p>
+          <a href="${conteudo.destino}">${escapar(conteudo.botao.jogar)}</a>
+          <p class="abaixo">${escapar(conteudo.botao.abaixo)}</p>
         </div>
       </main>
 
@@ -404,6 +464,8 @@ export function sitemap(origem: string, hoje: string): string {
       loc: `${origem}/${conteudo.slug}`,
       prioridade: '0.8',
     })),
+    // `PJ-05` — o modo tem endereço próprio, na mesma prioridade dos jogos.
+    [{ loc: `${origem}/${CONTEUDO_DO_PASSA_E_JOGA.slug}`, prioridade: '0.8' }],
   )
 
   const corpo = enderecos
@@ -436,6 +498,11 @@ export function paginasDeJogo(origem: string): Plugin {
       }
       this.emitFile({
         type: 'asset',
+        fileName: `${CONTEUDO_DO_PASSA_E_JOGA.slug}.html`,
+        source: paginaDoPassaEJoga(origem),
+      })
+      this.emitFile({
+        type: 'asset',
         fileName: 'sitemap.xml',
         source: sitemap(origem, hoje()),
       })
@@ -465,6 +532,13 @@ export function paginasDeJogo(origem: string): Plugin {
         if (caminho === 'sitemap.xml') {
           saida.setHeader('Content-Type', 'application/xml; charset=utf-8')
           saida.end(sitemap(origem, hoje()))
+          return
+        }
+
+        const modo = CONTEUDO_DO_PASSA_E_JOGA.slug
+        if (caminho === modo || caminho === `${modo}.html`) {
+          saida.setHeader('Content-Type', 'text/html; charset=utf-8')
+          saida.end(paginaDoPassaEJoga(origem))
           return
         }
 

@@ -1,6 +1,6 @@
-import { useMemo, useState, useEffect } from 'react'
+import { Suspense, lazy, useMemo, useState, useEffect } from 'react'
 import { ProvedorDeConexao, useConexao } from './estado/conexao'
-import { caminhoDaSala, codigoDaUrl } from './estado/entrada'
+import { caminhoDaSala, codigoDaUrl, modoDaUrl } from './estado/entrada'
 import { criarSessao, reentradaAutomatica } from './estado/sessao'
 import { CartasEncerrada } from './telas/CartasEncerrada'
 import { CartasJogo } from './telas/CartasJogo'
@@ -34,6 +34,18 @@ import { Lobby } from './telas/Lobby'
  * por qualquer caminho, escreve o endereço dela aqui.
  */
 
+/**
+ * `PJ-05` — o Passa e Joga entra sob demanda.
+ *
+ * Cinco jogos, o motor local e todo o conteúdo (cartas, enigmas, locais) num
+ * pacote só deixariam a tela inicial mais lenta pra quem só quer criar sala.
+ * O `import()` corta esse peso do pacote principal: ele só desce quando
+ * alguém abre o modo.
+ */
+const PassaEJoga = lazy(() =>
+  import('./telas/passaejoga/PassaEJoga').then((modulo) => ({ default: modulo.PassaEJoga })),
+)
+
 interface Tentativa {
   codigo: string
   apelido: string
@@ -45,6 +57,11 @@ import { inicializarAudio } from './sons';
 export function App() {
   useEffect(() => { const handleFirstClick = () => { inicializarAudio(); document.removeEventListener('click', handleFirstClick); }; document.addEventListener('click', handleFirstClick); return () => document.removeEventListener('click', handleFirstClick); }, []);
   const codigoDoLink = useMemo(() => codigoDaUrl(window.location.pathname), [])
+  // Lido uma vez, na montagem: daí em diante quem manda é o estado, como no
+  // resto do app — não há histórico de navegação a percorrer.
+  const [noPassaEJoga, setNoPassaEJoga] = useState(
+    () => modoDaUrl(window.location.search) === 'passa-e-joga',
+  )
   const [tentativa, setTentativa] = useState<Tentativa | null>(() => {
     const volta = reentradaAutomatica(codigoDoLink, criarSessao())
     return volta === null ? null : { ...volta, numero: 0 }
@@ -58,6 +75,19 @@ export function App() {
   const desistir = () => {
     irPara(caminhoDaSala(null))
     setTentativa(null)
+  }
+
+  if (noPassaEJoga) {
+    return (
+      <Suspense fallback={<Abrindo />}>
+        <PassaEJoga
+          aoSair={() => {
+            window.history.replaceState(null, '', caminhoDaSala(null))
+            setNoPassaEJoga(false)
+          }}
+        />
+      </Suspense>
+    )
   }
 
   if (tentativa === null) {
@@ -81,6 +111,15 @@ export function App() {
     >
       <Sala tentativa={tentativa} aoDesistir={desistir} aoEntrar={entrar} />
     </ProvedorDeConexao>
+  )
+}
+
+/** O piscar entre tocar em "Jogar num celular só" e o modo chegar. */
+function Abrindo() {
+  return (
+    <div className="flex min-h-dvh items-center justify-center bg-fundo">
+      <span className="font-mono text-rotulo text-texto-3 uppercase">abrindo a mesa…</span>
+    </div>
   )
 }
 
