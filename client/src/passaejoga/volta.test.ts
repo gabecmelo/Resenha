@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Ambiente, Config, JogadorId, Projecao } from '../../../shared/protocolo'
 import type { ComandoDeJogo } from '../../../shared/jogos/contrato'
 import { type MesaLocal, enviar, iniciar, projetar } from './motor'
-import { acaoDaVolta, ativos, donoDoAparelho, voltaDaFase } from './volta'
+import { acaoDaVolta, aparelhoParaMostrar, ativos, voltaDaFase } from './volta'
 
 const AGORA = 1_700_000_000_000
 
@@ -177,44 +177,42 @@ describe('voltaDaFase — quando o aparelho circula', () => {
   })
 })
 
-describe('donoDoAparelho', () => {
-  it('não move o aparelho no Dedo na Cara — a mesa aponta com o dedo (`PJ2-16`)', () => {
-    const mesa = mesaDe('dedo-na-cara', 4)
-
-    const depoisDoPrimeiro = passar(mesa, { t: 'apontar', alvoId: 'j2' })
-
-    expect(donoDoAparelho(veja(depoisDoPrimeiro), 'j1')).toBe('j1')
-  })
-
-  it('não move o aparelho nas fases em que ninguém deve um gesto', () => {
-    const mesa = mesaDe('quem-sou-eu', 4)
-
-    expect(donoDoAparelho(veja(mesa), 'j1')).toBe('j1')
-  })
-
-  it('tira o aparelho de quem está na vez no Quem Sou Eu — a carta é dela (`PJ-30`)', () => {
+describe('aparelhoParaMostrar — abrir a carta de quem está com o celular (`QSE-04`)', () => {
+  it('não move nada pra ver a carta de outra pessoa — ela já está na projeção', () => {
     const mesa = quemSouEuEmJogo(4)
-    const vezDe = veja(mesa).jogo!.vezDe!
+    const outro = ativos(veja(mesa)).find((id) => id !== mesa.aparelhoCom)!
 
-    expect(donoDoAparelho(veja(mesa), vezDe)).not.toBe(vezDe)
+    expect(aparelhoParaMostrar(veja(mesa), mesa.aparelhoCom, outro)).toBeNull()
   })
 
-  it('entrega o aparelho ao vizinho seguinte da roda, não a um qualquer (`PJ-30`)', () => {
+  it('entrega o aparelho ao vizinho seguinte pra abrir a carta de quem o segura', () => {
     const mesa = quemSouEuEmJogo(4)
     const roda = ativos(veja(mesa))
-    const vezDe = veja(mesa).jogo!.vezDe!
+    const portador = mesa.aparelhoCom
 
-    const vizinho = roda[(roda.indexOf(vezDe) + 1) % roda.length]
-    expect(donoDoAparelho(veja(mesa), vezDe)).toBe(vizinho)
+    const vizinho = roda[(roda.indexOf(portador) + 1) % roda.length]
+    expect(aparelhoParaMostrar(veja(mesa), portador, portador)).toBe(vizinho)
   })
 
-  it('deixa o aparelho parado com quem não está na vez (`PJ-30`)', () => {
+  it('depois de mover, a carta do antigo portador existe na projeção', () => {
     const mesa = quemSouEuEmJogo(4)
-    const roda = ativos(veja(mesa))
-    const vezDe = veja(mesa).jogo!.vezDe!
-    const outro = roda.find((id) => id !== vezDe)!
+    const portador = mesa.aparelhoCom
 
-    expect(donoDoAparelho(veja({ ...mesa, aparelhoCom: outro }), outro)).toBe(outro)
+    const antes = veja(mesa).jogadores.find((jogador) => jogador.id === portador)!
+    expect(antes.carta).toBeUndefined()
+
+    const proximo = aparelhoParaMostrar(veja(mesa), portador, portador)!
+    const depois = veja({ ...mesa, aparelhoCom: proximo }).jogadores.find(
+      (jogador) => jogador.id === portador,
+    )!
+    expect(depois.carta).toBeDefined()
+  })
+
+  it('não tem pra quem passar numa roda de um', () => {
+    const mesa = quemSouEuEmJogo(2)
+    const so = { ...mesa, sala: { ...mesa.sala, jogadores: mesa.sala.jogadores.slice(0, 1) } }
+
+    expect(aparelhoParaMostrar(veja(so), so.aparelhoCom, so.aparelhoCom)).toBeNull()
   })
 })
 

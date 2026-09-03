@@ -747,12 +747,15 @@ function Regras({
           aoAbrir={abrir('ordem')}
         />
       )}
-      <LinhaDeRegra
-        rotulo="Tempo por turno"
-        dica="Tempo máximo que um jogador tem pra adivinhar a carta na sua vez."
-        valor={rotuloDoTempo(config.tempoTurnoSeg)}
-        aoAbrir={abrir('tempo')}
-      />
+      {/* `QSE-07` — num aparelho só não há vez pra cronometrar. */}
+      {!local && (
+        <LinhaDeRegra
+          rotulo="Tempo por turno"
+          dica="Tempo máximo que um jogador tem pra adivinhar a carta na sua vez."
+          valor={rotuloDoTempo(config.tempoTurnoSeg)}
+          aoAbrir={abrir('tempo')}
+        />
+      )}
 
       {config.modoPacote === 'personalizado' && (
         <div className="pacote-fantasma mt-3.5">
