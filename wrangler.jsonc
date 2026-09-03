@@ -28,6 +28,19 @@
     }
   ],
 
+  // O funil (`FUN-08`). O dataset nasce no primeiro `writeDataPoint` — não há
+  // nada a provisionar antes, e nenhum id a colar aqui.
+  //
+  // Quem clona o repo e roda sem este binding joga igual: `registrar()` sai
+  // calada quando `env.FUNIL` não existe (`FUN-07`). Isso também é o que faz o
+  // ambiente de teste não precisar de dataset nenhum.
+  "analytics_engine_datasets": [
+    {
+      "binding": "FUNIL",
+      "dataset": "resenha_funil"
+    }
+  ],
+
   // ATENÇÃO: `new_sqlite_classes` é obrigatório e imutável. Trocar por
   // `new_classes` cria o namespace com o storage legado de chave-valor, que é
   // irreversível e indisponível no plano free — exigiria recriar o namespace
