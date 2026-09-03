@@ -27,6 +27,11 @@ export type EventoDeFunil =
   | { t: 'jogador_entrou'; jogoId: string; ordem: number }
   | { t: 'partida_iniciada'; jogoId: string; jogadores: number }
   | { t: 'partida_encerrada'; jogoId: string; jogadores: number }
+  /** `FUN-11` — a mesa que parou de jogar e deixou a sala morrer de
+   *  inatividade. Não é a mesma coisa que encerrar, e não dá pra deduzir por
+   *  subtração: `iniciada − encerrada` também conta as salas que ainda estão
+   *  em jogo na hora da consulta. */
+  | { t: 'partida_abandonada'; jogoId: string; jogadores: number }
 
 /**
  * O que a mudança de fase conta (`FUN-03`, `FUN-04`).
@@ -55,6 +60,25 @@ export function eventoDaTransicao(
 }
 
 /**
+ * A sala que morreu de inatividade (`FUN-11`).
+ *
+ * Este caminho **não passa pela mudança de fase**: `expirar()` apaga o
+ * documento e volta, sem nunca marcar `encerrada`. Por isso ele tem função
+ * própria em vez de cair no `eventoDaTransicao` — não há transição nenhuma
+ * pra ler.
+ *
+ * Só conta se havia partida em andamento. Lobby que expira nunca virou mesa,
+ * e isso já se vê em `sala_criada` sem `partida_iniciada` depois.
+ */
+export function eventoDaExpiracao(
+  fase: Fase,
+  sala: { jogoId: string; jogadores: readonly unknown[] },
+): EventoDeFunil | null {
+  if (fase !== 'escrita' && fase !== 'jogo') return null
+  return { t: 'partida_abandonada', jogoId: sala.jogoId, jogadores: sala.jogadores.length }
+}
+
+/**
  * O ponto como o Analytics Engine o guarda.
  *
  * O formato é rígido — `blob1..20`, `double1..20`, `index1` — e a consulta SQL
@@ -78,7 +102,13 @@ export function pontoDoFunil(evento: EventoDeFunil, salaId: string): AnalyticsEn
  *  a coluna passa a significar coisas diferentes conforme a linha. */
 function quantidadeDe(evento: EventoDeFunil): number {
   if (evento.t === 'jogador_entrou') return evento.ordem
-  if (evento.t === 'partida_iniciada' || evento.t === 'partida_encerrada') return evento.jogadores
+  if (
+    evento.t === 'partida_iniciada' ||
+    evento.t === 'partida_encerrada' ||
+    evento.t === 'partida_abandonada'
+  ) {
+    return evento.jogadores
+  }
   return 0
 }
 

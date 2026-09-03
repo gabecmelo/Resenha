@@ -14,7 +14,7 @@ import { aceitar, desvincular, difundir, enviar, jogadorDe, socketsDe, vincular 
 import { type JogoDaSala, avisar, despachar } from './despacho'
 import { carregar, destruir, salvar } from './estado'
 import { definir, reagendar, vencidos } from './prazos'
-import { eventoDaTransicao, registrar } from './funil'
+import { eventoDaExpiracao, eventoDaTransicao, registrar } from './funil'
 import { entrar, migrarHost, reconectar } from './roster'
 
 /** `HOST-04` — tempo de desconexão do host antes da migração automática. */
@@ -237,6 +237,14 @@ export class SalaDeJogo {
     // `CONN-07`, `CONN-08` — expirar encerra a sala; nada mais importa depois.
     if (devidos.includes('salaVazia') || devidos.includes('salaOciosa')) {
       await this.expirar()
+      // `FUN-11` — este caminho não chega ao `confirmar`: a sala é apagada e
+      // a fase nunca vira `encerrada`. Sem contar aqui, a mesa que abandonou
+      // no meio da partida ficaria invisível — e abandono é justamente o que
+      // se quer medir num lançamento. Depois do `expirar`, pelo mesmo motivo
+      // que `sala_criada` vem depois do `persistir`: conta-se o que virou
+      // fato.
+      const abandono = eventoDaExpiracao(faseAntes, sala)
+      if (abandono !== null) registrar(this.env, abandono, this.ctx.id.toString())
       return
     }
 

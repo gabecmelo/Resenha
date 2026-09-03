@@ -12,6 +12,8 @@ puro (T2), e a escrita nasce tolerante a binding ausente (T3).
 - [x] **T4** `FUN-01`, `FUN-02` — engancha `sala_criada` em `criar()` e `jogador_entrou` em `entrarNaSala()`.
 - [x] **T5** `FUN-03`, `FUN-04` — engancha as transições de fase no `webSocketMessage`, comparando a fase antes e depois do `despachar`.
 - [x] **T6** — `docs/`: as consultas SQL que respondem o funil, prontas para colar.
+- [x] **T7** `FUN-11` — conserto da iteração 1 do Verifier: a sala que expira com partida em andamento emite `partida_abandonada`. O caminho do `expirar()` não passa pelo `confirmar`, então precisava de gancho próprio.
+- [x] **T8** `FUN-08` — dataset `resenha_funil_beta` no ambiente `beta`, destravado pelo rebase na `main` real.
 
 ## Test Coverage Matrix
 
@@ -19,7 +21,7 @@ puro (T2), e a escrita nasce tolerante a binding ausente (T3).
 | --- | --- | --- |
 | `server/core/funil.ts` | `funil.test.ts` | `FUN-01`…`FUN-05`, `FUN-09`, `FUN-10` |
 | `server/core/sala-do.ts` | `funil.integration.test.ts` | `FUN-01`…`FUN-04`, `FUN-06`, `FUN-07` |
-| `wrangler.jsonc` | — | `FUN-08` **parcial**: só produção. O ambiente `beta` não existe na `main` — mora na `feat/passa-e-joga`, ainda não mergeada. |
+| `wrangler.jsonc` | — | `FUN-08`: os dois datasets, conferidos por `wrangler deploy --dry-run` em cada ambiente. |
 
 ## Gate Check Commands
 
@@ -32,4 +34,7 @@ erros de lint, 2 warnings pré-existentes de `react-hooks/exhaustive-deps` em
 `Jogo.tsx`. (A primeira versão deste arquivo dizia 1011/41 — número copiado do
 handoff da `feat/passa-e-joga`, que é outra árvore. Corrigido depois de medir.)
 
-Depois desta feature: **613 unit (23 arquivos)**, **96 integration (7)**.
+**Base corrigida.** A branch nasceu de uma `main` **local** que estava 171
+commits atrás da `origin/main` — erro meu, por não conferir o remoto. Rebase
+feito em `25edc6c` (que já contém o passa e joga e o movimento do `AD-017`),
+sem conflito, e o rebase destravou o `FUN-08`.

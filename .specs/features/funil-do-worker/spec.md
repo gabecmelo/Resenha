@@ -24,6 +24,8 @@ não de produto: nenhuma tela muda.
 
 Quatro eventos, escritos pelo servidor, no Workers Analytics Engine.
 
+Cinco eventos, contando o `partida_abandonada` que o Verifier mostrou faltar.
+
 Fora de escopo: identificar pessoa, sessão ou dispositivo; qualquer coisa que
 exija banner de consentimento; painel de leitura (a consulta é SQL na mão, e no
 volume atual isso basta).
@@ -39,6 +41,7 @@ volume atual isso basta).
 | `FUN-05` | Nenhum evento carrega apelido, id de jogador, token, IP, código de sala ou qualquer campo do chat. A sala é identificada pelo **id opaco do Durable Object**, que não serve para entrar em sala nenhuma. |
 | `FUN-06` | A escrita é fire-and-forget. Telemetria que falha ou demora nunca derruba, atrasa ou altera um comando de jogo. |
 | `FUN-07` | Sem o binding configurado — `wrangler dev` de quem clona o repo, testes, qualquer ambiente sem o dataset — tudo funciona igual e nada é escrito. |
+| `FUN-11` | A sala que expira por inatividade **com partida em andamento** emite `partida_abandonada` com quantos jogadores havia. Lobby que expira sem partida não emite: nunca virou mesa, e isso já se vê em `sala_criada` sem `partida_iniciada`. |
 | `FUN-08` | O beta escreve num dataset separado do de produção, como já acontece com o KV e o Durable Object. |
 | `FUN-09` | A decisão de **qual** transição vira evento e **o que** vai dentro dele mora em módulo puro, testável sem Worker e sem rede. |
 | `FUN-10` | O `core` continua sem conhecer jogo concreto (`AD-002`): o `jogoId` atravessa como string opaca. |
@@ -65,7 +68,8 @@ no caminho do jogo — enquanto `writeDataPoint` é `void` e não bloqueia nada.
 | FUN-05 | Execute | Implementing |
 | FUN-06 | Execute | Implementing |
 | FUN-07 | Execute | Implementing |
-| FUN-08 | Execute | Parcial — só produção; o ambiente `beta` não existe na `main` |
+| FUN-08 | Execute | Implementing |
+| FUN-11 | Execute | Implementing |
 | FUN-09 | Execute | Implementing |
 | FUN-10 | Execute | Implementing |
 

@@ -1,6 +1,7 @@
-import { SELF, env } from 'cloudflare:test'
+import { SELF, env, runInDurableObject } from 'cloudflare:test'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import type { Comando, Mensagem } from '../../shared/protocolo'
+import type { Comando, EstadoSala, Mensagem } from '../../shared/protocolo'
+import { carregar, salvar } from './estado'
 
 /**
  * O funil visto de fora, com Durable Object e sockets de verdade.
@@ -98,6 +99,27 @@ async function jogarAte(ana: Cliente, bruno: Cliente): Promise<void> {
   await assentar()
 }
 
+/** Mesma técnica do `expiracao.integration.test.ts`: envelhece o prazo e
+ *  dispara o handler de alarme direto. */
+function salaDe(codigo: string) {
+  return env.SALA.get(env.SALA.idFromName(codigo))
+}
+
+async function envelhecerOciosidade(codigo: string): Promise<void> {
+  await runInDurableObject(salaDe(codigo), async (_instancia, state) => {
+    const sala = await carregar<unknown>(state.storage)
+    if (sala === null) throw new Error('sala não encontrada')
+    sala.prazos.salaOciosa = Date.now() - 1
+    await salvar(state.storage, sala as EstadoSala<unknown>)
+  })
+}
+
+function dispararAlarme(codigo: string): Promise<void> {
+  return runInDurableObject(salaDe(codigo), (instancia) =>
+    (instancia as unknown as { alarm(): Promise<void> }).alarm(),
+  )
+}
+
 describe('funil na sala de verdade', () => {
   it('conta a sala que nasce, uma vez, com o jogo dela (`FUN-01`)', async () => {
     await criarSalaPelaApi()
@@ -164,6 +186,32 @@ describe('funil na sala de verdade', () => {
     await assentar()
 
     expect(resumo().at(-1)).toBe('partida_encerrada:quem-sou-eu:2')
+  })
+
+  it('conta como abandono a mesa que deixou a sala morrer de inatividade (`FUN-11`)', async () => {
+    const codigo = await criarSalaPelaApi()
+    const ana = await entrar(codigo, 'Ana')
+    const bruno = await entrar(codigo, 'Bruno')
+    await jogarAte(ana, bruno)
+
+    await envelhecerOciosidade(codigo)
+    await dispararAlarme(codigo)
+    await assentar()
+
+    // Este caminho apaga a sala sem passar pela fase `encerrada`: sem o gancho
+    // próprio, a mesa que abandonou no meio não apareceria em lugar nenhum.
+    expect(resumo().at(-1)).toBe('partida_abandonada:quem-sou-eu:2')
+  })
+
+  it('não conta abandono quando o lobby expira sem partida (`FUN-11`)', async () => {
+    const codigo = await criarSalaPelaApi()
+    await entrar(codigo, 'Ana')
+
+    await envelhecerOciosidade(codigo)
+    await dispararAlarme(codigo)
+    await assentar()
+
+    expect(tipos()).not.toContain('partida_abandonada')
   })
 
   it('não deixa vazar apelido, id nem código de sala (`FUN-05`)', async () => {

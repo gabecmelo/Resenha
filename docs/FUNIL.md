@@ -15,8 +15,8 @@ mil visitas ensinaria o mesmo que as 120: nada.
 
 ## O que é medido
 
-Quatro eventos, escritos pelo servidor no Workers Analytics Engine, dataset
-`resenha_funil`.
+Cinco eventos, escritos pelo servidor no Workers Analytics Engine. Dataset
+`resenha_funil` na produção, `resenha_funil_beta` no beta.
 
 | Evento | Quando | `double2` |
 | --- | --- | --- |
@@ -24,6 +24,7 @@ Quatro eventos, escritos pelo servidor no Workers Analytics Engine, dataset
 | `jogador_entrou` | entrada aceita | a posição na chegada — 1 é quem criou |
 | `partida_iniciada` | o lobby vira escrita ou jogo | quantos estavam na mesa |
 | `partida_encerrada` | a sala vai para encerrada | quantos estavam na mesa |
+| `partida_abandonada` | a sala morre de inatividade **com partida em andamento** | quantos estavam na mesa |
 
 Colunas: `blob1` tipo · `blob2` jogo · `double1` sempre 1 (é o que o `SUM`
 conta) · `double2` a quantidade acima · `index1` a sala.
@@ -63,9 +64,12 @@ ORDER BY total DESC
 
 Leia de cima pra baixo: `sala_criada` → `partida_iniciada` → `partida_encerrada`.
 Cada divisão é uma etapa do funil. `iniciada` muito abaixo de `criada` é gente
-que monta a sala e não consegue (ou não quer) jogar; `encerrada` muito abaixo de
-`iniciada` é mesa que abandona no meio — quem abandona não emite nada, a sala só
-expira.
+que monta a sala e não consegue (ou não quer) jogar.
+
+O abandono é **medido**, não deduzido: `partida_abandonada` é a mesa que parou de
+jogar e deixou a sala morrer. Deduzir por `iniciada − encerrada` daria número
+errado, porque aí entram também as salas que ainda estavam em jogo na hora da
+consulta.
 
 ### A pergunta que mais importa: quantas salas viram mesa?
 
@@ -83,6 +87,19 @@ FROM resenha_funil
 WHERE blob1 = 'jogador_entrou'
   AND timestamp >= NOW() - INTERVAL '14' DAY
 ```
+
+### As mesas terminam ou desistem?
+
+```sql
+SELECT
+  sumIf(double1, blob1 = 'partida_iniciada') AS comecaram,
+  sumIf(double1, blob1 = 'partida_encerrada') AS terminaram,
+  sumIf(double1, blob1 = 'partida_abandonada') AS abandonaram
+FROM resenha_funil
+WHERE timestamp >= NOW() - INTERVAL '14' DAY
+```
+
+O que sobra de `comecaram − terminaram − abandonaram` é partida ainda em curso.
 
 ### Qual jogo a mesa escolhe
 

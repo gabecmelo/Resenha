@@ -113,6 +113,17 @@
         }
       ],
 
+      // Dataset próprio (`FUN-08`). Teste que entra na mesma tabela da
+      // produção estraga justamente o número que se quer ler — e o beta é onde
+      // se testa. O binding tem o mesmo nome porque o código lê `env.FUNIL`
+      // nos dois.
+      "analytics_engine_datasets": [
+        {
+          "binding": "FUNIL",
+          "dataset": "resenha_funil_beta"
+        }
+      ],
+
       "observability": {
         "enabled": true
       }

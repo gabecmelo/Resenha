@@ -1,6 +1,12 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { Fase } from '../../shared/protocolo'
-import { type EventoDeFunil, eventoDaTransicao, pontoDoFunil, registrar } from './funil'
+import {
+  type EventoDeFunil,
+  eventoDaExpiracao,
+  eventoDaTransicao,
+  pontoDoFunil,
+  registrar,
+} from './funil'
 
 const SALA_ID = '9f1c3ab0c0ffee00'
 
@@ -73,6 +79,45 @@ describe('eventoDaTransicao (`FUN-03`, `FUN-04`)', () => {
       'lobby->escrita:partida_iniciada',
       'lobby->jogo:partida_iniciada',
     ])
+  })
+})
+
+describe('eventoDaExpiracao (`FUN-11`)', () => {
+  it('conta como abandono a sala que morre com partida em andamento', () => {
+    expect(eventoDaExpiracao('jogo', sala('espiao', 5))).toEqual({
+      t: 'partida_abandonada',
+      jogoId: 'espiao',
+      jogadores: 5,
+    })
+  })
+
+  it('conta também a mesa que morre escrevendo, antes de jogar', () => {
+    expect(eventoDaExpiracao('escrita', sala('quem-sou-eu', 3))).toEqual({
+      t: 'partida_abandonada',
+      jogoId: 'quem-sou-eu',
+      jogadores: 3,
+    })
+  })
+
+  it('não conta o lobby que expira: nunca virou mesa', () => {
+    expect(eventoDaExpiracao('lobby', sala('espiao', 2))).toBeNull()
+  })
+
+  it('não conta abandono depois de encerrar: a partida já foi contada', () => {
+    expect(eventoDaExpiracao('encerrada', sala('espiao', 4))).toBeNull()
+  })
+
+  it('leva quantos jogadores em double2, como os outros eventos de partida', () => {
+    const ponto = pontoDoFunil(
+      { t: 'partida_abandonada', jogoId: 'espiao', jogadores: 6 },
+      SALA_ID,
+    )
+
+    expect(ponto).toEqual({
+      blobs: ['partida_abandonada', 'espiao'],
+      doubles: [1, 6],
+      indexes: [SALA_ID],
+    })
   })
 })
 
