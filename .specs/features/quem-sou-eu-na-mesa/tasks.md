@@ -1,6 +1,6 @@
 # Quem Sou Eu? na mesa — Tasks
 
-**Status**: Implementada — falta o Verifier
+**Status**: Concluída — Verifier PASS
 
 - [x] **T1** `QSE-09`, `QSE-05` — `volta.ts`: `donoDoAparelho` sai (não sobrou caso), entra `aparelhoParaMostrar`, com testes.
 - [x] **T2** `QSE-07` — `configLocal` força `tempoTurnoSeg: null`; o `Lobby` esconde a linha no modo local, como `PJ-09` já faz com a ordem.

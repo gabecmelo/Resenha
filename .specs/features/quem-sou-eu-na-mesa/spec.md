@@ -48,14 +48,14 @@ usa. O que o modo local muda é configuração e apresentação, como já fazia 
 
 | ID | Fase | Status |
 | --- | --- | --- |
-| QSE-01 | Execute | Pending |
-| QSE-02 | Execute | Pending |
-| QSE-03 | Execute | Pending |
-| QSE-04 | Execute | Pending |
-| QSE-05 | Execute | Pending |
-| QSE-06 | Execute | Pending |
-| QSE-07 | Execute | Pending |
-| QSE-08 | Execute | Pending |
-| QSE-09 | Execute | Pending |
+| QSE-01 | Execute | Verified |
+| QSE-02 | Execute | Verified |
+| QSE-03 | Execute | Verified |
+| QSE-04 | Execute | Verified |
+| QSE-05 | Execute | Verified |
+| QSE-06 | Execute | Verified |
+| QSE-07 | Execute | Verified |
+| QSE-08 | Execute | Verified |
+| QSE-09 | Execute | Verified |
 
 **Status values:** Pending → In Design → In Tasks → Implementing → Verified

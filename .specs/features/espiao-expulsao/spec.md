@@ -53,15 +53,15 @@ Quem quiser o comportamento anterior liga um e desliga o outro.
 
 | ID | Fase | Status |
 | --- | --- | --- |
-| ESP-51 | Execute | Pending |
-| ESP-51a | Execute | Pending |
-| ESP-51b | Execute | Pending |
-| ESP-51c | Execute | Pending |
-| ESP-51d | Execute | Pending |
-| ESP-51e | Execute | Pending |
-| ESP-51f | Execute | Pending |
-| ESP-52 | Execute | Pending |
-| ESP-52a | Execute | Pending |
-| ESP-53 | Execute | Pending |
+| ESP-51 | Execute | Verified |
+| ESP-51a | Execute | Verified |
+| ESP-51b | Execute | Verified |
+| ESP-51c | Execute | Verified |
+| ESP-51d | Execute | Verified |
+| ESP-51e | Execute | Verified |
+| ESP-51f | Execute | Verified |
+| ESP-52 | Execute | Verified |
+| ESP-52a | Execute | Verified |
+| ESP-53 | Execute | Verified |
 
 **Status values:** Pending → In Design → In Tasks → Implementing → Verified

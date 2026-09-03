@@ -1,6 +1,6 @@
 # Espião — a expulsão que não acaba a partida — Tasks
 
-**Status**: Implementada — falta o Verifier
+**Status**: Concluída — Verifier PASS
 
 - [x] **T1** `ESP-51`, `ESP-52` — `ConfigEspiao` ganha `expulsarContinua` (padrão `true`) e `chuteDoEspiaoPego` (padrão `false`); `ResultadoDaVotacao.desfecho` ganha `expulsaoSegue` e `mesaVenceu`; `ProjecaoEspiao` ganha `expulsos`.
 - [x] **T2** `ESP-51`…`ESP-52a` — `regras.ts`: `EstadoEspiao.expulsos`, o helper `naRodada`, os dois ramos novos do `fecharVotacao` e as guardas de quem já saiu. Com testes.
