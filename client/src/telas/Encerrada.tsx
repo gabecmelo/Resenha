@@ -120,17 +120,11 @@ export function Encerrada({ projecao, enviar, aoSair, aoVoltarAoLobby, modo = 's
                 aoVoltarAoLobby={() => aoVoltarAoLobby?.()}
               />
             ) : (
-              <>
-                <Botao larguraTotal onClick={() => enviar({ t: 'novaPartida' })}>
-                  {aguardando.length > 0
-                    ? `Voltar ao lobby com ${ativos.length + aguardando.length}`
-                    : 'Voltar ao lobby'}
-                </Botao>
-                <p className="text-apoio text-texto-3">
-                  Mesma mesa, ninguém precisa entrar de novo. No lobby você escolhe as regras da
-                  próxima ou troca de jogo — e as anotações desta partida somem.
-                </p>
-              </>
+              <Botao larguraTotal onClick={() => enviar({ t: 'novaPartida' })}>
+                {aguardando.length > 0
+                  ? `Voltar ao lobby com ${ativos.length + aguardando.length}`
+                  : 'Voltar ao lobby'}
+              </Botao>
             )}
           </>
         ) : (
@@ -142,7 +136,7 @@ export function Encerrada({ projecao, enviar, aoSair, aoVoltarAoLobby, modo = 's
               <strong className="font-semibold text-texto">
                 {host?.apelido ?? 'O host'} decide
               </strong>{' '}
-              se tem próxima partida. Fique onde está — se começar outra, você entra automaticamente.
+              se tem próxima partida. Você entra junto.
             </p>
           </div>
         )}

@@ -143,17 +143,11 @@ export function CartasEncerrada({ projecao, enviar, aoSair }: PropsDaTela) {
       {/* `VIS-04` — "Nova partida" não existe na tela de quem não é host. */}
       <BarraDeAcao>
         {eu.ehHost ? (
-          <>
-            <Botao larguraTotal onClick={() => enviar({ t: 'novaPartida' })}>
-              {aguardando.length > 0
-                ? `Voltar ao lobby com ${ativos.length + aguardando.length}`
-                : 'Voltar ao lobby'}
-            </Botao>
-            <p className="text-apoio text-texto-3">
-              Mesma mesa, ninguém precisa entrar de novo. O placar zera na próxima — este aqui
-              acabou de virar história.
-            </p>
-          </>
+          <Botao larguraTotal onClick={() => enviar({ t: 'novaPartida' })}>
+            {aguardando.length > 0
+              ? `Voltar ao lobby com ${ativos.length + aguardando.length}`
+              : 'Voltar ao lobby'}
+          </Botao>
         ) : (
           <div className="flex items-center gap-2.5">
             {host !== undefined && (
@@ -161,7 +155,7 @@ export function CartasEncerrada({ projecao, enviar, aoSair }: PropsDaTela) {
             )}
             <p className="text-apoio leading-snug text-texto-2">
               <strong className="font-semibold text-texto">{host?.apelido ?? 'O host'} decide</strong>{' '}
-              se tem próxima. Fique onde está — se começar outra, você entra automaticamente.
+              se tem próxima. Você entra junto.
             </p>
           </div>
         )}

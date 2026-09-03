@@ -185,17 +185,11 @@ export function EspiaoEncerrada({ projecao, enviar, aoSair, aoVoltarAoLobby, mod
                 aoVoltarAoLobby={() => aoVoltarAoLobby?.()}
               />
             ) : (
-              <>
-                <Botao larguraTotal onClick={() => enviar({ t: 'novaPartida' })}>
-                  {aguardando.length > 0
-                    ? `Voltar ao lobby com ${ativos.length + aguardando.length}`
-                    : 'Voltar ao lobby'}
-                </Botao>
-                <p className="text-apoio text-texto-3">
-                  Mesma mesa, ninguém precisa entrar de novo. No lobby você escolhe as regras da
-                  próxima ou troca de jogo — e as anotações desta partida somem.
-                </p>
-              </>
+              <Botao larguraTotal onClick={() => enviar({ t: 'novaPartida' })}>
+                {aguardando.length > 0
+                  ? `Voltar ao lobby com ${ativos.length + aguardando.length}`
+                  : 'Voltar ao lobby'}
+              </Botao>
             )}
           </>
         ) : (
@@ -207,7 +201,7 @@ export function EspiaoEncerrada({ projecao, enviar, aoSair, aoVoltarAoLobby, mod
               <strong className="font-semibold text-texto">
                 {host?.apelido ?? 'O host'} decide
               </strong>{' '}
-              se tem próxima rodada. Fique onde está — se começar outra, você entra automaticamente.
+              se tem próxima rodada. Você entra junto.
             </p>
           </div>
         )}
