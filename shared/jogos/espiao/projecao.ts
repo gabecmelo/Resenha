@@ -86,6 +86,12 @@ function projetarEspiao(
 ): ProjecaoEspiao {
   const encerrada = sala.fase === 'encerrada'
   const souEspiao = estado.espioes.includes(paraJogador)
+  /*
+    `ESP-51` — quem foi expulso continua na sala e não joga mais. Toda contagem
+    de mesa daqui pra baixo é sobre quem ainda joga: "3 de 5 votaram" com um
+    expulso no denominador é uma votação que nunca fecha sozinha.
+  */
+  const naRodada = ativos.filter((j) => !estado.expulsos.includes(j.id))
 
   const espiao: ProjecaoEspiao = {
     comecaPerguntando: {
@@ -98,6 +104,7 @@ function projetarEspiao(
     prazoRodada: sala.prazos.turno,
     souEspiao,
     votacoesRestantes: votacoesRestantes(estado, sala.config),
+    expulsos: estado.expulsos,
   }
 
   // `ESP-07`, `ESP-08`, `ESP-16`
@@ -129,7 +136,7 @@ function projetarEspiao(
 
   const votacao = estado.votacaoAberta
   if (votacao !== null) {
-    const conectadosAtivos = ativos.filter((j) => j.conectado)
+    const conectadosAtivos = naRodada.filter((j) => j.conectado)
     const aberta: NonNullable<ProjecaoEspiao['votacaoAberta']> = {
       meuVoto: votacao.votos[paraJogador] ?? null,
       // `ESP-06` (edge case) — só ativos conectados contam.

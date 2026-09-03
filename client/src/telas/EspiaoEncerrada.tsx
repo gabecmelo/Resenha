@@ -150,7 +150,12 @@ export function EspiaoEncerrada({ projecao, enviar, aoSair, aoVoltarAoLobby, mod
           )}
 
           {veredito !== undefined && !apurando && (
-            <ResultadoDaVotacao resultado={veredito} jogadores={jogadores} euId={eu.id} />
+            <ResultadoDaVotacao
+              resultado={veredito}
+              jogadores={jogadores}
+              euId={eu.id}
+              expulsos={espiao?.expulsos ?? []}
+            />
           )}
 
           {aguardando.length > 0 && <EntramNaProxima jogadores={aguardando} />}
@@ -228,6 +233,10 @@ function motivoDaVitoria(
   }
 
   const veredito = espiao.resultadoVotacao
+  // `ESP-52` — sem a opção do chute, pegar o espião já é o fim da história.
+  if (veredito?.desfecho === 'mesaVenceu') {
+    return `A mesa expulsou ${veredito.acusado?.apelido ?? 'alguém'} — e era espião. A mesa venceu.`
+  }
   if (veredito?.desfecho === 'mesaPerdeu') {
     return `A mesa expulsou ${veredito.acusado?.apelido ?? 'alguém'}, que não era espião. Os espiões venceram.`
   }

@@ -33,14 +33,18 @@ export function EspiaoAcusacao({
 }) {
   const [escolhido, setEscolhido] = useState<JogadorId | null>(null)
 
-  const naRoda = projecao.jogadores.filter((jogador) => jogador.situacao === 'ativo')
+  // `ESP-51` — quem já saiu não volta pra lista: não dá pra expulsar duas vezes.
+  const expulsos = projecao.jogo?.espiao?.expulsos ?? []
+  const naRoda = projecao.jogadores.filter(
+    (jogador) => jogador.situacao === 'ativo' && !expulsos.includes(jogador.id),
+  )
   const acusado = naRoda.find((jogador) => jogador.id === escolhido)
 
   if (acusado !== undefined) {
     return (
       <Modal
         titulo={`A mesa acusa ${acusado.apelido}?`}
-        descricao="Isso encerra a rodada. Se for o espião, ele ainda pode salvar tudo acertando o local."
+        descricao="Isso fecha a votação. O que acontece depois depende das regras que a mesa escolheu."
         rotuloConfirmar="Acusar"
         rotuloCancelar="Voltar"
         aoConfirmar={() => aoAcusar(acusado.id)}

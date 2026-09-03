@@ -1425,6 +1425,18 @@ function RegrasEspiao({
         valor={rotuloDe(PRESETS_DE_TEMPO_VOTACAO, config.espiao.tempoVotacaoSeg)}
         aoAbrir={abrir('tempoVotacao')}
       />
+      <LinhaDeRegra
+        rotulo="Expulsar continua o jogo"
+        dica="Ligado, errar o alvo tira o inocente da rodada e a mesa segue jogando sem ele. Desligado, acaba ali e os espiões levam. Na votação final o erro custa a partida de qualquer jeito."
+        valor={config.espiao.expulsarContinua ? 'Sim' : 'Não'}
+        aoAbrir={abrir('expulsarContinua')}
+      />
+      <LinhaDeRegra
+        rotulo="Chute do espião pego"
+        dica="Dá ao espião expulso uma última cartada: acertar o local vira a partida."
+        valor={config.espiao.chuteDoEspiaoPego ? 'Sim' : 'Não'}
+        aoAbrir={abrir('chutePego')}
+      />
 
       {folha === 'numEspioes' && (
         <FolhaDeEscolha
@@ -1444,6 +1456,28 @@ function RegrasEspiao({
           opcoes={OPCOES_SIM_NAO}
           atual={config.espiao.espioesSeVeem}
           aoEscolher={(espioesSeVeem) => mudarEspiao({ espioesSeVeem })}
+          aoFechar={() => setFolha(null)}
+        />
+      )}
+
+      {folha === 'expulsarContinua' && (
+        <FolhaDeEscolha
+          titulo="Expulsar continua o jogo"
+          descricao="Na votação final o erro custa a partida de qualquer jeito — não há rodada pra continuar."
+          opcoes={OPCOES_SIM_NAO}
+          atual={config.espiao.expulsarContinua}
+          aoEscolher={(expulsarContinua) => mudarEspiao({ expulsarContinua })}
+          aoFechar={() => setFolha(null)}
+        />
+      )}
+
+      {folha === 'chutePego' && (
+        <FolhaDeEscolha
+          titulo="Chute do espião pego"
+          descricao="Acertar o local vira a partida pros espiões."
+          opcoes={OPCOES_SIM_NAO}
+          atual={config.espiao.chuteDoEspiaoPego}
+          aoEscolher={(chuteDoEspiaoPego) => mudarEspiao({ chuteDoEspiaoPego })}
           aoFechar={() => setFolha(null)}
         />
       )}

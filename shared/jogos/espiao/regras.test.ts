@@ -639,7 +639,7 @@ describe('resultado da votação — maioria simples decide a partida (P7)', () 
     const resultado = reduzirOk(atual, base, { t: 'encerrarVotacao' })
 
     expect(resultado.estado.resultadoVotacao?.acusado).toBe('b')
-    expect(resultado.estado.resultadoVotacao?.desfecho).toBe('chuteDoEspiao')
+    expect(resultado.estado.resultadoVotacao?.desfecho).toBe('mesaVenceu')
   })
 
   it('ESP-42: empate no topo não expulsa ninguém e devolve a rodada', () => {
@@ -701,14 +701,185 @@ describe('resultado da votação — maioria simples decide a partida (P7)', () 
       acertou: resultado.estado.resultadoVotacao?.aMesaAcertou,
       votos: resultado.estado.resultadoVotacao?.votosNoAcusado,
       desfecho: resultado.estado.resultadoVotacao?.desfecho,
-    }).toEqual({ acertou: true, votos: 2, desfecho: 'chuteDoEspiao' })
+    }).toEqual({ acertou: true, votos: 2, desfecho: 'mesaVenceu' })
+  })
+})
+
+describe('ESP-51, ESP-52 — a expulsão que não acaba a partida', () => {
+  const QUATRO = ['a', 'b', 'c', 'd'].map((id) => jogador(id))
+
+  /** Mesa de quatro em rodada, com a config pedida. */
+  function mesaDeQuatro(espiao: Partial<(typeof CONFIG_PADRAO)['espiao']> = {}) {
+    const config = { ...CONFIG_PADRAO, espiao: { ...CONFIG_PADRAO.espiao, ...espiao } }
+    const base = ctx({ jogadores: QUATRO, config })
+    const estado = comTodosProntos(rodadaDe(QUATRO, { config }), base)
+    return { estado, base, espiaoId: estado.espioes[0]! }
+  }
+
+  /** Abre a votação, todo mundo acusa `alvo`, e ela fecha sozinha. */
+  function acusa(estado: EstadoEspiao, base: ContextoDeSala, alvo: JogadorId) {
+    let atual = reduzirOk(estado, base, { t: 'abrirVotacao' }).estado
+    let ultimo = reduzirOk(atual, base, { t: 'votar', alvoId: alvo })
+    atual = ultimo.estado
+    for (const j of base.jogadores.filter((x) => x.id !== base.autorId)) {
+      if (atual.votacaoAberta === null) break
+      ultimo = reduzirOk(atual, { ...base, autorId: j.id }, { t: 'votar', alvoId: alvo })
+      atual = ultimo.estado
+    }
+    return ultimo
+  }
+
+  /** `ESP-32` — a janela de leitura do resultado vence e a rodada volta. */
+  function rodadaDeVolta(estado: EstadoEspiao, base: ContextoDeSala): EstadoEspiao {
+    return reduzirOk(estado, base, { t: 'venceuPrazoTurno' }).estado
+  }
+
+  it('ESP-51: expulsar um inocente tira ele da rodada e a partida segue', () => {
+    const { estado, base, espiaoId } = mesaDeQuatro()
+    const inocente = QUATRO.find((j) => j.id !== espiaoId && j.id !== base.autorId)!.id
+
+    const fechada = acusa(estado, base, inocente)
+
+    expect({
+      desfecho: fechada.estado.resultadoVotacao?.desfecho,
+      expulsos: fechada.estado.expulsos,
+      vencedor: fechada.estado.vencedor,
+      faseSeguinte: fechada.faseSeguinte,
+      prazos: fechada.prazos,
+    }).toEqual({
+      desfecho: 'expulsaoSegue',
+      expulsos: [inocente],
+      vencedor: null,
+      faseSeguinte: undefined,
+      prazos: { turno: AMBIENTE.agora + JANELA_DE_RESULTADO_MS },
+    })
+  })
+
+  it('ESP-51: desligada, expulsar um inocente entrega a partida aos espiões', () => {
+    const { estado, base, espiaoId } = mesaDeQuatro({ expulsarContinua: false })
+    const inocente = QUATRO.find((j) => j.id !== espiaoId && j.id !== base.autorId)!.id
+
+    const fechada = acusa(estado, base, inocente)
+
+    expect({
+      desfecho: fechada.estado.resultadoVotacao?.desfecho,
+      vencedor: fechada.estado.vencedor,
+      faseSeguinte: fechada.faseSeguinte,
+    }).toEqual({ desfecho: 'mesaPerdeu', vencedor: 'espioes', faseSeguinte: 'encerrada' })
+  })
+
+  it('ESP-51: na votação final o erro custa a partida, mesmo com a opção ligada', () => {
+    const { estado, base, espiaoId } = mesaDeQuatro()
+    const inocente = QUATRO.find((j) => j.id !== espiaoId && j.id !== base.autorId)!.id
+
+    const final = reduzirOk(estado, base, { t: 'venceuPrazoTurno' }).estado
+    const votada = reduzirOk(final, base, { t: 'votar', alvoId: inocente }).estado
+    const fechada = reduzirOk(votada, base, { t: 'encerrarVotacao' })
+
+    expect({
+      final: fechada.estado.resultadoVotacao?.final,
+      desfecho: fechada.estado.resultadoVotacao?.desfecho,
+      vencedor: fechada.estado.vencedor,
+    }).toEqual({ final: true, desfecho: 'mesaPerdeu', vencedor: 'espioes' })
+  })
+
+  it('ESP-51: sem gente pra continuar, a expulsão volta a acabar a partida', () => {
+    // Três na mesa: tirar um deixa dois, abaixo do mínimo do jogo.
+    const base = ctx()
+    const estado = comTodosProntos(rodadaDe(base.jogadores), base)
+    const inocente = base.jogadores.find(
+      (j) => !estado.espioes.includes(j.id) && j.id !== base.autorId,
+    )!.id
+
+    const fechada = acusa(estado, base, inocente)
+
+    expect(fechada.estado.resultadoVotacao?.desfecho).toBe('mesaPerdeu')
+    expect(fechada.estado.expulsos).toEqual([])
+  })
+
+  it('ESP-51: quem foi expulso não vota, não é votado e não abre votação', () => {
+    const { estado, base, espiaoId } = mesaDeQuatro()
+    const inocente = QUATRO.find((j) => j.id !== espiaoId && j.id !== base.autorId)!.id
+    const depois = rodadaDeVolta(acusa(estado, base, inocente).estado, base)
+
+    const comoExpulso = { ...base, autorId: inocente }
+    expect(reduzir(depois, comoExpulso, { t: 'abrirVotacao' }, AMBIENTE)).toEqual({
+      ok: false,
+      erro: 'COMANDO_INVALIDO',
+    })
+
+    const aberta = reduzirOk(depois, base, { t: 'abrirVotacao' }).estado
+    expect(reduzir(aberta, comoExpulso, { t: 'votar', alvoId: espiaoId }, AMBIENTE)).toEqual({
+      ok: false,
+      erro: 'COMANDO_INVALIDO',
+    })
+    expect(reduzir(aberta, base, { t: 'votar', alvoId: inocente }, AMBIENTE)).toEqual({
+      ok: false,
+      erro: 'COMANDO_INVALIDO',
+    })
+  })
+
+  it('ESP-51: a votação seguinte fecha sozinha sem esperar o voto de quem saiu', () => {
+    const { estado, base, espiaoId } = mesaDeQuatro()
+    const inocente = QUATRO.find((j) => j.id !== espiaoId && j.id !== base.autorId)!.id
+    const depois = rodadaDeVolta(acusa(estado, base, inocente).estado, base)
+
+    let atual = reduzirOk(depois, base, { t: 'abrirVotacao' }).estado
+    let ultimo = reduzirOk(atual, base, { t: 'votar', alvoId: null })
+    atual = ultimo.estado
+    for (const j of QUATRO.filter((x) => x.id !== base.autorId && x.id !== inocente)) {
+      ultimo = reduzirOk(atual, { ...base, autorId: j.id }, { t: 'votar', alvoId: null })
+      atual = ultimo.estado
+    }
+
+    // Os três que restaram votaram; a votação não espera o quarto.
+    expect(atual.votacaoAberta).toBeNull()
+    expect(atual.resultadoVotacao?.totalAtivos).toBe(3)
+  })
+
+  it('ESP-52: sem a opção do chute, pegar o espião dá a partida à mesa na hora', () => {
+    const { estado, base, espiaoId } = mesaDeQuatro()
+
+    const fechada = acusa(estado, base, espiaoId)
+
+    expect({
+      desfecho: fechada.estado.resultadoVotacao?.desfecho,
+      vencedor: fechada.estado.vencedor,
+      chutePendente: fechada.estado.chutePendente,
+      faseSeguinte: fechada.faseSeguinte,
+      prazos: fechada.prazos,
+    }).toEqual({
+      desfecho: 'mesaVenceu',
+      vencedor: 'mesa',
+      chutePendente: null,
+      faseSeguinte: 'encerrada',
+      prazos: { turno: null },
+    })
+  })
+
+  it('ESP-52: ligada, pegar o espião volta a abrir o chute', () => {
+    const { estado, base, espiaoId } = mesaDeQuatro({ chuteDoEspiaoPego: true })
+
+    const fechada = acusa(estado, base, espiaoId)
+
+    expect(fechada.estado.resultadoVotacao?.desfecho).toBe('chuteDoEspiao')
+    expect(fechada.estado.chutePendente).toBe(espiaoId)
   })
 })
 
 describe('ESP-43…ESP-45 — o chute do espião pego', () => {
+  /*
+    `ESP-52` — o chute é opção, e nasce **desligada**. Todo este bloco descreve
+    a mesa que ligou; o padrão (pegou, acabou) tem bloco próprio adiante.
+  */
+  const COM_CHUTE = {
+    ...CONFIG_PADRAO,
+    espiao: { ...CONFIG_PADRAO.espiao, chuteDoEspiaoPego: true },
+  }
+
   /** Deixa a partida exatamente na fase de chute: `b` (espião) foi expulso. */
   function comChutePendente() {
-    const base = ctx()
+    const base = ctx({ config: COM_CHUTE })
     const pronto = comTodosProntos(rodadaDe(base.jogadores), base)
     let atual = reduzirOk(pronto, base, { t: 'abrirVotacao' }).estado
     atual = reduzirOk(atual, { ...base, autorId: 'a' }, { t: 'votar', alvoId: 'b' }).estado
@@ -874,8 +1045,12 @@ describe('ESP-46…ESP-50 — limite de votações e votação final', () => {
     }).toEqual({ faseSeguinte: 'encerrada', desfecho: 'tempoEsgotado', vencedor: 'espioes' })
   })
 
-  it('ESP-49: a votação final que pega o espião ainda passa pelo chute', () => {
-    const { estado, base } = emRodada()
+  it('ESP-49: a votação final que pega o espião ainda passa pelo chute (`ESP-52` ligado)', () => {
+    const config = {
+      ...CONFIG_PADRAO,
+      espiao: { ...CONFIG_PADRAO.espiao, chuteDoEspiaoPego: true },
+    }
+    const { estado, base } = emRodada({ config })
     const final = reduzirOk(estado, base, { t: 'venceuPrazoTurno' }).estado
     const votada = reduzirOk(final, { ...base, autorId: 'a' }, { t: 'votar', alvoId: 'b' }).estado
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Ambiente, Config, JogadorId, Projecao } from '../../../shared/protocolo'
 import type { ComandoDeJogo } from '../../../shared/jogos/contrato'
+import { CONFIG_PADRAO } from '../../../shared/protocolo'
 import { type MesaLocal, enviar, iniciar, projetar } from './motor'
 import { acaoDaVolta, aparelhoParaMostrar, ativos, voltaDaFase } from './volta'
 
@@ -27,8 +28,18 @@ const CONFIG_POR_JOGO: Record<string, Partial<Config>> = {
   'dedo-na-cara': { pacoteIds: ['dedo-role'] },
 }
 
-function mesaDe(jogoId: string, quantos: number, amb = ambiente()): MesaLocal {
-  const resultado = iniciar(jogoId, NOMES.slice(0, quantos), CONFIG_POR_JOGO[jogoId]!, amb)
+function mesaDe(
+  jogoId: string,
+  quantos: number,
+  amb = ambiente(),
+  extra: Partial<Config> = {},
+): MesaLocal {
+  const resultado = iniciar(
+    jogoId,
+    NOMES.slice(0, quantos),
+    { ...CONFIG_POR_JOGO[jogoId]!, ...extra },
+    amb,
+  )
   if (!resultado.ok) throw new Error(`mesa não montou: ${resultado.erro}`)
   return resultado.valor
 }
@@ -45,17 +56,28 @@ function veja(mesa: MesaLocal): Projecao {
 }
 
 /** Cada um marca pronto na volta de revelação, e a rodada do Espião começa. */
-function espiaoEmRodada(quantos: number, amb = ambiente()): MesaLocal {
-  let mesa = mesaDe('espiao', quantos, amb)
+function espiaoEmRodada(
+  quantos: number,
+  amb = ambiente(),
+  extra: Partial<Config> = {},
+): MesaLocal {
+  let mesa = mesaDe('espiao', quantos, amb, extra)
   for (const jogador of mesa.sala.jogadores) {
     mesa = passar({ ...mesa, aparelhoCom: jogador.id }, { t: 'marcarPronto', pronto: true }, amb)
   }
   return mesa
 }
 
-/** A mesa acusa o espião de verdade — o desfecho que abre o chute do local. */
+/**
+ * A mesa acusa o espião de verdade — o desfecho que abre o chute do local.
+ *
+ * O chute é opção e nasce desligado (`ESP-52`), então esta mesa o liga: é dele
+ * que a volta do `PJ2-13` depende.
+ */
 function espiaoAcusado(quantos: number, amb = ambiente()): MesaLocal {
-  let mesa = espiaoEmRodada(quantos, amb)
+  let mesa = espiaoEmRodada(quantos, amb, {
+    espiao: { ...CONFIG_PADRAO.espiao, chuteDoEspiaoPego: true },
+  })
   const espiaoId = mesa.sala.jogadores.find(
     (jogador) => projetar({ ...mesa, aparelhoCom: jogador.id }).jogo?.espiao?.souEspiao === true,
   )!.id
