@@ -4,6 +4,7 @@ import {
   type CodigoErro,
   type Comando,
   type EstadoSala,
+  type Fase,
   type JogadorId,
   type PacoteResumo,
 } from '../../shared/protocolo'
@@ -13,6 +14,7 @@ import { aceitar, desvincular, difundir, enviar, jogadorDe, socketsDe, vincular 
 import { type JogoDaSala, avisar, despachar } from './despacho'
 import { carregar, destruir, salvar } from './estado'
 import { definir, reagendar, vencidos } from './prazos'
+import { eventoDaTransicao, registrar } from './funil'
 import { entrar, migrarHost, reconectar } from './roster'
 
 /** `HOST-04` — tempo de desconexão do host antes da migração automática. */
@@ -133,6 +135,10 @@ export class SalaDeJogo {
       ultimaAcaoEm: agora,
     }
     await this.persistir(sala)
+
+    // `FUN-01` — colisão de código já devolveu 409 lá em cima; só chega aqui
+    // sala que nasceu de verdade.
+    registrar(this.env, { t: 'sala_criada', jogoId }, this.ctx.id.toString())
     return new Response(null, { status: 201 })
   }
 
@@ -175,6 +181,7 @@ export class SalaDeJogo {
       return
     }
 
+    const faseAntes = sala.fase
     const resultado = await despachar(sala, this.registro, autorId, comando, ambienteAgora(), this.env)
     if (!resultado.ok) {
       enviar(ws, erro(resultado.erro))
@@ -185,7 +192,7 @@ export class SalaDeJogo {
     // `CONN-08` — comando de jogador é o que conta como atividade. Reconectar
     // não conta: aba esquecida aberta é exatamente a sala que deve expirar.
     sala.ultimaAcaoEm = Date.now()
-    await this.confirmar(sala)
+    await this.confirmar(sala, faseAntes)
   }
 
   /** `CONN-03` — a vaga é preservada; só o estado de conexão muda. */
@@ -204,13 +211,14 @@ export class SalaDeJogo {
     if (jogador === undefined) return
 
     const agora = Date.now()
+    const faseAntes = sala.fase
     jogador.conectado = false
     jogador.desconectadoEm = agora
 
     // `HOST-04` — a migração é agendada, não imediata.
     if (jogadorId === sala.hostId) definir(sala, 'migracaoHost', agora + MIGRACAO_HOST_MS)
 
-    await this.confirmar(sala)
+    await this.confirmar(sala, faseAntes)
   }
 
   async webSocketError(ws: WebSocket): Promise<void> {
@@ -223,6 +231,7 @@ export class SalaDeJogo {
     if (sala === null) return
 
     const agora = Date.now()
+    const faseAntes = sala.fase
     const devidos = vencidos(sala, agora)
 
     // `CONN-07`, `CONN-08` — expirar encerra a sala; nada mais importa depois.
@@ -251,7 +260,7 @@ export class SalaDeJogo {
       }
     }
 
-    await this.confirmar(sala)
+    await this.confirmar(sala, faseAntes)
   }
 
   // -------------------------------------------------------------------------
@@ -265,6 +274,7 @@ export class SalaDeJogo {
     apelido: string,
   ): Promise<void> {
     const agora = Date.now()
+    const faseAntes = sala.fase
     const token = crypto.randomUUID()
     const id = crypto.randomUUID().slice(0, 8)
 
@@ -288,8 +298,16 @@ export class SalaDeJogo {
       avisar(sala, jogo, { t: 'entrouJogador', jogadorId: id }, { agora, aleatorio: Math.random })
     }
 
+    // `FUN-02` — depois do `entrar`, o tamanho da roda é a posição de quem
+    // acabou de chegar. Entrada recusada saiu lá em cima e não conta.
+    registrar(
+      this.env,
+      { t: 'jogador_entrou', jogoId: sala.jogoId, ordem: sala.jogadores.length },
+      this.ctx.id.toString(),
+    )
+
     sala.ultimaAcaoEm = agora
-    await this.confirmar(sala)
+    await this.confirmar(sala, faseAntes)
   }
 
   /** `CONN-02`, `CONN-04` — mesma vaga, com tudo que ela guardava. */
@@ -310,7 +328,7 @@ export class SalaDeJogo {
     // `HOST-04` — o host voltou antes dos 30s: a migração não acontece.
     if (volta.valor.id === sala.hostId) definir(sala, 'migracaoHost', null)
 
-    await this.confirmar(sala)
+    await this.confirmar(sala, sala.fase)
   }
 
   // -------------------------------------------------------------------------
@@ -321,9 +339,17 @@ export class SalaDeJogo {
     return carregar<unknown>(this.ctx.storage)
   }
 
-  private async confirmar(sala: EstadoSala): Promise<void> {
+  private async confirmar(sala: EstadoSala, faseAntes: Fase): Promise<void> {
     this.atualizarCicloDeVida(sala)
     await this.persistir(sala)
+
+    // `FUN-03`, `FUN-04` — o funil conta aqui porque aqui é o único lugar por
+    // onde toda mudança de sala passa, venha de comando ou de alarme. Contar
+    // depois do `persistir` é de propósito: partida que não foi gravada não
+    // aconteceu. `faseAntes` é parâmetro obrigatório para que um handler novo
+    // não consiga esquecer de dizer de onde veio.
+    const evento = eventoDaTransicao(faseAntes, sala.fase, sala)
+    if (evento !== null) registrar(this.env, evento, this.ctx.id.toString())
 
     let pacotes: PacoteResumo[] | undefined = undefined;
     if (sala.fase === 'lobby') {
