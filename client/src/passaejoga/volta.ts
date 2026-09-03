@@ -4,7 +4,7 @@ import type { ComandoDeJogo } from '../../../shared/jogos/contrato'
 /*
   Quem circula, e quando.
 
-  Estas três funções são a tradução de "num aparelho só" para cada jogo: a
+  Estas funções são a tradução de "num aparelho só" para cada jogo: a
   tela de passagem existe onde a sala online tinha uma projeção privada por
   pessoa, e some onde a sala já mostrava a mesma coisa pra todo mundo. Elas
   moram fora do componente por serem puras — projeção entra, ordem sai —, e é
@@ -149,39 +149,26 @@ export function ativos(projecao: Projecao): JogadorId[] {
 }
 
 /**
- * De quem é o aparelho quando ele está parado na mesa (`PJ-22`).
+ * Para quem o aparelho precisa ir pra que a carta de `alvo` apareça (`QSE-04`).
  *
- * Sobrou um caso só: o "Quem Sou Eu?", onde o aparelho não pode ficar com quem
- * está na vez — a carta dela é escondida justamente de quem a carrega.
+ * A projeção esconde a carta de quem a recebe — `podeVerCarta` é o único ponto
+ * do sistema que decide isso, e ele não muda por causa de uma tela (`AD-008`).
+ * Então abrir a carta de quem está com o aparelho não é um pedido de
+ * visibilidade: é um pedido de **troca de mão**. O celular anda um lugar na
+ * roda e a carta passa a existir no payload, sem ninguém ter reescrito regra
+ * nenhuma.
  *
- * Nada aqui escolhe alvo nenhum (`AD-003`): só diz de quem é o próximo toque.
+ * Devolve `null` quando não há o que mover — a carta já está visível, ou a roda
+ * tem uma pessoa só e não há vizinho pra quem passar.
  */
-export function donoDoAparelho(projecao: Projecao, atual: JogadorId): JogadorId {
-  /*
-    `PJ-30` — no "Quem Sou Eu?" o aparelho **não** pode ficar com quem está na
-    vez. A carta de alguém é escondida exatamente de quem a carrega, então a
-    projeção de quem está jogando a vez esconderia justo a carta que a mesa
-    precisa ler. O celular fica com o vizinho e é virado pra fora: é o mesmo
-    gesto do jogo de papel na testa.
-  */
-  if (projecao.sala.jogoId === 'quem-sou-eu' && projecao.sala.fase === 'jogo') {
-    const vezDe = projecao.jogo?.vezDe
-    if (vezDe !== undefined && vezDe !== null && atual === vezDe) {
-      const roda = ativos(projecao)
-      const depois = roda[(roda.indexOf(vezDe) + 1) % roda.length]
-      if (depois !== undefined) return depois
-    }
-    return atual
-  }
+export function aparelhoParaMostrar(
+  projecao: Projecao,
+  aparelhoCom: JogadorId,
+  alvo: JogadorId,
+): JogadorId | null {
+  if (alvo !== aparelhoCom) return null
 
-  /*
-    O Dedo na Cara **não** move mais o aparelho (`PJ2-16`).
-
-    Ele movia enquanto o modo local imitava a urna do online: o celular dava a
-    volta na roda colhendo um dedo de cada vez. Agora a mesa aponta com o dedo
-    mesmo, em voz alta, e quem está com o aparelho registra quem levou — um
-    toque, uma confirmação, e a carta seguinte. Não há gesto de ninguém mais
-    pra esperar, então não há pra quem passar.
-  */
-  return atual
+  const roda = ativos(projecao)
+  const depois = roda[(roda.indexOf(alvo) + 1) % roda.length]
+  return depois === undefined || depois === alvo ? null : depois
 }

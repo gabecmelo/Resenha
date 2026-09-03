@@ -16,7 +16,7 @@ import {
   projetar,
 } from '../../passaejoga/motor'
 import { acabou, avancar, criarPassagem, deQuemE, revelar } from '../../passaejoga/passagem'
-import { acaoDaVolta, donoDoAparelho, voltaDaFase } from '../../passaejoga/volta'
+import { acaoDaVolta, aparelhoParaMostrar, voltaDaFase } from '../../passaejoga/volta'
 import { CartasEncerrada } from '../CartasEncerrada'
 import { CartasJogo } from '../CartasJogo'
 import { DedoEncerrada } from '../DedoEncerrada'
@@ -30,6 +30,7 @@ import { Escrita } from '../Escrita'
 import { Jogo } from '../Jogo'
 import { CartaDoVizinho } from './CartaDoVizinho'
 import { EspiaoPapel, EspiaoTodosProntos } from './EspiaoVolta'
+import { QuemSouEuMesa } from './QuemSouEuMesa'
 import { BarraDePassar, Passagem } from './Passagem'
 
 /**
@@ -116,17 +117,19 @@ export function Partida({
     if (mesa.passagem === null) aoMudar({ ...mesa, passagem: criarPassagem(volta.fila) })
   }, [volta, mesa, aoMudar])
 
-  /*
-    Fora das voltas de segredo o aparelho fica na mesa, mas ainda é de alguém:
-    é `aparelhoCom` que decide de quem é o comando (`PJ-16`). Quando o jogo
-    espera um gesto de cada um — o dedo do Dedo na Cara —, quem "está com o
-    aparelho" é o próximo que ainda não fez o seu.
-  */
-  useEffect(() => {
-    if (mesa.passagem !== null) return
-    const dono = donoDoAparelho(projecao, mesa.aparelhoCom)
-    if (dono !== mesa.aparelhoCom) aoMudar({ ...mesa, aparelhoCom: dono })
-  }, [projecao, mesa, aoMudar])
+  /**
+   * `QSE-04` — a mesa quer rever a carta de alguém, e essa alguém pode ser
+   * quem está segurando o celular.
+   *
+   * A carta do portador não está no payload dele, e não é a tela que resolve
+   * isso (`AD-008`): o aparelho anda um lugar na roda e a projeção seguinte já
+   * traz a carta. Fora desse caso não há nada a fazer — a carta dos outros
+   * sempre esteve lá.
+   */
+  const mostrarCartaDe = (alvo: JogadorId) => {
+    const proximo = aparelhoParaMostrar(projecao, mesa.aparelhoCom, alvo)
+    if (proximo !== null) aoMudar({ ...mesa, aparelhoCom: proximo })
+  }
 
   const enviar = (comando: Comando) => {
     if (comando.t === 'sair') {
@@ -287,6 +290,7 @@ export function Partida({
         aoSair={aoSair}
         prontosRetidos={mesa.prontoRetido !== null}
         aoComecarRodada={comecar}
+        aoMostrarCarta={mostrarCartaDe}
         aoVoltarAoLobby={aoVoltarAoLobby}
       />
 
@@ -312,6 +316,7 @@ function TelaDoJogo({
   aoSair,
   prontosRetidos,
   aoComecarRodada,
+  aoMostrarCarta,
 }: {
   projecao: Projecao
   enviar(comando: Comando): void
@@ -320,6 +325,7 @@ function TelaDoJogo({
   aoVoltarAoLobby(): void
   prontosRetidos: boolean
   aoComecarRodada(): void
+  aoMostrarCarta(alvo: JogadorId): void
 }) {
   const props = {
     projecao,
@@ -335,6 +341,22 @@ function TelaDoJogo({
     case 'escrita':
       return <Escrita {...props} />
     case 'jogo':
+      /*
+        `QSE-01` — aqui o modo local **tem** tela paralela, e é por diferença de
+        jogo, não de apresentação: a tela da sala online é feita de vez,
+        relógio e declaração, e num aparelho só nenhuma das três existe.
+        Espremer as duas num `modo` seria manter viva a metade que não roda.
+      */
+      if (projecao.sala.jogoId === 'quem-sou-eu') {
+        return (
+          <QuemSouEuMesa
+            projecao={projecao}
+            enviar={enviar}
+            aoMostrarCarta={aoMostrarCarta}
+            aoSair={aoSair}
+          />
+        )
+      }
       if (projecao.sala.jogoId === 'cartas-contra-a-turma') {
         return <CartasJogo {...props} />
       }

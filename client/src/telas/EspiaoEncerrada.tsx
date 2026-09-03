@@ -150,7 +150,12 @@ export function EspiaoEncerrada({ projecao, enviar, aoSair, aoVoltarAoLobby, mod
           )}
 
           {veredito !== undefined && !apurando && (
-            <ResultadoDaVotacao resultado={veredito} jogadores={jogadores} euId={eu.id} />
+            <ResultadoDaVotacao
+              resultado={veredito}
+              jogadores={jogadores}
+              euId={eu.id}
+              expulsos={espiao?.expulsos ?? []}
+            />
           )}
 
           {aguardando.length > 0 && <EntramNaProxima jogadores={aguardando} />}
@@ -185,17 +190,11 @@ export function EspiaoEncerrada({ projecao, enviar, aoSair, aoVoltarAoLobby, mod
                 aoVoltarAoLobby={() => aoVoltarAoLobby?.()}
               />
             ) : (
-              <>
-                <Botao larguraTotal onClick={() => enviar({ t: 'novaPartida' })}>
-                  {aguardando.length > 0
-                    ? `Voltar ao lobby com ${ativos.length + aguardando.length}`
-                    : 'Voltar ao lobby'}
-                </Botao>
-                <p className="text-apoio text-texto-3">
-                  Mesma mesa, ninguém precisa entrar de novo. No lobby você escolhe as regras da
-                  próxima ou troca de jogo — e as anotações desta partida somem.
-                </p>
-              </>
+              <Botao larguraTotal onClick={() => enviar({ t: 'novaPartida' })}>
+                {aguardando.length > 0
+                  ? `Voltar ao lobby com ${ativos.length + aguardando.length}`
+                  : 'Voltar ao lobby'}
+              </Botao>
             )}
           </>
         ) : (
@@ -207,7 +206,7 @@ export function EspiaoEncerrada({ projecao, enviar, aoSair, aoVoltarAoLobby, mod
               <strong className="font-semibold text-texto">
                 {host?.apelido ?? 'O host'} decide
               </strong>{' '}
-              se tem próxima rodada. Fique onde está — se começar outra, você entra automaticamente.
+              se tem próxima rodada. Você entra junto.
             </p>
           </div>
         )}
@@ -234,6 +233,10 @@ function motivoDaVitoria(
   }
 
   const veredito = espiao.resultadoVotacao
+  // `ESP-52` — sem a opção do chute, pegar o espião já é o fim da história.
+  if (veredito?.desfecho === 'mesaVenceu') {
+    return `A mesa expulsou ${veredito.acusado?.apelido ?? 'alguém'} — e era espião. A mesa venceu.`
+  }
   if (veredito?.desfecho === 'mesaPerdeu') {
     return `A mesa expulsou ${veredito.acusado?.apelido ?? 'alguém'}, que não era espião. Os espiões venceram.`
   }

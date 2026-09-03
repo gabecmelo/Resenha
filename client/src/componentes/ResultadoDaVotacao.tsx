@@ -19,19 +19,37 @@ function nomeDe(jogadores: Projecao['jogadores'], id: JogadorId): string {
  */
 const SELO: Record<Veredito['desfecho'], string> = {
   chuteDoEspiao: 'pegaram o espião',
+  mesaVenceu: 'pegaram o espião',
   mesaPerdeu: 'expulsaram um inocente',
+  expulsaoSegue: 'expulsaram um inocente',
   rodadaVolta: 'ninguém saiu',
   tempoEsgotado: 'o tempo acabou',
+}
+
+/**
+ * O que a expulsão significou, agora que ela nem sempre acaba a partida
+ * (`ESP-51`, `ESP-52`). O servidor já decidiu; aqui só se escolhem as palavras.
+ */
+const FRASE_DO_DESFECHO: Record<Veredito['desfecho'], string> = {
+  chuteDoEspiao: 'E era mesmo um espião: ele ainda tem uma chance de dizer o local.',
+  mesaVenceu: 'E era mesmo um espião. A mesa venceu.',
+  expulsaoSegue: 'E não era espião. A rodada continua sem ele.',
+  mesaPerdeu: 'E não era espião — os espiões venceram.',
+  rodadaVolta: '',
+  tempoEsgotado: '',
 }
 
 export function ResultadoDaVotacao({
   resultado,
   jogadores,
   euId,
+  expulsos = [],
 }: {
   resultado: NonNullable<ProjecaoEspiao['resultadoVotacao']>
   jogadores: Projecao['jogadores']
   euId: JogadorId
+  /** `ESP-51` — quem já tinha saído da rodada quando esta votação correu. */
+  expulsos?: JogadorId[]
 }) {
   const votos = Object.entries(resultado.votos) as [JogadorId, JogadorId | 'pular'][]
   /**
@@ -39,10 +57,17 @@ export function ResultadoDaVotacao({
    * as palavras. Verde é reservado ao momento em que a mesa fez o que tinha
    * que fazer: pegou o espião.
    */
-  const destacado = resultado.desfecho === 'chuteDoEspiao'
+  const destacado = resultado.desfecho === 'chuteDoEspiao' || resultado.desfecho === 'mesaVenceu'
 
+  /*
+    Quem estava na mesa e não votou. Expulso não entra: ele não se absteve, foi
+    tirado — chamar isso de "não votou" acusa de omissão quem nem podia votar.
+  */
   const naoVotaram = jogadores.filter(
-    (jogador) => jogador.situacao === 'ativo' && resultado.votos[jogador.id] === undefined,
+    (jogador) =>
+      jogador.situacao === 'ativo' &&
+      !expulsos.includes(jogador.id) &&
+      resultado.votos[jogador.id] === undefined,
   )
 
   return (
@@ -82,10 +107,7 @@ export function ResultadoDaVotacao({
           ) : (
             <>
               {resultado.votosNoAcusado} de {resultado.totalAtivos} votos — o mais votado sai,
-              não precisa de maioria absoluta.{' '}
-              {resultado.aMesaAcertou
-                ? 'E era mesmo um espião: ele ainda tem uma chance de dizer o local.'
-                : 'E não era espião — os espiões venceram.'}
+              não precisa de maioria absoluta. {FRASE_DO_DESFECHO[resultado.desfecho]}
             </>
           )}
         </p>

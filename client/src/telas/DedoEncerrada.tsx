@@ -149,17 +149,11 @@ export function DedoEncerrada({ projecao, enviar, aoSair, aoVoltarAoLobby, modo 
                 aoVoltarAoLobby={() => aoVoltarAoLobby?.()}
               />
             ) : (
-              <>
-                <Botao larguraTotal onClick={() => enviar({ t: 'novaPartida' })}>
-                  {aguardando.length > 0
-                    ? `Voltar ao lobby com ${ativos.length + aguardando.length}`
-                    : 'Voltar ao lobby'}
-                </Botao>
-                <p className="text-apoio text-texto-3">
-                  Mesma mesa, ninguém precisa entrar de novo. O placar zera na próxima — este aqui
-                  acabou de virar história.
-                </p>
-              </>
+              <Botao larguraTotal onClick={() => enviar({ t: 'novaPartida' })}>
+                {aguardando.length > 0
+                  ? `Voltar ao lobby com ${ativos.length + aguardando.length}`
+                  : 'Voltar ao lobby'}
+              </Botao>
             )}
           </>
         ) : (
@@ -169,7 +163,7 @@ export function DedoEncerrada({ projecao, enviar, aoSair, aoVoltarAoLobby, modo 
             )}
             <p className="text-apoio leading-snug text-texto-2">
               <strong className="font-semibold text-texto">{host?.apelido ?? 'O host'} decide</strong>{' '}
-              se tem próxima. Fique onde está — se começar outra, você entra automaticamente.
+              se tem próxima. Você entra junto.
             </p>
           </div>
         )}

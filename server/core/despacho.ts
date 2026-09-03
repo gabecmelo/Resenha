@@ -204,6 +204,9 @@ function configurar(
         parcial.espiao?.maxVotacoes === undefined
           ? sala.config.espiao.maxVotacoes
           : parcial.espiao.maxVotacoes,
+      expulsarContinua: parcial.espiao?.expulsarContinua ?? sala.config.espiao.expulsarContinua,
+      chuteDoEspiaoPego:
+        parcial.espiao?.chuteDoEspiaoPego ?? sala.config.espiao.chuteDoEspiaoPego,
     },
     cartas: {
       tempoEscolhaSeg:
@@ -358,6 +361,13 @@ function configEspiaoValida(parcial: Partial<ConfigEspiao>): boolean {
     if (votacao < TEMPO_VOTACAO_MIN_SEG || votacao > TEMPO_VOTACAO_MAX_SEG) return false
   }
   if (parcial.espioesSeVeem !== undefined && typeof parcial.espioesSeVeem !== 'boolean') return false
+  // `ESP-51`, `ESP-52`
+  if (parcial.expulsarContinua !== undefined && typeof parcial.expulsarContinua !== 'boolean') {
+    return false
+  }
+  if (parcial.chuteDoEspiaoPego !== undefined && typeof parcial.chuteDoEspiaoPego !== 'boolean') {
+    return false
+  }
   return true
 }
 

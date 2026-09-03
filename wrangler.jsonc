@@ -28,8 +28,11 @@
     }
   ],
 
-  // O funil (`FUN-08`). O dataset nasce no primeiro `writeDataPoint` — não há
-  // nada a provisionar antes, e nenhum id a colar aqui.
+  // O funil (`FUN-08`). O dataset nasce no primeiro `writeDataPoint` e não tem
+  // id pra colar aqui, mas o Analytics Engine precisa estar **habilitado na
+  // conta** — uma vez, no painel. Sem isso o `deploy` falha com o código 10089
+  // depois de subir os assets, o que faz o erro parecer de infra e não de
+  // config.
   //
   // Quem clona o repo e roda sem este binding joga igual: `registrar()` sai
   // calada quando `env.FUNIL` não existe (`FUN-07`). Isso também é o que faz o

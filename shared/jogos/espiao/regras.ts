@@ -49,7 +49,13 @@ export interface ResultadoVotacao {
   votosNoAcusado: number
   totalAtivos: number
   /** `ESP-41`…`ESP-50` — o que esta votação provocou. */
-  desfecho: 'rodadaVolta' | 'mesaPerdeu' | 'chuteDoEspiao' | 'tempoEsgotado'
+  desfecho:
+    | 'rodadaVolta'
+    | 'mesaPerdeu'
+    | 'chuteDoEspiao'
+    | 'tempoEsgotado'
+    | 'expulsaoSegue'
+    | 'mesaVenceu'
   final: boolean
 }
 
@@ -90,6 +96,14 @@ export interface EstadoEspiao {
   chutePendente: JogadorId | null
   /** `ESP-45` — o chute que aconteceu. `local` nulo = deixou o prazo vencer. */
   chuteFeito: { por: JogadorId; local: string | null; acertou: boolean } | null
+  /**
+   * `ESP-51` — quem a mesa expulsou e segue na sala sem estar na rodada.
+   *
+   * Mora aqui, e não numa `Situacao` nova do `core`: sair da rodada é regra
+   * deste jogo, e uma terceira situação no protocolo obrigaria os outros
+   * quatro a ter opinião sobre ela (`AD-002`, `AD-014`).
+   */
+  expulsos: JogadorId[]
   /** `ESP-49` — quem levou a partida; `null` enquanto ela corre. */
   vencedor: 'mesa' | 'espioes' | null
   /** `NOTA-02`-like — privado por jogador. */
@@ -132,6 +146,7 @@ export function estadoVazio(): EstadoEspiao {
     pool: [],
     votacoesDaMesa: 0,
     restanteDaRodadaMs: null,
+    expulsos: [],
     chutePendente: null,
     chuteFeito: null,
     vencedor: null,
@@ -258,6 +273,8 @@ function abrirVotacao(
 ): ResultadoReducer<EstadoEspiao> {
   if (ctx.fase !== 'jogo') return { ok: false, erro: 'FASE_INVALIDA' }
   if (!estado.rodadaIniciada) return { ok: false, erro: 'COMANDO_INVALIDO' }
+  // `ESP-51` — quem saiu da rodada não chama a mesa de volta pra tela.
+  if (estado.expulsos.includes(ctx.autorId)) return { ok: false, erro: 'COMANDO_INVALIDO' }
   // `ESP-37` — pausado é pausado pra todo mundo, inclusive pro host.
   if (estado.pausa !== null) return { ok: false, erro: 'COMANDO_INVALIDO' }
   if (estado.votacaoAberta !== null) return { ok: false, erro: 'COMANDO_INVALIDO' }
@@ -353,15 +370,19 @@ function votar(
   if (estado.pausa !== null) return { ok: false, erro: 'COMANDO_INVALIDO' } // `ESP-37`
   if (estado.votacaoAberta === null) return { ok: false, erro: 'COMANDO_INVALIDO' }
 
-  const ativosIds = jogadoresAtivos(ctx).map((j) => j.id)
-  if (alvoId !== null && !ativosIds.includes(alvoId)) return { ok: false, erro: 'COMANDO_INVALIDO' }
+  // `ESP-51` — quem saiu da rodada não vota nem é votado. Continua vendo a
+  // partida, e é só isso que lhe resta.
+  if (estado.expulsos.includes(ctx.autorId)) return { ok: false, erro: 'COMANDO_INVALIDO' }
+
+  const naMesa = naRodada(estado, ctx).map((j) => j.id)
+  if (alvoId !== null && !naMesa.includes(alvoId)) return { ok: false, erro: 'COMANDO_INVALIDO' }
 
   const novo = clonar(estado)
   const votacao = novo.votacaoAberta
   if (votacao === null) return { ok: false, erro: 'COMANDO_INVALIDO' }
   votacao.votos[ctx.autorId] = alvoId === null ? 'pular' : alvoId
 
-  if (todosAtivosConectadosVotaram(votacao, ctx)) return fecharVotacao(novo, ctx, ambiente)
+  if (todosAtivosConectadosVotaram(novo, votacao, ctx)) return fecharVotacao(novo, ctx, ambiente)
 
   return { ok: true, estado: novo, eventos: [], prazos: {} }
 }
@@ -381,7 +402,7 @@ function encerrarVotacao(
 }
 
 /**
- * `ESP-41`…`ESP-50` — a votação fecha e **decide a partida**.
+ * `ESP-41`…`ESP-52` — a votação fecha, e às vezes decide a partida.
  *
  * A regra é maioria simples: quem recebeu estritamente mais votos que qualquer
  * outra opção é expulso, sem piso nenhum — um voto basta se ninguém mais
@@ -390,6 +411,17 @@ function encerrarVotacao(
  *
  * O voto do próprio espião conta como qualquer outro: quem está infiltrado
  * também vota, às vezes até em si mesmo pra despistar.
+ *
+ * Duas configurações mudam o que a expulsão significa, e as duas nascem na
+ * regra do jogo de mesa:
+ *
+ * - `expulsarContinua` (`ESP-51`, padrão **ligado**) — errar o alvo numa
+ *   votação que a mesa chamou não entrega a partida: o inocente sai e quem
+ *   ficou continua. Na votação final não vale, porque não há rodada pra
+ *   continuar — ali o erro custa tudo, como sempre custou (`ESP-43`).
+ * - `chuteDoEspiaoPego` (`ESP-52`, padrão **desligado**) — o espião pego
+ *   ganha a última cartada de dizer o local. Desligado, cair é cair: a mesa
+ *   vence na hora.
  */
 function fecharVotacao(
   estado: EstadoEspiao,
@@ -399,7 +431,7 @@ function fecharVotacao(
   const votacao = estado.votacaoAberta
   if (votacao === null) return { ok: false, erro: 'COMANDO_INVALIDO' }
 
-  const totalAtivos = jogadoresAtivos(ctx).length
+  const totalAtivos = naRodada(estado, ctx).length
   const apuracao = apurar(votacao.votos)
   const acusado = apuracao.acusado
   const eraEspiao = acusado !== null && estado.espioes.includes(acusado)
@@ -407,16 +439,33 @@ function fecharVotacao(
   const novo = clonar(estado)
   novo.votacaoAberta = null
 
-  // `ESP-42`, `ESP-43`, `ESP-44`, `ESP-50` — quatro saídas, decididas aqui e
-  // não na tela (`AD-008`).
+  /*
+    Quantos continuariam jogando se este acusado saísse. É o que decide se a
+    rodada **pode** continuar: com menos de três não há jogo, e sem nenhum
+    não-espião os espiões já ganharam — continuar seria a mesa jogando contra
+    ninguém.
+  */
+  const sobrariam = naRodada(estado, ctx).filter((j) => j.id !== acusado)
+  const daMesaSobrando = sobrariam.filter((j) => !estado.espioes.includes(j.id)).length
+  const podeContinuarSem =
+    !votacao.final &&
+    ctx.config.espiao.expulsarContinua &&
+    sobrariam.length >= MIN_JOGADORES_ESPIAO &&
+    daMesaSobrando > 0
+
+  // `ESP-42`…`ESP-52` — as saídas, decididas aqui e não na tela (`AD-008`).
   const desfecho: ResultadoVotacao['desfecho'] =
     acusado === null
       ? votacao.final
         ? 'tempoEsgotado'
         : 'rodadaVolta'
       : eraEspiao
-        ? 'chuteDoEspiao'
-        : 'mesaPerdeu'
+        ? ctx.config.espiao.chuteDoEspiaoPego
+          ? 'chuteDoEspiao'
+          : 'mesaVenceu'
+        : podeContinuarSem
+          ? 'expulsaoSegue'
+          : 'mesaPerdeu'
 
   novo.resultadoVotacao = {
     votos: votacao.votos,
@@ -427,6 +476,35 @@ function fecharVotacao(
     totalAtivos,
     desfecho,
     final: votacao.final,
+  }
+
+  // `ESP-51` — o inocente sai e a mesa segue jogando sem ele.
+  if (desfecho === 'expulsaoSegue') {
+    novo.expulsos = [...novo.expulsos, acusado!]
+    return {
+      ok: true,
+      estado: novo,
+      eventos: [
+        {
+          texto: `A mesa expulsou ${apelidoNaMesa(ctx, acusado!)} — que não era espião. A rodada continua sem ele.`,
+        },
+      ],
+      prazos: { turno: ambiente.agora + JANELA_DE_RESULTADO_MS },
+    }
+  }
+
+  // `ESP-52` — pegou o espião e ele não tinha cartada nenhuma.
+  if (desfecho === 'mesaVenceu') {
+    novo.vencedor = 'mesa'
+    return {
+      ok: true,
+      estado: novo,
+      eventos: [
+        { texto: `A mesa expulsou ${apelidoNaMesa(ctx, acusado!)} — e era espião. A mesa venceu.` },
+      ],
+      prazos: { turno: null },
+      faseSeguinte: 'encerrada',
+    }
   }
 
   // `ESP-43` — acusou um inocente: acabou, e os espiões levaram.
@@ -594,8 +672,12 @@ function retomarRodada(estado: EstadoEspiao, ambiente: Ambiente): number | null 
   return ambiente.agora + estado.restanteDaRodadaMs
 }
 
-function todosAtivosConectadosVotaram(votacao: VotacaoAberta, ctx: ContextoDeSala): boolean {
-  const conectados = jogadoresAtivos(ctx).filter((j) => j.conectado)
+function todosAtivosConectadosVotaram(
+  estado: EstadoEspiao,
+  votacao: VotacaoAberta,
+  ctx: ContextoDeSala,
+): boolean {
+  const conectados = naRodada(estado, ctx).filter((j) => j.conectado)
   return conectados.length > 0 && conectados.every((j) => votacao.votos[j.id] !== undefined)
 }
 
@@ -726,7 +808,7 @@ function saiuJogador(
     return { ok: true, estado, eventos: [], prazos: {} }
   }
 
-  const restantes = jogadoresAtivos(ctx)
+  const restantes = naRodada(estado, ctx).filter((j) => j.id !== jogadorId)
   if (restantes.length < MIN_JOGADORES_ESPIAO) {
     return {
       ok: true,
@@ -745,6 +827,7 @@ function saiuJogador(
   const novo = clonar(estado)
   novo.prontos = novo.prontos.filter((id) => id !== jogadorId)
   novo.espioes = novo.espioes.filter((id) => id !== jogadorId)
+  novo.expulsos = novo.expulsos.filter((id) => id !== jogadorId)
   delete novo.notas[jogadorId]
   if (novo.votacaoAberta !== null) delete novo.votacaoAberta.votos[jogadorId]
   if (novo.comecaPerguntando === jogadorId) novo.comecaPerguntando = restantes[0].id
@@ -768,7 +851,7 @@ function saiuJogador(
   if (
     novo.pausa === null &&
     novo.votacaoAberta !== null &&
-    todosAtivosConectadosVotaram(novo.votacaoAberta, ctx)
+    todosAtivosConectadosVotaram(novo, novo.votacaoAberta, ctx)
   ) {
     return fecharVotacao(novo, ctx, ambiente)
   }
@@ -782,6 +865,17 @@ function saiuJogador(
 
 function jogadoresAtivos(ctx: ContextoDeSala): Jogador[] {
   return ctx.jogadores.filter((j) => j.situacao === 'ativo')
+}
+
+/**
+ * Quem ainda está **jogando** (`ESP-51`).
+ *
+ * `jogadoresAtivos` responde "quem está na sala"; esta responde "quem está na
+ * rodada". A diferença são os expulsos, que continuam na sala, veem tudo e não
+ * jogam mais — e é esta a lista que manda em votar, ser votado e contar mesa.
+ */
+function naRodada(estado: EstadoEspiao, ctx: ContextoDeSala): Jogador[] {
+  return jogadoresAtivos(ctx).filter((j) => !estado.expulsos.includes(j.id))
 }
 
 function todosProntos(estado: EstadoEspiao, ctx: ContextoDeSala): boolean {

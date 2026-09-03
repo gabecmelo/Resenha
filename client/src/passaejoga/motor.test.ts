@@ -153,6 +153,9 @@ describe('iniciar', () => {
         modoPacote: 'pacote',
         pacoteIds: ['locais-classicos'],
         ordemTurnos: 'sorteada',
+        // `QSE-07` — a mesa pede relógio de turno; num aparelho só não há vez
+        // pra cronometrar, e a coordenação vence a config como nas outras.
+        tempoTurnoSeg: 60,
         espiao: { ...CONFIG_PADRAO.espiao, visibilidadeVoto: 'tempoReal' },
         enigmas: { ...CONFIG_PADRAO.enigmas, modoPergunta: 'fila' },
         dedo: { ...CONFIG_PADRAO.dedo, votacao: 'secreta' },
@@ -166,12 +169,14 @@ describe('iniciar', () => {
         modoPergunta: resultado.valor.sala.config.enigmas.modoPergunta,
         visibilidadeVoto: resultado.valor.sala.config.espiao.visibilidadeVoto,
         votacaoDoDedo: resultado.valor.sala.config.dedo.votacao,
+        tempoTurnoSeg: resultado.valor.sala.config.tempoTurnoSeg,
       },
     ).toEqual({
       ordemTurnos: 'entrada',
       modoPergunta: 'voz',
       visibilidadeVoto: 'oculta',
       votacaoDoDedo: 'aberta',
+      tempoTurnoSeg: null,
     })
   })
 
