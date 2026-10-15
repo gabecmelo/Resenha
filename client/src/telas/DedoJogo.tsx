@@ -107,7 +107,7 @@ export function DedoJogo({ projecao, enviar, enviarComo, aoSair, modo = 'sala' }
                 ? `Foi você, com ${contarDedos(dedo.vencedor.votos)}. Boa sorte se explicando.`
                 : `${dedo.vencedor?.apelido} levou a carta com ${contarDedos(dedo.vencedor?.votos ?? 0)}.`
             : local
-              ? 'Contem até três e apontem. Depois toque em quem levou.'
+              ? 'Contem até três e apontem.'
               : souEspectador
                 ? 'Você entrou no meio — assista esta e entra na próxima partida.'
                 : dedo.meuVoto === null
@@ -153,6 +153,11 @@ export function DedoJogo({ projecao, enviar, enviarComo, aoSair, modo = 'sala' }
             só do host: não há narrador aqui, e a mesa inteira parada esperando
             uma pessoa clicar mata o ritmo de uma rodada de quinze segundos.
           */}
+          {/*
+            Num aparelho só a instrução mora junto da ação: a faixa diz o que
+            fazer e a lista diz onde tocar. Terceira frase aqui era repetição.
+            O espaçador guarda o ⋯ do host à direita.
+          */}
           {apurando ? (
             <div className="min-w-0 flex-1">
               <Botao
@@ -164,17 +169,14 @@ export function DedoJogo({ projecao, enviar, enviarComo, aoSair, modo = 'sala' }
                 Próxima carta
               </Botao>
             </div>
+          ) : local && !souEspectador ? (
+            <div className="min-w-0 flex-1" />
           ) : (
             <p className="min-w-0 flex-1 text-apoio leading-snug text-texto-2">
               {souEspectador ? (
                 <>
                   <strong className="font-semibold text-texto">Você está de fora.</strong> A mesa
                   está apontando.
-                </>
-              ) : local ? (
-                <>
-                  <strong className="font-semibold text-texto">Os dedos são de verdade.</strong>{' '}
-                  Contem juntos e apontem; o celular só guarda quem levou.
                 </>
               ) : dedo.votacao === 'secreta' ? (
                 <>
@@ -416,20 +418,11 @@ function AMesa({
         })}
       </ul>
 
-      {!apurando && (
+      {!apurando && !local && (
         <p className="text-apoio leading-snug text-texto-3">
-          {local ? (
-            <>
-              Os dedos sobem na mesa, não na tela. Quem levou mais dedos que qualquer outro fica com
-              a carta — <strong className="font-semibold text-texto">toque no nome dele</strong>.
-            </>
-          ) : (
-            <>
-              Trocar o dedo de lugar é permitido até a contagem fechar. Leva a carta quem tiver{' '}
-              <strong className="font-semibold text-texto">mais dedos que qualquer outro</strong> —
-              empatou no topo, ninguém pontua.
-            </>
-          )}
+          Trocar o dedo de lugar é permitido até a contagem fechar. Leva a carta quem tiver{' '}
+          <strong className="font-semibold text-texto">mais dedos que qualquer outro</strong> —
+          empatou no topo, ninguém pontua.
         </p>
       )}
     </section>

@@ -30,7 +30,13 @@ export function Encerrada({ projecao, enviar, aoSair, aoVoltarAoLobby, modo = 's
   const aguardando = jogadores.filter((jogador) => jogador.situacao === 'aguardando')
   const host = jogadores.find((jogador) => jogador.id === sala.hostId)
   const outros = ativos.filter((jogador) => jogador.id !== eu.id)
-  const naGrade = eu.minhaCarta === undefined ? ativos : outros
+  /*
+    `QSE-01` — num aparelho só não existe "a sua carta": o celular ficou na
+    mesa a partida inteira e a projeção é de quem calhou de estar com ele. As
+    cartas caem todas na mesma grade, pra mesa ler em voz alta.
+  */
+  const daMesa = modo === 'local' || eu.minhaCarta === undefined
+  const naGrade = daMesa ? ativos : outros
 
   return (
     <Shell
@@ -47,12 +53,17 @@ export function Encerrada({ projecao, enviar, aoSair, aoVoltarAoLobby, modo = 's
         <div className="flex flex-col gap-5">
           <TiraDePacotes pacotes={sala.pacotesSelecionados} />
 
-          {eu.minhaCarta === undefined ? <ForaDestaRodada /> : <VoceEra texto={eu.minhaCarta} />}
+          {modo !== 'local' &&
+            (eu.minhaCarta === undefined ? (
+              <ForaDestaRodada />
+            ) : (
+              <VoceEra texto={eu.minhaCarta} />
+            ))}
 
           <section className="flex flex-col gap-2.5">
             <div className="flex items-baseline justify-between gap-3">
               <h2 className="font-display text-secao text-texto">
-                {eu.minhaCarta === undefined ? 'As cartas da mesa' : 'O resto da mesa'}
+                {daMesa ? 'As cartas da mesa' : 'O resto da mesa'}
               </h2>
               <span className="font-mono text-rotulo text-texto-3 uppercase">leia em voz alta</span>
             </div>
@@ -64,7 +75,7 @@ export function Encerrada({ projecao, enviar, aoSair, aoVoltarAoLobby, modo = 's
                     cor={jogador.cor}
                     texto={jogador.carta}
                     descobriu={jogador.descobriu}
-                    ehHost={jogador.id === sala.hostId}
+                    ehHost={modo !== 'local' && jogador.id === sala.hostId}
                     conectado={jogador.conectado}
                   />
                 </li>
@@ -120,17 +131,11 @@ export function Encerrada({ projecao, enviar, aoSair, aoVoltarAoLobby, modo = 's
                 aoVoltarAoLobby={() => aoVoltarAoLobby?.()}
               />
             ) : (
-              <>
-                <Botao larguraTotal onClick={() => enviar({ t: 'novaPartida' })}>
-                  {aguardando.length > 0
-                    ? `Voltar ao lobby com ${ativos.length + aguardando.length}`
-                    : 'Voltar ao lobby'}
-                </Botao>
-                <p className="text-apoio text-texto-3">
-                  Mesma mesa, ninguém precisa entrar de novo. No lobby você escolhe as regras da
-                  próxima ou troca de jogo — e as anotações desta partida somem.
-                </p>
-              </>
+              <Botao larguraTotal onClick={() => enviar({ t: 'novaPartida' })}>
+                {aguardando.length > 0
+                  ? `Voltar ao lobby com ${ativos.length + aguardando.length}`
+                  : 'Voltar ao lobby'}
+              </Botao>
             )}
           </>
         ) : (
@@ -142,7 +147,7 @@ export function Encerrada({ projecao, enviar, aoSair, aoVoltarAoLobby, modo = 's
               <strong className="font-semibold text-texto">
                 {host?.apelido ?? 'O host'} decide
               </strong>{' '}
-              se tem próxima partida. Fique onde está — se começar outra, você entra automaticamente.
+              se tem próxima partida. Você entra junto.
             </p>
           </div>
         )}

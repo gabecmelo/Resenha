@@ -39,6 +39,7 @@ function jogoDe(over: Partial<EstadoEspiao> = {}): EstadoEspiao {
     pool: ['Submarino', 'Praia', 'Escola'],
     votacoesDaMesa: 0,
     restanteDaRodadaMs: null,
+    expulsos: [],
     chutePendente: null,
     chuteFeito: null,
     vencedor: null,

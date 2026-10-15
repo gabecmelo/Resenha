@@ -56,13 +56,14 @@ export interface PropsDaTela {
  * passar por tela nenhuma. Quem quiser trocar de jogo ou mexer nas regras tem
  * o lobby da mesa ao lado (`PJ2-22`) — que também não pede os nomes de volta.
  *
- * Mora aqui, e não em cada tela de encerramento, porque a frase é a mesma nas
+ * Mora aqui, e não em cada tela de encerramento, porque o rótulo é o mesmo nas
  * quatro: quatro cópias divergiriam na primeira correção de texto.
+ *
+ * Só o rótulo. A explicação que existia aqui dizia o que "jogar de novo" já
+ * diz.
  */
 export const DE_NOVO_NO_APARELHO = {
   rotulo: 'Jogar de novo',
-  explicacao:
-    'Mesma mesa, mesma ordem da roda, mesmas cores — ninguém redigita nome nenhum. O que zera é o placar.',
 } as const
 
 /**

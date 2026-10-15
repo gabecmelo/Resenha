@@ -102,8 +102,7 @@ export function EspiaoTodosProntos({
           <span className="selo bg-acento text-acento-contraste">todo mundo já viu</span>
           <h1 className="font-display text-display text-balance text-texto">Todos prontos?</h1>
           <p className="text-corpo text-texto-3">
-            O aparelho deu a volta e cada um sabe o que precisa saber. Deixe o celular no meio da
-            mesa — daqui pra frente ele é só o relógio.
+            Deixe o celular no meio da mesa — daqui pra frente ele é só o relógio.
           </p>
         </div>
 
@@ -119,8 +118,7 @@ export function EspiaoTodosProntos({
         </section>
 
         <p className="text-apoio leading-snug text-texto-3">
-          O relógio só começa quando alguém tocar aqui embaixo. As perguntas correm em voz alta,
-          de qualquer um pra qualquer um — o aparelho fica parado.
+          As perguntas correm em voz alta, de qualquer um pra qualquer um.
         </p>
       </div>
 

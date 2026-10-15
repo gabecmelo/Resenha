@@ -139,6 +139,21 @@ export interface ConfigEspiao {
    * consome esse limite: ela não é uma escolha da mesa.
    */
   maxVotacoes: number | null
+  /**
+   * `ESP-51` — expulsar um inocente **não** acaba a partida: ele só sai da
+   * rodada, e quem ficou continua jogando. Padrão `true`, que é a regra do
+   * jogo de mesa.
+   *
+   * Vale só para votação que a mesa chamou. Na final o erro custa a partida
+   * como sempre custou (`ESP-43`): ela é a última, não há rodada pra continuar.
+   */
+  expulsarContinua: boolean
+  /**
+   * `ESP-52` — o espião pego ganha uma última cartada: dizer o local e virar
+   * a partida (`ESP-44`, `ESP-45`). Padrão `false` — no jogo de mesa, quem foi
+   * pego foi pego.
+   */
+  chuteDoEspiaoPego: boolean
 }
 
 /** `ESP-01` — a partir desta mesa o automático passa a sortear 2 espiões. */
@@ -157,6 +172,8 @@ export const CONFIG_ESPIAO_PADRAO: ConfigEspiao = {
   tempoRodadaSeg: 300,
   tempoVotacaoSeg: 60,
   maxVotacoes: 2,
+  expulsarContinua: true,
+  chuteDoEspiaoPego: false,
 }
 
 /**
@@ -599,6 +616,12 @@ export interface ProjecaoEspiao {
   chuteFeito?: { espiao: { id: JogadorId; apelido: string }; local: string | null; acertou: boolean }
   /** `ESP-49` — quem levou a partida. Presente só na fase `encerrada`. */
   vencedor?: 'mesa' | 'espioes'
+  /**
+   * `ESP-51` — quem a mesa expulsou e continua na sala sem estar na rodada.
+   * Vai pra todo mundo: quem foi expulso é público, ao contrário de quem é
+   * espião.
+   */
+  expulsos: JogadorId[]
 }
 
 /**
@@ -623,7 +646,15 @@ export interface ResultadoDaVotacao {
    * pra saber se a rodada volta, se a partida acabou ou se o espião ainda tem
    * uma cartada; nenhuma tela recalcula isso (`AD-008`).
    */
-  desfecho: 'rodadaVolta' | 'mesaPerdeu' | 'chuteDoEspiao' | 'tempoEsgotado'
+  desfecho:
+    | 'rodadaVolta'
+    | 'mesaPerdeu'
+    | 'chuteDoEspiao'
+    | 'tempoEsgotado'
+    /** `ESP-51` — o acusado saiu e a rodada continua sem ele. */
+    | 'expulsaoSegue'
+    /** `ESP-52` — o espião caiu e não tinha cartada: a mesa venceu ali. */
+    | 'mesaVenceu'
   /** `ESP-49` — esta votação foi a final (aberta pelo relógio da rodada). */
   final: boolean
   /**

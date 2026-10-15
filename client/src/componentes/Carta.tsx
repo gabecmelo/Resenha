@@ -21,6 +21,15 @@ export interface PropsDaCarta {
   conectado?: boolean
   /** `VIS-02` — forma enxuta, para a mesa de 20 caber em 360px. */
   compacta?: boolean
+  /**
+   * `QSE-02` — fechada porque a mesa a fechou, e não porque é sua.
+   *
+   * Num aparelho só não existe "a minha carta": o celular é da mesa e todas as
+   * cartas nascem viradas. O verso é o mesmo papel hachurado; o que muda é a
+   * palavra impressa nele, porque "você descobre" fala com um dono que ali não
+   * há.
+   */
+  virada?: boolean
 }
 
 /**
@@ -44,8 +53,9 @@ export function Carta({
   ehAVezDele = false,
   conectado = true,
   compacta = false,
+  virada = false,
 }: PropsDaCarta) {
-  const selada = ehVoce && texto === undefined
+  const selada = virada || (ehVoce && texto === undefined)
   const apagada = descobriu && !ehVoce
 
   const marca = ehAVezDele
@@ -95,9 +105,9 @@ export function Carta({
       {selada ? (
         <span className="verso-secreto flex flex-1 flex-col items-center justify-center gap-1 px-2 py-2 text-center">
           <span className="font-mono text-compacto-apoio tracking-[0.14em] text-acento uppercase">
-            a mesa sabe
+            {virada ? 'na testa' : 'a mesa sabe'}
           </span>
-          {!compacta && (
+          {!compacta && !virada && (
             <span className="font-mono text-compacto-apoio tracking-[0.14em] text-acento uppercase">
               você descobre
             </span>

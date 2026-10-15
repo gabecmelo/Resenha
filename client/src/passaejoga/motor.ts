@@ -359,6 +359,12 @@ function configLocal(parcial: Partial<Config>): Config {
     ...CONFIG_PADRAO,
     ...parcial,
     ordemTurnos: 'entrada',
+    /*
+      `QSE-07` — num aparelho só o "Quem Sou Eu?" não tem vez, então não tem
+      o que cronometrar: a mesa pergunta em voz alta e o celular fica virado
+      na mesa. A opção também não aparece no formulário local (`PJ-09`).
+    */
+    tempoTurnoSeg: null,
     // `PJ2-06` — cada um escreve a carta de quem vai receber o aparelho. É o
     // que mantém a passagem entre vizinhos: com pares sorteados o celular
     // atravessaria a mesa a cada carta escrita.

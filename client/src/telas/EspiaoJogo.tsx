@@ -45,6 +45,15 @@ export function EspiaoJogo({ projecao, enviar, enviarComo, aoSair, modo = 'sala'
   const { sala, eu, jogadores } = projecao
   const espiao = projecao.jogo?.espiao
   const ativos = jogadores.filter((jogador) => jogador.situacao === 'ativo')
+  /*
+    `ESP-51` — quem a mesa expulsou continua vendo a partida e não joga mais:
+    não vota, não é votado, não entra na conta da votação. Daqui pra baixo,
+    tudo que é votação fala em `naRodada`; `ativos` continua servindo pra
+    achar nome de gente que já saiu.
+  */
+  const expulsos = projecao.jogo?.espiao?.expulsos ?? []
+  const naRodada = ativos.filter((jogador) => !expulsos.includes(jogador.id))
+  const fuiExpulso = expulsos.includes(eu.id)
   const [confirmandoEncerrar, setConfirmandoEncerrar] = useState(false)
   const [confirmandoVotacao, setConfirmandoVotacao] = useState(false)
   const [menuDeHost, setMenuDeHost] = useState(false)
@@ -168,9 +177,11 @@ export function EspiaoJogo({ projecao, enviar, enviarComo, aoSair, modo = 'sala'
                   : 'A mesa errou — a rodada volta em instantes.'
               : votacao !== undefined
                 ? `${votacao.quantosVotaram} de ${votacao.total} já votaram · sem mais perguntas`
-                : acabando
-                  ? 'A votação abre sozinha no zero.'
-                  : 'Pergunte, responda, e desconfie de todo mundo.'}
+                : fuiExpulso
+                  ? 'A mesa te expulsou. Você acompanha, mas não joga mais.'
+                  : acabando
+                    ? 'A votação abre sozinha no zero.'
+                    : 'Pergunte, responda, e desconfie de todo mundo.'}
         </FaixaDeFase>
       }
       aoSair={aoSair}
@@ -202,6 +213,31 @@ export function EspiaoJogo({ projecao, enviar, enviarComo, aoSair, modo = 'sala'
           )}
 
           {/*
+            `ESP-51` — quem saiu continua na mesa, e a mesa precisa lembrar
+            disso: é uma pessoa a menos pra desconfiar e um voto a menos pra
+            contar.
+          */}
+          {expulsos.length > 0 && (
+            <section className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-papel border border-dashed border-linha px-3.5 py-3">
+              <span className="font-mono text-rotulo text-texto-3 uppercase">fora da rodada</span>
+              <ul className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                {expulsos.map((id) => {
+                  const quem = jogadores.find((jogador) => jogador.id === id)
+                  if (quem === undefined) return null
+                  return (
+                    <li key={id} className="flex items-center gap-1.5">
+                      <MarcadorDeJogador apelido={quem.apelido} cor={quem.cor} tamanho="miudo" />
+                      <span className="text-apoio font-semibold text-texto-2 line-through">
+                        {quem.apelido}
+                      </span>
+                    </li>
+                  )
+                })}
+              </ul>
+            </section>
+          )}
+
+          {/*
             `PJ-27` — num aparelho só o papel **não** aparece aqui. Com o
             relógio correndo o celular fica parado no meio da mesa, à vista de
             todo mundo: um painel com o nome do local seria o espião lendo a
@@ -224,7 +260,12 @@ export function EspiaoJogo({ projecao, enviar, enviarComo, aoSair, modo = 'sala'
               <Apurando rotulo="votação encerrada" texto="Contando os votos…" />
             ) : (
               <>
-                <ResultadoDaVotacao resultado={resultado} jogadores={jogadores} euId={eu.id} />
+                <ResultadoDaVotacao
+                  resultado={resultado}
+                  jogadores={jogadores}
+                  euId={eu.id}
+                  expulsos={expulsos}
+                />
                 {chute !== undefined && (
                   <ChuteDoEspiao
                     chute={chute}
@@ -243,10 +284,10 @@ export function EspiaoJogo({ projecao, enviar, enviarComo, aoSair, modo = 'sala'
           ) : modo === 'local' ? null : (
             <Votacao
               votacao={votacao}
-              ativos={ativos}
+              ativos={naRodada}
               euId={eu.id}
-              pausada={pausadaPor !== undefined}
-              comBusca={ativos.length > MESA_GRANDE}
+              pausada={pausadaPor !== undefined || fuiExpulso}
+              comBusca={naRodada.length > MESA_GRANDE}
               enviar={enviar}
             />
           )}
@@ -398,14 +439,15 @@ export function EspiaoJogo({ projecao, enviar, enviarComo, aoSair, modo = 'sala'
           rotuloDesistir={votacao === undefined ? 'Ainda não decidimos' : 'Não acusar ninguém'}
           aoAcusar={(alvoId) => {
             if (votacao === undefined) enviar({ t: 'abrirVotacao' })
-            for (const jogador of ativos) enviarComo?.(jogador.id, { t: 'votar', alvoId })
+            for (const jogador of naRodada) enviarComo?.(jogador.id, { t: 'votar', alvoId })
             setConfirmandoVotacao(false)
           }}
           aoDesistir={() => {
             // Com a votação já aberta pelo relógio não há pra onde voltar: a
             // saída é a mesa dizer que não acusa ninguém, que o jogo já prevê.
             if (votacao !== undefined) {
-              for (const jogador of ativos) enviarComo?.(jogador.id, { t: 'votar', alvoId: null })
+              for (const jogador of naRodada)
+                enviarComo?.(jogador.id, { t: 'votar', alvoId: null })
             }
             setConfirmandoVotacao(false)
           }}

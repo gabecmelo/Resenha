@@ -108,11 +108,12 @@ export function Mesa({
             `PJ-07` — a ordem digitada é a ordem de passagem. Dito antes dos
             campos, e com o porquê junto: sem o motivo a mesa digita na ordem
             em que lembra dos nomes, e aí o aparelho atravessa a mesa a cada
-            volta em vez de andar de vizinho pra vizinho.
+            volta em vez de andar de vizinho pra vizinho. O porquê cabe numa
+            oração — a frase que o repetia com outras palavras saiu.
           */}
           <p className="text-corpo text-texto-3">
             Escreva na ordem da roda, do seu lado esquerdo pro direito. É por ela que o aparelho
-            vai circular — assim ele só anda de vizinho pra vizinho.
+            vai circular.
           </p>
         </div>
 

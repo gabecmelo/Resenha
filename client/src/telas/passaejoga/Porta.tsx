@@ -36,7 +36,7 @@ export function Porta({
             O que a mesa vai jogar?
           </h1>
           <p className="text-corpo text-texto-3">
-            O aparelho passa de mão em mão. Ninguém entra em link, ninguém digita código.
+            O aparelho passa de mão em mão.
           </p>
         </div>
 
